@@ -38,18 +38,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputSupabaseKey = document.getElementById('input-supabase-key');
 
   // Initialize Dashboard
-  async function initDashboard() {
-    cachedThreads = await messageService.fetchThreads();
-    updateStudioMetrics();
-
-    // Auto-select first thread matching filter
-    const matching = cachedThreads.filter(t => t.status === studioFilter);
-    if (matching.length > 0) {
-      studioSelectedThreadId = matching[0].id;
-    }
-
+  function initDashboard() {
     renderStudioSidebar();
     renderStudioMain();
+
+    messageService.fetchThreads().then(threads => {
+      cachedThreads = threads;
+      updateStudioMetrics();
+
+      // Auto-select first thread matching filter
+      const matching = cachedThreads.filter(t => t.status === studioFilter);
+      if (matching.length > 0) {
+        studioSelectedThreadId = matching[0].id;
+      }
+
+      renderStudioSidebar();
+      renderStudioMain();
+    });
   }
 
   function updateStudioMetrics() {

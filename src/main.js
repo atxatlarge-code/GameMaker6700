@@ -608,15 +608,24 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 50);
   }
 
-  async function openMailbox() {
+  function openMailbox() {
     messagesOverlay.classList.remove('hidden');
-    cachedThreads = await messageService.fetchThreads();
     if (!activeThreadId && cachedThreads.length > 0) {
       activeThreadId = cachedThreads[0].id;
     }
     renderThreadsSidebar();
     renderChatView();
     updateUnreadBadges();
+
+    messageService.fetchThreads().then(threads => {
+      cachedThreads = threads;
+      if (!activeThreadId && cachedThreads.length > 0) {
+        activeThreadId = cachedThreads[0].id;
+      }
+      renderThreadsSidebar();
+      renderChatView();
+      updateUnreadBadges();
+    });
   }
 
   btnMessagesMenu.addEventListener('click', openMailbox);
