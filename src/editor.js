@@ -28,6 +28,7 @@ export class Editor {
 
   initListeners() {
     this.canvas.addEventListener('mousedown', (e) => {
+      if (this.engine && this.engine.mode === CONFIG.MODE_PLAY) return;
       this.isMouseDown = true;
       this.lastMouseX = e.clientX;
       this.lastMouseY = e.clientY;
@@ -35,6 +36,7 @@ export class Editor {
     });
 
     this.canvas.addEventListener('mousemove', (e) => {
+      if (this.engine && this.engine.mode === CONFIG.MODE_PLAY) return;
       this.lastMouseX = e.clientX;
       this.lastMouseY = e.clientY;
       this.updateHover();
@@ -66,6 +68,11 @@ export class Editor {
   }
 
   updateHover() {
+    if (this.engine && this.engine.mode === CONFIG.MODE_PLAY) {
+      this.hoverCol = -1;
+      this.hoverRow = -1;
+      return;
+    }
     const { col, row } = this.getGridCoords();
     if (col >= 0 && col < CONFIG.GRID_COLS && row >= 0 && row < CONFIG.GRID_ROWS) {
       this.hoverCol = col;
@@ -77,6 +84,7 @@ export class Editor {
   }
 
   handleInput() {
+    if (this.engine && this.engine.mode === CONFIG.MODE_PLAY) return;
     const { col, row } = this.getGridCoords();
     if (col < 0 || col >= CONFIG.GRID_COLS || row < 0 || row >= CONFIG.GRID_ROWS) return;
 

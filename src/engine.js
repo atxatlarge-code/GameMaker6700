@@ -57,6 +57,11 @@ export class Engine {
       if (panControls) panControls.classList.add('hidden');
       this.resetPlayer();
       this.hasWon = false;
+      if (this.editor) {
+        this.editor.isMouseDown = false;
+        this.editor.hoverCol = -1;
+        this.editor.hoverRow = -1;
+      }
     } else {
       if (panControls) panControls.classList.remove('hidden');
     }

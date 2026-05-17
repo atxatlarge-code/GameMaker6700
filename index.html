@@ -25,17 +25,10 @@
           <div class="console-header">
             <span class="jerry-lawson-text">GAME MAKER 6700</span>
             <div class="console-actions">
-              <div class="music-selector menu-music" title="Select Background Music">
-                <button id="btn-toggle-menu-music" class="music-toggle-btn" title="Play/Pause Music"><i class="fa-solid fa-circle-play"></i></button>
-                <select id="menu-music-select" class="music-dropdown">
-                  <option value="none">🔇 Off</option>
-                  <option value="mario">🍄 Plumber's Anthem</option>
-                  <option value="adventure">⚔️ 8-Bit Adventure</option>
-                  <option value="lullaby">🍃 Chiptune Lullaby</option>
-                  <option value="bonjovi">🎸 Livin' on a Player</option>
-                  <option value="blackeyedpeas">🥊 Tonight's Gonna be a Good Fight</option>
-                </select>
-              </div>
+              <button id="btn-messages-menu" class="console-btn red-btn" title="Player Messages & Feedback">
+                <i class="fa-solid fa-envelope"></i>
+                <span id="badge-menu" class="mail-badge hidden"></span>
+              </button>
               <button id="btn-share-level" class="console-btn red-btn" title="Share Level"><i class="fa-solid fa-share-nodes"></i></button>
               <button id="btn-dup-level" class="console-btn red-btn" title="Duplicate Level"><i class="fa-solid fa-copy"></i></button>
               <button id="btn-del-level" class="console-btn red-btn danger" title="Delete Level"><i class="fa-solid fa-trash"></i></button>
@@ -146,6 +139,10 @@
             <button id="btn-edit-mode" class="mode-btn active"><i class="fa-solid fa-pen-ruler"></i> Edit</button>
             <button id="btn-play-mode" class="mode-btn play"><i class="fa-solid fa-play"></i> Play</button>
           </div>
+          <button id="btn-messages-editor" class="nav-menu-btn" title="Open Mailbox">
+            <i class="fa-solid fa-envelope"></i> Chat
+            <span id="badge-editor" class="mail-badge hidden"></span>
+          </button>
           <button id="btn-menu" class="nav-menu-btn"><i class="fa-solid fa-gamepad"></i> Menu</button>
         </div>
       </header>
@@ -230,6 +227,135 @@
         <div class="modal-buttons">
           <button id="btn-save-name" class="primary-btn"><i class="fa-solid fa-check"></i> Save</button>
           <button id="btn-cancel-name" class="secondary-btn"><i class="fa-solid fa-xmark"></i> Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MESSAGES OVERLAY MODAL -->
+    <div id="messages-overlay" class="overlay hidden">
+      <div class="overlay-modal wide-modal messages-modal">
+        <div class="modal-top-bar">
+          <div class="modal-title-area">
+            <i class="fa-solid fa-comments title-icon"></i>
+            <h2>Community Mailbox</h2>
+          </div>
+          <div class="persona-switcher">
+            <span>Chatting as:</span>
+            <button id="persona-player" class="persona-pill active"><i class="fa-solid fa-gamepad"></i> Player</button>
+            <button id="persona-creator" class="persona-pill"><i class="fa-solid fa-wand-magic-sparkles"></i> Creator</button>
+          </div>
+          <div class="modal-right-actions">
+            <button id="btn-cloud-settings" class="icon-btn-subtle" title="Cloud Database Settings"><i class="fa-solid fa-cloud"></i></button>
+            <button id="btn-close-messages" class="icon-btn-subtle close-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+        
+        <div class="messages-modal-body">
+          <!-- Left sidebar: Thread List -->
+          <div class="threads-sidebar">
+            <div class="sidebar-header">
+              <h3>Conversations</h3>
+              <button id="btn-new-thread" class="primary-btn mini-btn player-only"><i class="fa-solid fa-plus"></i> New</button>
+            </div>
+            <div id="thread-list-container" class="thread-list">
+              <!-- Dynamically populated thread items -->
+            </div>
+          </div>
+          
+          <!-- Right area: Chat View / New Thread Form -->
+          <div class="chat-main-area">
+            <!-- Empty / Unselected State -->
+            <div id="chat-empty-state" class="chat-view-panel">
+              <i class="fa-solid fa-envelope-open-text empty-chat-icon"></i>
+              <h3>Select a conversation</h3>
+              <p>Choose a discussion from the left or start a new one to chat with the creator!</p>
+            </div>
+
+            <!-- Active Conversation State -->
+            <div id="chat-active-state" class="chat-view-panel hidden">
+              <div class="chat-header">
+                <div class="chat-header-info">
+                  <span id="chat-level-badge" class="level-tag">Mushroom Forest</span>
+                  <h3 id="chat-title">How do I reach the high doorway?</h3>
+                  <span id="chat-author-sub">by Chihiro101</span>
+                </div>
+                <button id="btn-resolve-thread" class="secondary-btn mini-btn creator-only" title="Mark Resolved"><i class="fa-solid fa-check"></i> Resolve</button>
+              </div>
+              <div id="chat-messages-container" class="chat-messages-history">
+                <!-- Dynamically populated chat bubbles -->
+              </div>
+              <div class="chat-input-area">
+                <input type="text" id="input-reply-text" class="chat-input" placeholder="Type your reply..." />
+                <button id="btn-send-reply" class="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+              </div>
+            </div>
+
+            <!-- New Thread Form State -->
+            <div id="new-thread-state" class="chat-view-panel new-thread-form hidden">
+              <h3>Start a Conversation</h3>
+              <p>Found a bug, have a question, or want to share feedback? Leave a message for the game creator!</p>
+              <div class="form-group">
+                <label>Your Nickname / Handle</label>
+                <input type="text" id="input-player-name" class="modal-input form-input" placeholder="e.g. MarioFan99" maxlength="24" />
+              </div>
+              <div class="form-group">
+                <label>Game Level</label>
+                <select id="select-thread-level" class="modal-select form-input">
+                  <!-- Dynamically populated levels -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Subject / Topic</label>
+                <input type="text" id="input-thread-title" class="modal-input form-input" placeholder="e.g. High jump trampoline bug" maxlength="60" />
+              </div>
+              <div class="form-group">
+                <label>Message</label>
+                <textarea id="input-thread-msg" class="modal-textarea form-input" placeholder="Explain your feedback or question..." rows="4"></textarea>
+              </div>
+              <div class="modal-buttons form-actions">
+                <button id="btn-submit-thread" class="primary-btn"><i class="fa-solid fa-paper-plane"></i> Send Message</button>
+                <button id="btn-cancel-thread" class="secondary-btn">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLOUD SETTINGS OVERLAY MODAL -->
+    <div id="cloud-settings-overlay" class="overlay hidden">
+      <div class="overlay-modal cloud-settings-modal">
+        <h2>Cloud Sync Settings</h2>
+        <p>Connect your game to Supabase so you can receive player messages instantly across the internet!</p>
+        
+        <div class="form-group text-left">
+          <label>Supabase REST URL</label>
+          <input type="text" id="input-supabase-url" class="modal-input form-input" placeholder="https://your-project.supabase.co" />
+        </div>
+        <div class="form-group text-left">
+          <label>Supabase Anon Key / API Key</label>
+          <input type="password" id="input-supabase-key" class="modal-input form-input" placeholder="eyJhbGciOiJIUzI1NiIsIn..." />
+        </div>
+
+        <div class="sql-box-container">
+          <div class="sql-box-header">
+            <span>Required Table Schema</span>
+          </div>
+          <pre class="sql-box"><code>create table gm6700_messages (
+  id text primary key,
+  level_id text,
+  level_name text,
+  title text,
+  player_name text,
+  created_at bigint,
+  status text,
+  messages jsonb
+);</code></pre>
+        </div>
+
+        <div class="modal-buttons">
+          <button id="btn-save-cloud" class="primary-btn"><i class="fa-solid fa-check"></i> Save & Sync</button>
+          <button id="btn-cancel-cloud" class="secondary-btn"><i class="fa-solid fa-xmark"></i> Cancel</button>
         </div>
       </div>
     </div>

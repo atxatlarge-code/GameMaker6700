@@ -4,6 +4,7 @@ import { Editor } from './editor.js';
 import { Engine } from './engine.js';
 import { LevelManager } from './levels.js';
 import { audio } from './audio.js';
+import { messageService } from './messages.js';
 
 // Load Assets object
 const assets = {
@@ -183,28 +184,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Music Selection Setup
   const musicSelect = document.getElementById('music-select');
-  const menuMusicSelect = document.getElementById('menu-music-select');
   const btnToggleMusic = document.getElementById('btn-toggle-music');
-  const btnToggleMenuMusic = document.getElementById('btn-toggle-menu-music');
 
   audio.onStateChange = (isPlaying, trackKey) => {
     if (musicSelect && trackKey) musicSelect.value = trackKey;
-    if (menuMusicSelect && trackKey) menuMusicSelect.value = trackKey;
     
     const iconHtml = isPlaying ? '<i class="fa-solid fa-circle-pause"></i>' : '<i class="fa-solid fa-circle-play"></i>';
     if (btnToggleMusic) {
       btnToggleMusic.innerHTML = iconHtml;
       btnToggleMusic.classList.toggle('playing', isPlaying);
     }
-    if (btnToggleMenuMusic) {
-      btnToggleMenuMusic.innerHTML = iconHtml;
-      btnToggleMenuMusic.classList.toggle('playing', isPlaying);
-    }
   };
 
   function syncMusicSelection(val) {
     if (musicSelect) musicSelect.value = val;
-    if (menuMusicSelect) menuMusicSelect.value = val;
     audio.setMusicTrack(val);
   }
 
@@ -215,22 +208,8 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (menuMusicSelect) {
-    menuMusicSelect.addEventListener('change', (e) => {
-      syncMusicSelection(e.target.value);
-      e.target.blur();
-    });
-  }
-
   if (btnToggleMusic) {
     btnToggleMusic.addEventListener('click', (e) => {
-      audio.toggleMusic();
-      e.currentTarget.blur();
-    });
-  }
-
-  if (btnToggleMenuMusic) {
-    btnToggleMenuMusic.addEventListener('click', (e) => {
       audio.toggleMusic();
       e.currentTarget.blur();
     });
@@ -453,4 +432,354 @@ window.addEventListener('DOMContentLoaded', () => {
     btnEditMode.click(); // Switch back to edit mode
     btnRestart.blur();
   });
+
+  // =========================================
+  // MESSAGING & CLOUD SYNC SYSTEM LOGIC
+  // =========================================
+  let currentPersona = 'player'; // 'player' | 'creator'
+  let activeThreadId = null;
+  let cachedThreads = [];
+
+  const btnMessagesMenu = document.getElementById('btn-messages-menu');
+  const btnMessagesEditor = document.getElementById('btn-messages-editor');
+  const messagesOverlay = document.getElementById('messages-overlay');
+  const cloudSettingsOverlay = document.getElementById('cloud-settings-overlay');
+  
+  const personaPlayer = document.getElementById('persona-player');
+  const personaCreator = document.getElementById('persona-creator');
+  const btnCloseMessages = document.getElementById('btn-close-messages');
+  const btnCloudSettings = document.getElementById('btn-cloud-settings');
+
+  const badgeMenu = document.getElementById('badge-menu');
+  const badgeEditor = document.getElementById('badge-editor');
+
+  const threadListContainer = document.getElementById('thread-list-container');
+  const btnNewThread = document.getElementById('btn-new-thread');
+
+  const chatEmptyState = document.getElementById('chat-empty-state');
+  const chatActiveState = document.getElementById('chat-active-state');
+  const newThreadState = document.getElementById('new-thread-state');
+
+  const chatLevelBadge = document.getElementById('chat-level-badge');
+  const chatTitle = document.getElementById('chat-title');
+  const chatAuthorSub = document.getElementById('chat-author-sub');
+  const chatMessagesContainer = document.getElementById('chat-messages-container');
+  const inputReplyText = document.getElementById('input-reply-text');
+  const btnSendReply = document.getElementById('btn-send-reply');
+  const btnResolveThread = document.getElementById('btn-resolve-thread');
+
+  const inputPlayerName = document.getElementById('input-player-name');
+  const selectThreadLevel = document.getElementById('select-thread-level');
+  const inputThreadTitle = document.getElementById('input-thread-title');
+  const inputThreadMsg = document.getElementById('input-thread-msg');
+  const btnSubmitThread = document.getElementById('btn-submit-thread');
+  const btnCancelThread = document.getElementById('btn-cancel-thread');
+
+  const inputSupabaseUrl = document.getElementById('input-supabase-url');
+  const inputSupabaseKey = document.getElementById('input-supabase-key');
+  const btnSaveCloud = document.getElementById('btn-save-cloud');
+  const btnCancelCloud = document.getElementById('btn-cancel-cloud');
+
+  function updateUnreadBadges() {
+    let unreadCount = 0;
+    if (currentPersona === 'creator') {
+      unreadCount = cachedThreads.filter(t => t.status === 'open').length;
+    } else {
+      unreadCount = cachedThreads.filter(t => t.messages[t.messages.length - 1]?.senderRole === 'creator').length;
+    }
+
+    const openCount = cachedThreads.filter(t => t.status === 'open').length;
+    const badgeStudio = document.getElementById('badge-studio');
+    if (badgeStudio) {
+      if (openCount > 0) {
+        badgeStudio.textContent = openCount;
+        badgeStudio.classList.remove('hidden');
+      } else {
+        badgeStudio.classList.add('hidden');
+      }
+    }
+
+    if (unreadCount > 0) {
+      badgeMenu.textContent = unreadCount;
+      badgeMenu.classList.remove('hidden');
+      if (badgeEditor) {
+        badgeEditor.textContent = unreadCount;
+        badgeEditor.classList.remove('hidden');
+      }
+    } else {
+      badgeMenu.classList.add('hidden');
+      if (badgeEditor) badgeEditor.classList.add('hidden');
+    }
+  }
+
+  function renderThreadsSidebar() {
+    threadListContainer.innerHTML = '';
+    cachedThreads.forEach(t => {
+      const el = document.createElement('div');
+      el.className = `thread-item ${t.id === activeThreadId ? 'active' : ''} ${t.status === 'resolved' ? 'resolved' : ''}`;
+      
+      const dateStr = new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const lastMsg = t.messages[t.messages.length - 1];
+      const isUnreadForCreator = currentPersona === 'creator' && t.status === 'open' && lastMsg?.senderRole === 'player';
+      const isUnreadForPlayer = currentPersona === 'player' && lastMsg?.senderRole === 'creator';
+      const showUnreadDot = isUnreadForCreator || isUnreadForPlayer;
+
+      el.innerHTML = `
+        <div class="thread-top">
+          <span class="level-tag">${t.levelName}</span>
+          <span class="thread-time">${dateStr}</span>
+        </div>
+        <div class="thread-title" title="${t.title}">${t.title}</div>
+        <div class="thread-bottom">
+          <span class="thread-author"><i class="fa-solid fa-user"></i> ${t.playerName}</span>
+          ${showUnreadDot ? '<div class="unread-dot"></div>' : ''}
+        </div>
+      `;
+
+      el.addEventListener('click', () => {
+        activeThreadId = t.id;
+        renderThreadsSidebar();
+        renderChatView();
+      });
+
+      threadListContainer.appendChild(el);
+    });
+  }
+
+  function renderChatView() {
+    chatEmptyState.classList.add('hidden');
+    chatActiveState.classList.add('hidden');
+    newThreadState.classList.add('hidden');
+
+    // Update visibility based on persona
+    if (currentPersona === 'creator') {
+      btnNewThread.style.display = 'none';
+      btnResolveThread.style.display = 'inline-flex';
+    } else {
+      btnNewThread.style.display = 'inline-flex';
+      btnResolveThread.style.display = 'none';
+    }
+
+    if (!activeThreadId) {
+      chatEmptyState.classList.remove('hidden');
+      return;
+    }
+
+    const thread = cachedThreads.find(t => t.id === activeThreadId);
+    if (!thread) {
+      chatEmptyState.classList.remove('hidden');
+      return;
+    }
+
+    chatActiveState.classList.remove('hidden');
+    chatLevelBadge.textContent = thread.levelName;
+    chatTitle.textContent = thread.title;
+    chatAuthorSub.textContent = `Started by ${thread.playerName} • ${new Date(thread.createdAt).toLocaleDateString()}`;
+    
+    if (thread.status === 'resolved') {
+      btnResolveThread.style.display = 'none';
+    } else if (currentPersona === 'creator') {
+      btnResolveThread.style.display = 'inline-flex';
+    }
+
+    const wasAtBottom = chatMessagesContainer.scrollHeight - chatMessagesContainer.scrollTop <= chatMessagesContainer.clientHeight + 80;
+
+    chatMessagesContainer.innerHTML = '';
+    thread.messages.forEach(msg => {
+      const b = document.createElement('div');
+      b.className = `chat-bubble ${msg.senderRole}`;
+      const senderName = msg.senderRole === 'creator' ? 'Game Creator' : thread.playerName;
+      const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      b.innerHTML = `
+        <div class="bubble-meta">
+          <span class="bubble-sender">${senderName}</span>
+          <span class="bubble-time">${timeStr}</span>
+        </div>
+        <div class="bubble-text">${msg.text}</div>
+      `;
+      chatMessagesContainer.appendChild(b);
+    });
+
+    setTimeout(() => {
+      if (wasAtBottom || chatMessagesContainer.scrollTop === 0) {
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+      }
+    }, 50);
+  }
+
+  async function openMailbox() {
+    messagesOverlay.classList.remove('hidden');
+    cachedThreads = await messageService.fetchThreads();
+    if (!activeThreadId && cachedThreads.length > 0) {
+      activeThreadId = cachedThreads[0].id;
+    }
+    renderThreadsSidebar();
+    renderChatView();
+    updateUnreadBadges();
+  }
+
+  btnMessagesMenu.addEventListener('click', openMailbox);
+  if (btnMessagesEditor) btnMessagesEditor.addEventListener('click', openMailbox);
+  btnCloseMessages.addEventListener('click', () => {
+    messagesOverlay.classList.add('hidden');
+  });
+
+  personaPlayer.addEventListener('click', () => {
+    currentPersona = 'player';
+    personaCreator.classList.remove('active');
+    personaPlayer.classList.add('active');
+    renderThreadsSidebar();
+    renderChatView();
+    updateUnreadBadges();
+  });
+
+  personaCreator.addEventListener('click', () => {
+    currentPersona = 'creator';
+    personaPlayer.classList.remove('active');
+    personaCreator.classList.add('active');
+    renderThreadsSidebar();
+    renderChatView();
+    updateUnreadBadges();
+  });
+
+  btnNewThread.addEventListener('click', () => {
+    activeThreadId = null;
+    renderThreadsSidebar();
+    chatEmptyState.classList.add('hidden');
+    chatActiveState.classList.add('hidden');
+    newThreadState.classList.remove('hidden');
+
+    // Populate level select
+    selectThreadLevel.innerHTML = '';
+    LevelManager.getLevels().forEach(lvl => {
+      const opt = document.createElement('option');
+      opt.value = lvl.id;
+      opt.textContent = lvl.name;
+      if (typeof selectedLevel !== 'undefined' && selectedLevel && selectedLevel.id === lvl.id) opt.selected = true;
+      selectThreadLevel.appendChild(opt);
+    });
+
+    inputPlayerName.value = '';
+    inputThreadTitle.value = '';
+    inputThreadMsg.value = '';
+  });
+
+  btnCancelThread.addEventListener('click', () => {
+    if (cachedThreads.length > 0) activeThreadId = cachedThreads[0].id;
+    renderThreadsSidebar();
+    renderChatView();
+  });
+
+  btnSubmitThread.addEventListener('click', async () => {
+    const pName = inputPlayerName.value.trim() || 'Player';
+    const lvlId = selectThreadLevel.value;
+    const lvlOpt = selectThreadLevel.options[selectThreadLevel.selectedIndex];
+    const lvlName = lvlOpt ? lvlOpt.textContent : 'Custom Level';
+    const title = inputThreadTitle.value.trim() || 'General Feedback';
+    const text = inputThreadMsg.value.trim();
+
+    if (!text) {
+      alert('Please enter a message.');
+      return;
+    }
+
+    const created = await messageService.createThread(lvlId, lvlName, title, pName, text);
+    cachedThreads = await messageService.fetchThreads();
+    activeThreadId = created.id;
+    
+    newThreadState.classList.add('hidden');
+    renderThreadsSidebar();
+    renderChatView();
+    updateUnreadBadges();
+  });
+
+  btnSendReply.addEventListener('click', async () => {
+    const text = inputReplyText.value.trim();
+    if (!text || !activeThreadId) return;
+
+    inputReplyText.value = '';
+    await messageService.addReply(activeThreadId, currentPersona, text);
+    cachedThreads = await messageService.fetchThreads();
+    renderThreadsSidebar();
+    renderChatView();
+    updateUnreadBadges();
+  });
+
+  inputReplyText.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      btnSendReply.click();
+    }
+  });
+
+  if (btnResolveThread) {
+    btnResolveThread.addEventListener('click', async () => {
+      if (!activeThreadId) return;
+      await messageService.resolveThread(activeThreadId);
+      cachedThreads = await messageService.fetchThreads();
+      renderThreadsSidebar();
+      renderChatView();
+      updateUnreadBadges();
+    });
+  }
+
+  btnCloudSettings.addEventListener('click', () => {
+    cloudSettingsOverlay.classList.remove('hidden');
+    const cfg = messageService.cloudConfig;
+    inputSupabaseUrl.value = cfg.supabaseUrl || '';
+    inputSupabaseKey.value = cfg.supabaseKey || '';
+  });
+
+  btnCancelCloud.addEventListener('click', () => {
+    cloudSettingsOverlay.classList.add('hidden');
+  });
+
+  btnSaveCloud.addEventListener('click', async () => {
+    const url = inputSupabaseUrl.value.trim();
+    const key = inputSupabaseKey.value.trim();
+    messageService.saveConfig(url, key);
+    cloudSettingsOverlay.classList.add('hidden');
+    alert('Cloud config saved! Synchronizing messages...');
+    cachedThreads = await messageService.fetchThreads();
+    if (!activeThreadId && cachedThreads.length > 0) activeThreadId = cachedThreads[0].id;
+    renderThreadsSidebar();
+    renderChatView();
+    updateUnreadBadges();
+  });
+
+  // Check if we need to auto-open level editor from URL query
+  const params = new URLSearchParams(window.location.search);
+  const editLevelId = params.get('edit');
+  if (editLevelId) {
+    let targetLvl = LevelManager.getLevel(editLevelId);
+    if (!targetLvl) {
+      targetLvl = LevelManager.getLevels().find(l => l.name.toLowerCase() === editLevelId.toLowerCase());
+    }
+    if (targetLvl) {
+      selectedLevel = targetLvl;
+      openLevelInMode(CONFIG.MODE_EDIT);
+    }
+  }
+
+  // Initial badge check on load
+  messageService.fetchThreads().then(threads => {
+    cachedThreads = threads;
+    updateUnreadBadges();
+  });
+
+  // Background auto-polling for real-time updates
+  setInterval(async () => {
+    if (!messageService.isCloudConfigured()) return;
+    const fresh = await messageService.fetchThreads();
+    const currentSummary = JSON.stringify(cachedThreads);
+    const freshSummary = JSON.stringify(fresh);
+    if (currentSummary !== freshSummary) {
+      cachedThreads = fresh;
+      updateUnreadBadges();
+      if (!messagesOverlay.classList.contains('hidden')) {
+        renderThreadsSidebar();
+        renderChatView();
+      }
+    }
+  }, 5000);
 });

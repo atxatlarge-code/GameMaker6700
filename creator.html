@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creator Feedback Studio - Game Maker 6700</title>
+  
+  <!-- FontAwesome & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="creator-studio-body">
+
+  <div id="creator-inbox-view" class="view creator-inbox-view">
+    <header class="studio-header">
+      <div class="studio-header-left">
+        <a href="index.html" class="secondary-btn" style="text-decoration: none;"><i class="fa-solid fa-gamepad"></i> Game & Workbench</a>
+        <h2><i class="fa-solid fa-wand-magic-sparkles"></i> Creator Feedback Studio</h2>
+      </div>
+      <div class="studio-metrics">
+        <div class="metric-badge"><span class="metric-lbl">Open Feedback:</span> <b id="metric-open-cnt">0</b></div>
+        <div class="metric-badge"><span class="metric-lbl">Resolved:</span> <b id="metric-res-cnt">0</b></div>
+      </div>
+      <div class="studio-header-right">
+        <button id="btn-studio-cloud" class="secondary-btn" title="Cloud Setup"><i class="fa-solid fa-cloud"></i> Sync Settings</button>
+      </div>
+    </header>
+    
+    <div class="studio-body">
+      <!-- Left Sidebar -->
+      <div class="studio-sidebar">
+        <div class="filter-tabs">
+          <button id="tab-filter-open" class="filter-tab active"><i class="fa-solid fa-triangle-exclamation"></i> Open</button>
+          <button id="tab-filter-res" class="filter-tab"><i class="fa-solid fa-check-double"></i> Resolved</button>
+        </div>
+        <div id="studio-thread-list" class="studio-thread-list">
+          <!-- Dynamically populated threads -->
+        </div>
+      </div>
+
+      <!-- Center Inspection Area -->
+      <div class="studio-main">
+        <div id="studio-empty-state" class="studio-empty-state">
+          <i class="fa-solid fa-inbox studio-empty-icon"></i>
+          <h3>No conversation selected</h3>
+          <p>Select a player report from the sidebar to inspect and reply.</p>
+        </div>
+
+        <div id="studio-active-state" class="studio-active-state hidden">
+          <div class="studio-chat-header">
+            <div class="studio-chat-meta">
+              <span id="studio-chat-level" class="level-tag"></span>
+              <h3 id="studio-chat-title"></h3>
+              <span id="studio-chat-author"></span>
+            </div>
+            <div class="studio-chat-actions">
+              <button id="btn-studio-jump" class="primary-btn jump-btn" title="Launch Level Editor with this level"><i class="fa-solid fa-gamepad"></i> Open in Editor</button>
+              <button id="btn-studio-toggle-res" class="secondary-btn"><i class="fa-solid fa-check"></i> Mark Resolved</button>
+            </div>
+          </div>
+
+          <div id="studio-messages-container" class="studio-messages-history">
+            <!-- Dynamically populated bubbles -->
+          </div>
+
+          <div class="studio-reply-console">
+            <div class="canned-replies">
+              <button class="canned-btn" data-text="Thanks for reporting! Working on a fix now.">"Working on a fix"</button>
+              <button class="canned-btn" data-text="Try jumping on the red mushroom right below!">"Mushroom hint"</button>
+              <button class="canned-btn" data-text="Awesome run! Thanks for playing!">"Thanks for playing"</button>
+            </div>
+            <div class="studio-input-row">
+              <input type="text" id="studio-input-text" class="studio-input" placeholder="Type your response as Creator..." />
+              <button id="btn-studio-send" class="primary-btn send-reply-btn"><i class="fa-solid fa-paper-plane"></i> Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLOUD CONFIG OVERLAY MODAL -->
+  <div id="cloud-settings-overlay" class="overlay hidden">
+    <div class="overlay-modal">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-cloud"></i> Cloud Database Connection</h2>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Configure your Supabase REST endpoint to sync feedback live from players across the web.</p>
+        <div class="input-group">
+          <label for="input-supabase-url">Supabase URL</label>
+          <input type="text" id="input-supabase-url" placeholder="https://your-project-id.supabase.co" />
+        </div>
+        <div class="input-group">
+          <label for="input-supabase-key">Supabase Anon Key</label>
+          <input type="password" id="input-supabase-key" placeholder="eyJhbGciOi..." />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-cancel-cloud" class="secondary-btn"><i class="fa-solid fa-xmark"></i> Cancel</button>
+        <button id="btn-save-cloud" class="primary-btn"><i class="fa-solid fa-check"></i> Connect Database</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core Scripts -->
+  <script type="module" src="src/creator.js"></script>
+</body>
+</html>
