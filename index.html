@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Maker 6700</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Quicksand:wght@500;700&family=Press+Start+2P&family=VT323&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- FontAwesome for clean tool icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- MAIN MENU VIEW -->
+    <div id="menu-view" class="view menu-view">
+      <div class="workbench">
+        <!-- Left Console Unit -->
+        <div class="console-unit">
+          <div class="console-header">
+            <span class="jerry-lawson-text">GAME MAKER 6700</span>
+            <div class="console-actions">
+              <div class="music-selector menu-music" title="Select Background Music">
+                <button id="btn-toggle-menu-music" class="music-toggle-btn" title="Play/Pause Music"><i class="fa-solid fa-circle-play"></i></button>
+                <select id="menu-music-select" class="music-dropdown">
+                  <option value="none">🔇 Off</option>
+                  <option value="mario">🍄 Plumber's Anthem</option>
+                  <option value="adventure">⚔️ 8-Bit Adventure</option>
+                  <option value="lullaby">🍃 Chiptune Lullaby</option>
+                  <option value="bonjovi">🎸 Livin' on a Player</option>
+                  <option value="blackeyedpeas">🥊 Tonight's Gonna be a Good Fight</option>
+                </select>
+              </div>
+              <button id="btn-share-level" class="console-btn red-btn" title="Share Level"><i class="fa-solid fa-share-nodes"></i></button>
+              <button id="btn-dup-level" class="console-btn red-btn" title="Duplicate Level"><i class="fa-solid fa-copy"></i></button>
+              <button id="btn-del-level" class="console-btn red-btn danger" title="Delete Level"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+          
+          <div class="console-body">
+            <div class="cartridge-slot">
+              <div class="active-cartridge" id="selected-cartridge">
+                <div class="cartridge-top">
+                  <div class="cartridge-label">
+                    <div class="tech-lines top-lines">
+                      <div class="line line-1"></div>
+                      <div class="line line-2"></div>
+                      <div class="line line-dot"></div>
+                    </div>
+                    <div class="preview-container">
+                      <canvas id="selected-level-canvas" width="280" height="210"></canvas>
+                      <div class="selected-level-info">
+                        <span id="selected-level-title">Mushroom Forest</span>
+                      </div>
+                    </div>
+                    <div class="tech-lines bottom-lines">
+                      <div class="line line-3"></div>
+                      <div class="line line-4"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="cartridge-bottom">
+                  <div class="ribs">
+                    <div class="rib"></div>
+                    <div class="rib"></div>
+                    <div class="rib"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="console-controls">
+              <div class="joystick-container">
+                <div class="joystick">
+                  <div class="joystick-ball"></div>
+                  <div class="joystick-shaft"></div>
+                  <div class="joystick-base"></div>
+                </div>
+              </div>
+              <div class="arcade-buttons">
+                <button id="btn-menu-play" class="arcade-btn play-btn">
+                  <i class="fa-solid fa-play"></i>
+                  <span>Play</span>
+                </button>
+                <button id="btn-menu-edit" class="arcade-btn edit-btn">
+                  <i class="fa-solid fa-pencil"></i>
+                  <span>Edit</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Cutting Mat -->
+        <div class="cutting-mat-area">
+          <div class="cutting-mat">
+            <div class="mat-header">
+              <h2>Select a game</h2>
+            </div>
+            
+            <div class="mat-body">
+              <div class="mat-grid-wrapper">
+                <div class="cartridge-grid" id="cartridge-grid">
+                  <!-- Dynamically populated cartridges -->
+                </div>
+              </div>
+              <div class="scroll-buttons">
+                <button id="btn-scroll-up" class="scroll-btn"><i class="fa-solid fa-caret-up"></i></button>
+                <button id="btn-scroll-down" class="scroll-btn"><i class="fa-solid fa-caret-down"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAME / EDITOR VIEW -->
+    <div id="editor-view" class="view hidden">
+      <header class="app-header">
+        <div class="logo">
+          <i class="fa-solid fa-leaf logo-icon"></i>
+          <h1>Game Maker 6700</h1>
+          <div class="current-level-badge">
+            <span id="current-level-name">Mushroom Forest</span>
+            <button id="btn-rename-level" class="rename-badge-btn" title="Rename Level"><i class="fa-solid fa-pen"></i></button>
+          </div>
+        </div>
+        <div class="header-controls">
+          <div class="music-selector" title="Select Background Music">
+            <button id="btn-toggle-music" class="music-toggle-btn" title="Play/Pause Music"><i class="fa-solid fa-circle-play"></i></button>
+            <select id="music-select" class="music-dropdown">
+              <option value="none">🔇 Off</option>
+              <option value="mario">🍄 Plumber's Anthem</option>
+              <option value="adventure">⚔️ 8-Bit Adventure</option>
+              <option value="lullaby">🍃 Chiptune Lullaby</option>
+              <option value="bonjovi">🎸 Livin' on a Player</option>
+              <option value="blackeyedpeas">🥊 Tonight's Gonna be a Good Fight</option>
+            </select>
+          </div>
+          <div class="mode-toggle">
+            <button id="btn-edit-mode" class="mode-btn active"><i class="fa-solid fa-pen-ruler"></i> Edit</button>
+            <button id="btn-play-mode" class="mode-btn play"><i class="fa-solid fa-play"></i> Play</button>
+          </div>
+          <button id="btn-menu" class="nav-menu-btn"><i class="fa-solid fa-gamepad"></i> Menu</button>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <aside class="toolbar" id="editor-toolbar">
+          <div class="toolbar-section">
+            <h2>Tools</h2>
+            <button class="tool-btn active" data-tool="wall" title="Place Ground Tile">
+              <div class="tool-preview ground-preview"></div>
+              <span>Ground</span>
+            </button>
+            <button class="tool-btn" data-tool="player" title="Spawn Player (Kid)">
+              <div class="tool-preview player-preview"></div>
+              <span>Player</span>
+            </button>
+            <button class="tool-btn" data-tool="goal" title="Set Goal (Doorway)">
+              <div class="tool-preview goal-preview"></div>
+              <span>Doorway</span>
+            </button>
+            <button class="tool-btn" data-tool="trampoline" title="Place Bouncy Mushroom Trampoline">
+              <div class="tool-preview trampoline-preview"></div>
+              <span>Mushroom</span>
+            </button>
+            <button class="tool-btn" data-tool="fire" title="Place Fire Hazard">
+              <div class="tool-preview fire-preview"><i class="fa-solid fa-fire"></i></div>
+              <span>Fire</span>
+            </button>
+            <button class="tool-btn" data-tool="spikes" title="Place Spikes Trap">
+              <div class="tool-preview spikes-preview"><i class="fa-solid fa-mountain"></i></div>
+              <span>Spikes</span>
+            </button>
+            <button class="tool-btn" data-tool="portal" title="Place Portal Pair (2 required)">
+              <div class="tool-preview portal-preview"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+              <span>Portal</span>
+            </button>
+            <button class="tool-btn erase-btn" data-tool="erase" title="Erase Tile">
+              <i class="fa-solid fa-eraser"></i>
+              <span>Erase</span>
+            </button>
+          </div>
+
+          <div class="toolbar-section instructions">
+            <h3>Controls</h3>
+            <p><i class="fa-solid fa-mouse-pointer"></i> Click & drag on grid to place tiles</p>
+            <p><i class="fa-solid fa-camera"></i> WASD/Arrows to pan in Edit Mode</p>
+            <p><i class="fa-solid fa-arrows-up-down-left-right"></i> WASD/Arrows to move in Play Mode</p>
+            <p><i class="fa-solid fa-arrow-up"></i> W / Up / Space to jump</p>
+            <p><i class="fa-solid fa-angles-up"></i> Land on mushrooms to bounce</p>
+            <p><i class="fa-solid fa-circle-notch"></i> Enter portals to teleport</p>
+          </div>
+        </aside>
+
+        <div class="canvas-container">
+          <div id="pan-controls" class="pan-controls">
+            <button class="pan-btn pan-up" data-dir="up" title="Pan Up"><i class="fa-solid fa-caret-up"></i></button>
+            <button class="pan-btn pan-down" data-dir="down" title="Pan Down"><i class="fa-solid fa-caret-down"></i></button>
+            <button class="pan-btn pan-left" data-dir="left" title="Pan Left"><i class="fa-solid fa-caret-left"></i></button>
+            <button class="pan-btn pan-right" data-dir="right" title="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
+          </div>
+          <div id="win-overlay" class="overlay hidden">
+            <div class="overlay-modal">
+              <h2>Level Complete!</h2>
+              <p>You successfully guided the kid to the magical doorway!</p>
+              <button id="btn-restart" class="primary-btn"><i class="fa-solid fa-rotate-left"></i> Edit Level</button>
+            </div>
+          </div>
+          <canvas id="game-canvas" width="800" height="600"></canvas>
+        </div>
+      </main>
+
+      <footer class="app-footer">
+        <p>Inspired by Jerry Lawson & Studio Ghibli • Built with Vanilla JS & HTML5 Canvas</p>
+      </footer>
+    </div>
+
+    <!-- RENAME OVERLAY MODAL -->
+    <div id="rename-overlay" class="overlay hidden">
+      <div class="overlay-modal">
+        <h2>Level Name</h2>
+        <input type="text" id="input-level-name" class="modal-input" maxlength="28" placeholder="Enter level name..." />
+        <div class="modal-buttons">
+          <button id="btn-save-name" class="primary-btn"><i class="fa-solid fa-check"></i> Save</button>
+          <button id="btn-cancel-name" class="secondary-btn"><i class="fa-solid fa-xmark"></i> Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+
+</html>
