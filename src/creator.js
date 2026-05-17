@@ -2,6 +2,7 @@
  * Standalone Creator Feedback Studio Dashboard Logic (`creator.html`)
  */
 import { messageService } from './messages.js';
+import { audio } from './audio.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   let cachedThreads = [];
@@ -266,10 +267,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentSummary = JSON.stringify(cachedThreads);
     const freshSummary = JSON.stringify(fresh);
     if (currentSummary !== freshSummary) {
+      const prevTotalMessages = cachedThreads.reduce((sum, t) => sum + t.messages.length, 0);
+      const newTotalMessages = fresh.reduce((sum, t) => sum + t.messages.length, 0);
+
       cachedThreads = fresh;
       updateStudioMetrics();
+
+      // If no thread selected or selected thread no longer matches filter, auto-select first matching
+      const matching = cachedThreads.filter(t => t.status === studioFilter);
+      if ((!studioSelectedThreadId || !matching.some(t => t.id === studioSelectedThreadId)) && matching.length > 0) {
+        studioSelectedThreadId = matching[0].id;
+      }
+
       renderStudioSidebar();
       renderStudioMain();
+
+      if (newTotalMessages > prevTotalMessages) {
+        audio.playTileSound();
+      }
     }
-  }, 5000);
+  }, 3000);
 });
