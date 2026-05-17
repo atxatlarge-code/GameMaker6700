@@ -113,12 +113,16 @@ export class CloudMessageService {
   async fetchThreads() {
     if (this.isCloudConfigured()) {
       try {
-        const url = `${this.cloudConfig.supabaseUrl}/rest/v1/gm6700_messages?select=*&order=created_at.desc`;
+        const url = `${this.cloudConfig.supabaseUrl}/rest/v1/gm6700_messages?select=*&order=created_at.desc&_nocache=${Date.now()}`;
         const res = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
           headers: {
             'apikey': this.cloudConfig.supabaseKey,
             'Authorization': `Bearer ${this.cloudConfig.supabaseKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
           }
         });
         if (res.ok) {
@@ -220,12 +224,16 @@ export class CloudMessageService {
     if (this.isCloudConfigured()) {
       try {
         // First get the latest thread messages from Supabase
-        const getUrl = `${this.cloudConfig.supabaseUrl}/rest/v1/gm6700_messages?id=eq.${threadId}&select=messages`;
+        const getUrl = `${this.cloudConfig.supabaseUrl}/rest/v1/gm6700_messages?id=eq.${threadId}&select=messages&_nocache=${Date.now()}`;
         const getRes = await fetch(getUrl, {
+          method: 'GET',
+          cache: 'no-store',
           headers: {
             'apikey': this.cloudConfig.supabaseKey,
             'Authorization': `Bearer ${this.cloudConfig.supabaseKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
           }
         });
         if (getRes.ok) {
