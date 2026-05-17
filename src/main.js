@@ -783,12 +783,19 @@ window.addEventListener('DOMContentLoaded', () => {
     const currentSummary = JSON.stringify(cachedThreads);
     const freshSummary = JSON.stringify(fresh);
     if (currentSummary !== freshSummary) {
+      const prevTotalMessages = cachedThreads.reduce((sum, t) => sum + t.messages.length, 0);
+      const newTotalMessages = fresh.reduce((sum, t) => sum + t.messages.length, 0);
+
       cachedThreads = fresh;
       updateUnreadBadges();
       if (!messagesOverlay.classList.contains('hidden')) {
         renderThreadsSidebar();
         renderChatView();
       }
+
+      if (newTotalMessages > prevTotalMessages) {
+        audio.playTileSound();
+      }
     }
-  }, 5000);
+  }, 3000);
 });
