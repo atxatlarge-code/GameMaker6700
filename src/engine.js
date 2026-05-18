@@ -110,6 +110,9 @@ export class Engine {
 
   initListeners() {
     window.addEventListener('keydown', (e) => {
+      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        return;
+      }
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
         e.preventDefault();
       }
@@ -133,6 +136,9 @@ export class Engine {
     });
 
     window.addEventListener('keyup', (e) => {
+      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        return;
+      }
       if (this.mode === CONFIG.MODE_EDIT) {
         if (e.code === 'KeyW' || e.code === 'ArrowUp') this.panKeys.up = false;
         if (e.code === 'KeyS' || e.code === 'ArrowDown') this.panKeys.down = false;

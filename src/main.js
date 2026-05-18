@@ -699,19 +699,33 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const wasAtBottom = chatMessagesContainer.scrollHeight - chatMessagesContainer.scrollTop <= chatMessagesContainer.clientHeight + 80;
 
+    const inputCommentAuthor = document.getElementById('input-comment-author');
+    if (inputCommentAuthor) {
+      if (currentPersona === 'creator') {
+        inputCommentAuthor.value = 'Game Creator';
+        inputCommentAuthor.disabled = true;
+      } else {
+        inputCommentAuthor.disabled = false;
+        if (!inputCommentAuthor.value || inputCommentAuthor.value === 'Game Creator') {
+          inputCommentAuthor.value = localStorage.getItem('gm6700_last_handle') || '';
+        }
+      }
+    }
+
     chatMessagesContainer.innerHTML = '';
     thread.messages.forEach(msg => {
       const b = document.createElement('div');
-      b.className = `chat-bubble ${msg.senderRole}`;
-      const senderName = msg.senderRole === 'creator' ? 'Game Creator' : thread.playerName;
+      b.className = `comment-line ${msg.senderRole}`;
+      const senderName = msg.senderRole === 'creator' ? 'Game Creator' : (msg.senderName || thread.playerName);
       const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const badgeHtml = msg.senderRole === 'creator' ? '<span class="creator-badge">MOD</span>' : '';
       
       b.innerHTML = `
-        <div class="bubble-meta">
-          <span class="bubble-sender">${senderName}</span>
-          <span class="bubble-time">${timeStr}</span>
+        <div class="comment-meta">
+          <span class="comment-sender ${msg.senderRole}"><i class="fa-solid ${msg.senderRole === 'creator' ? 'fa-wand-magic-sparkles' : 'fa-user'}"></i> ${senderName} ${badgeHtml}</span>
+          <span class="comment-time">${timeStr}</span>
         </div>
-        <div class="bubble-text">${msg.text}</div>
+        <div class="comment-text">${msg.text}</div>
       `;
       chatMessagesContainer.appendChild(b);
     });
@@ -835,8 +849,15 @@ window.addEventListener('DOMContentLoaded', () => {
     const text = inputReplyText.value.trim();
     if (!text || !activeThreadId) return;
 
+    const inputCommentAuthor = document.getElementById('input-comment-author');
+    let authorName = 'Player';
+    if (inputCommentAuthor && currentPersona !== 'creator') {
+      authorName = inputCommentAuthor.value.trim() || 'Player';
+      localStorage.setItem('gm6700_last_handle', authorName);
+    }
+
     inputReplyText.value = '';
-    await messageService.addReply(activeThreadId, currentPersona, text);
+    await messageService.addReply(activeThreadId, currentPersona, text, authorName);
     cachedThreads = await messageService.fetchThreads();
     messageService.markThreadAsRead(activeThreadId, currentPersona);
     renderThreadsSidebar();
@@ -849,6 +870,15 @@ window.addEventListener('DOMContentLoaded', () => {
       btnSendReply.click();
     }
   });
+
+  const inputCommentAuthorEl = document.getElementById('input-comment-author');
+  if (inputCommentAuthorEl) {
+    inputCommentAuthorEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        inputReplyText.focus();
+      }
+    });
+  }
 
   if (btnResolveThread) {
     btnResolveThread.addEventListener('click', async () => {

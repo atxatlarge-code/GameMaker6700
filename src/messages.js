@@ -265,10 +265,11 @@ export class CloudMessageService {
     return newThread;
   }
 
-  async addReply(threadId, senderRole, text) {
+  async addReply(threadId, senderRole, text, senderName) {
     const newMsg = {
       id: 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
       senderRole: senderRole, // 'player' | 'creator'
+      senderName: senderName || (senderRole === 'creator' ? 'Game Creator' : 'Player'),
       text: text,
       timestamp: Date.now()
     };

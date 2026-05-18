@@ -135,16 +135,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     studioMessagesContainer.innerHTML = '';
     thread.messages.forEach(msg => {
-      const b = document.createElement('div'); b.className = `chat-bubble ${msg.senderRole}`;
-      const senderName = msg.senderRole === 'creator' ? 'You (Creator)' : thread.playerName;
+      const b = document.createElement('div');
+      b.className = `comment-line ${msg.senderRole}`;
+      const senderName = msg.senderRole === 'creator' ? 'You (Creator)' : (msg.senderName || thread.playerName);
       const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const badgeHtml = msg.senderRole === 'creator' ? '<span class="creator-badge">MOD</span>' : '';
       
       b.innerHTML = `
-        <div class="bubble-meta">
-          <span class="bubble-sender">${senderName}</span>
-          <span class="bubble-time">${timeStr}</span>
+        <div class="comment-meta">
+          <span class="comment-sender ${msg.senderRole}"><i class="fa-solid ${msg.senderRole === 'creator' ? 'fa-wand-magic-sparkles' : 'fa-user'}"></i> ${senderName} ${badgeHtml}</span>
+          <span class="comment-time">${timeStr}</span>
         </div>
-        <div class="bubble-text">${msg.text}</div>
+        <div class="comment-text">${msg.text}</div>
       `;
       studioMessagesContainer.appendChild(b);
     });
