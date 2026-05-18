@@ -14,6 +14,7 @@ export class Editor {
     this.lastMouseX = 0;
     this.lastMouseY = 0;
     this.engine = null;
+    this.theme = 'default';
 
     this.initListeners();
   }
@@ -24,6 +25,20 @@ export class Editor {
 
   setTool(tool) {
     this.currentTool = tool;
+  }
+
+  setTheme(theme) {
+    this.theme = theme;
+  }
+
+  getGroundColor() {
+    switch (this.theme) {
+      case '16bit': return '#b85c27';
+      case 'butterflies': return '#00f2fe';
+      case 'icecream': return '#b8e0d2';
+      case 'spooky': return '#686de0';
+      default: return '#528c46';
+    }
   }
 
   initListeners() {
@@ -114,14 +129,8 @@ export class Editor {
         }
         break;
       case CONFIG.TOOL_ERASE:
-        if (this.level.portal1 && this.level.portal1.col === col && this.level.portal1.row === row) {
-          this.level.portal1 = null;
+        if (this.level.removePortal(col, row)) {
           audio.playEraseSound();
-          if (this.level.onModify) this.level.onModify();
-        } else if (this.level.portal2 && this.level.portal2.col === col && this.level.portal2.row === row) {
-          this.level.portal2 = null;
-          audio.playEraseSound();
-          if (this.level.onModify) this.level.onModify();
         } else if (this.level.getTile(col, row) !== 0) {
           this.level.setTile(col, row, 0);
           audio.playEraseSound();
@@ -178,10 +187,10 @@ export class Editor {
 
       switch (this.currentTool) {
         case CONFIG.TOOL_WALL:
-          if (this.assets.ground) {
+          if (this.assets.ground && this.theme === 'default') {
             this.ctx.drawImage(this.assets.ground, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           } else {
-            this.ctx.fillStyle = '#528c46';
+            this.ctx.fillStyle = this.getGroundColor();
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           }
           break;

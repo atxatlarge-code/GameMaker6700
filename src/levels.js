@@ -79,6 +79,127 @@ function createSpeedRunGrid() {
   return grid;
 }
 
+// Preset 5: Portal Chamber
+function createPortalChamberGrid() {
+  const grid = createBlankGrid();
+  // Tall impassable wall separating col 15
+  for (let r = 10; r <= 27; r++) {
+    grid[r][15] = 1;
+    grid[r][16] = 1;
+  }
+  // Lava pool on the right side
+  for (let c = 28; c <= 45; c++) {
+    grid[27][c] = 3; // Fire
+  }
+  // High ledge where Portal 2 exits
+  grid[16][22] = 1; grid[16][23] = 1; grid[16][24] = 1; grid[16][25] = 1;
+  
+  // Floating platforms over the lava
+  grid[22][32] = 1; grid[22][33] = 1;
+  grid[18][38] = 1; grid[18][39] = 1;
+  grid[23][44] = 1; grid[23][45] = 1;
+  
+  // Mushroom trampoline before the goal
+  grid[27][48] = 2;
+  grid[23][51] = 1; grid[23][52] = 1; grid[23][53] = 1;
+  
+  return grid;
+}
+
+// Preset 6: Lava Caverns
+function createLavaCavernsGrid() {
+  const grid = createBlankGrid();
+  // Huge bed of fire
+  for (let c = 10; c <= 50; c++) {
+    grid[27][c] = 3; // Fire
+  }
+  // Stepping pillars in the lava
+  for (let c of [14, 20, 26, 32, 38, 44]) {
+    grid[27][c] = 1;
+    grid[26][c] = 1;
+  }
+  // Spikes on some pillars to force high jumps
+  grid[25][20] = 4;
+  grid[25][32] = 4;
+  
+  // Floating platforms above spikes
+  grid[21][19] = 1; grid[21][20] = 1; grid[21][21] = 1;
+  grid[21][31] = 1; grid[21][32] = 1; grid[21][33] = 1;
+  
+  // Trampoline on pillar 38
+  grid[25][38] = 2;
+  
+  // High tower before goal
+  for (let r = 15; r <= 27; r++) {
+    grid[r][48] = 1; grid[r][49] = 1;
+  }
+  
+  // Platform for goal
+  grid[15][52] = 1; grid[15][53] = 1; grid[15][54] = 1;
+  
+  return grid;
+}
+
+// Preset 7: Bouncy Castle
+function createBouncyCastleGrid() {
+  const grid = createBlankGrid();
+  // Ground trampolines everywhere
+  for (let c = 10; c <= 48; c += 4) {
+    grid[27][c] = 2; grid[27][c+1] = 2;
+  }
+  // Floating castle platforms
+  grid[20][15] = 1; grid[20][16] = 1; grid[20][17] = 1;
+  grid[15][24] = 1; grid[15][25] = 1; grid[15][26] = 1;
+  grid[12][34] = 1; grid[12][35] = 1; grid[12][36] = 1;
+  grid[16][42] = 1; grid[16][43] = 1; grid[16][44] = 1;
+  
+  // Enclosed throne room in sky
+  for (let c = 46; c <= 56; c++) {
+    grid[10][c] = 1; // Floor
+    grid[4][c] = 1;  // Ceiling
+  }
+  for (let r = 4; r <= 10; r++) {
+    grid[r][46] = 1; // Left wall
+    grid[r][56] = 1; // Right wall
+  }
+  
+  return grid;
+}
+
+// Preset 8: Tower of Peril
+function createTowerOfPerilGrid() {
+  const grid = createBlankGrid();
+  // Huge central tower from col 22 to 38, row 6 to 27
+  for (let r = 6; r <= 27; r++) {
+    grid[r][22] = 1; // Left outer wall
+    grid[r][38] = 1; // Right outer wall
+  }
+  // Entrance at bottom left
+  grid[26][22] = 0; grid[27][22] = 0;
+  
+  // Internal zig-zag floors
+  // Floor 1 (right to left)
+  for (let c = 22; c <= 34; c++) grid[23][c] = 1;
+  // Floor 2 (left to right)
+  for (let c = 26; c <= 38; c++) grid[19][c] = 1;
+  // Floor 3 (right to left)
+  for (let c = 22; c <= 34; c++) grid[15][c] = 1;
+  // Floor 4 (left to right)
+  for (let c = 26; c <= 38; c++) grid[11][c] = 1;
+  // Top roof
+  for (let c = 22; c <= 38; c++) grid[6][c] = 1;
+  
+  // Hazards inside tower
+  grid[22][28] = 4; // Spikes on floor 1
+  grid[18][32] = 4; // Spikes on floor 2
+  grid[14][26] = 3; // Fire on floor 3
+  
+  // Floating cloud platform on the right for goal
+  grid[10][48] = 1; grid[10][49] = 1; grid[10][50] = 1; grid[10][51] = 1;
+  
+  return grid;
+}
+
 const PRESETS = [
   {
     id: 'preset-1',
@@ -86,6 +207,8 @@ const PRESETS = [
     grid: createMushroomForestGrid(),
     playerSpawn: { col: 5, row: 27 },
     goalPos: { col: 52, row: 27 },
+    portal1: { col: 16, row: 27 },
+    portal2: { col: 42, row: 27 },
     isPreset: true,
   },
   {
@@ -110,6 +233,44 @@ const PRESETS = [
     grid: createSpeedRunGrid(),
     playerSpawn: { col: 4, row: 27 },
     goalPos: { col: 54, row: 27 },
+    isPreset: true,
+  },
+  {
+    id: 'preset-5',
+    name: 'Portal Chamber',
+    grid: createPortalChamberGrid(),
+    playerSpawn: { col: 4, row: 27 },
+    goalPos: { col: 52, row: 22 },
+    portal1: { col: 10, row: 27 },
+    portal2: { col: 24, row: 15 },
+    isPreset: true,
+  },
+  {
+    id: 'preset-6',
+    name: 'Lava Caverns',
+    grid: createLavaCavernsGrid(),
+    playerSpawn: { col: 4, row: 27 },
+    goalPos: { col: 53, row: 14 },
+    isPreset: true,
+  },
+  {
+    id: 'preset-7',
+    name: 'Bouncy Castle',
+    grid: createBouncyCastleGrid(),
+    playerSpawn: { col: 4, row: 27 },
+    goalPos: { col: 51, row: 9 },
+    portal1: { col: 35, row: 11 },
+    portal2: { col: 48, row: 9 },
+    isPreset: true,
+  },
+  {
+    id: 'preset-8',
+    name: 'Tower of Peril',
+    grid: createTowerOfPerilGrid(),
+    playerSpawn: { col: 15, row: 27 },
+    goalPos: { col: 50, row: 9 },
+    portal1: { col: 35, row: 10 },
+    portal2: { col: 46, row: 9 },
     isPreset: true,
   }
 ];

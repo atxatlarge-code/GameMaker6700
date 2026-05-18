@@ -16,6 +16,7 @@ export class Engine {
 
     this.camera = { x: 0, y: 0 };
     this.panKeys = { up: false, down: false, left: false, right: false };
+    this.theme = 'default';
 
     // Pass engine reference to editor for camera coordinate offsets
     this.editor.initEngine(this);
@@ -67,6 +68,21 @@ export class Engine {
     }
     this.keys = { left: false, right: false, up: false };
     this.panKeys = { up: false, down: false, left: false, right: false };
+  }
+
+  setTheme(theme) {
+    this.theme = theme;
+    if (this.editor) this.editor.setTheme(theme);
+  }
+
+  getGroundColor() {
+    switch (this.theme) {
+      case '16bit': return '#b85c27';
+      case 'butterflies': return '#00f2fe';
+      case 'icecream': return '#b8e0d2';
+      case 'spooky': return '#686de0';
+      default: return '#528c46';
+    }
   }
 
   resetPlayer() {
@@ -546,10 +562,10 @@ export class Engine {
         const y = r * CONFIG.TILE_SIZE;
 
         if (tileVal === 1) {
-          if (this.assets.ground) {
+          if (this.assets.ground && this.theme === 'default') {
             this.ctx.drawImage(this.assets.ground, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           } else {
-            this.ctx.fillStyle = '#528c46';
+            this.ctx.fillStyle = this.getGroundColor();
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           }
         } else if (tileVal === 2) {

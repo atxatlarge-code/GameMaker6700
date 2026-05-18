@@ -133,6 +133,7 @@
               <option value="lullaby">🍃 Chiptune Lullaby</option>
               <option value="bonjovi">🎸 Livin' on a Player</option>
               <option value="blackeyedpeas">🥊 Tonight's Gonna be a Good Fight</option>
+              <option value="ladygaga">👑 Bad Romance</option>
             </select>
           </div>
           <div class="mode-toggle">
@@ -147,55 +148,9 @@
         </div>
       </header>
 
+
       <main class="main-content">
-        <aside class="toolbar" id="editor-toolbar">
-          <div class="toolbar-section">
-            <h2>Tools</h2>
-            <button class="tool-btn active" data-tool="wall" title="Place Ground Tile">
-              <div class="tool-preview ground-preview"></div>
-              <span>Ground</span>
-            </button>
-            <button class="tool-btn" data-tool="player" title="Spawn Player (Kid)">
-              <div class="tool-preview player-preview"></div>
-              <span>Player</span>
-            </button>
-            <button class="tool-btn" data-tool="goal" title="Set Goal (Doorway)">
-              <div class="tool-preview goal-preview"></div>
-              <span>Doorway</span>
-            </button>
-            <button class="tool-btn" data-tool="trampoline" title="Place Bouncy Mushroom Trampoline">
-              <div class="tool-preview trampoline-preview"></div>
-              <span>Mushroom</span>
-            </button>
-            <button class="tool-btn" data-tool="fire" title="Place Fire Hazard">
-              <div class="tool-preview fire-preview"><i class="fa-solid fa-fire"></i></div>
-              <span>Fire</span>
-            </button>
-            <button class="tool-btn" data-tool="spikes" title="Place Spikes Trap">
-              <div class="tool-preview spikes-preview"><i class="fa-solid fa-mountain"></i></div>
-              <span>Spikes</span>
-            </button>
-            <button class="tool-btn" data-tool="portal" title="Place Portal Pair (2 required)">
-              <div class="tool-preview portal-preview"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-              <span>Portal</span>
-            </button>
-            <button class="tool-btn erase-btn" data-tool="erase" title="Erase Tile">
-              <i class="fa-solid fa-eraser"></i>
-              <span>Erase</span>
-            </button>
-          </div>
-
-          <div class="toolbar-section instructions">
-            <h3>Controls</h3>
-            <p><i class="fa-solid fa-mouse-pointer"></i> Click & drag on grid to place tiles</p>
-            <p><i class="fa-solid fa-camera"></i> WASD/Arrows to pan in Edit Mode</p>
-            <p><i class="fa-solid fa-arrows-up-down-left-right"></i> WASD/Arrows to move in Play Mode</p>
-            <p><i class="fa-solid fa-arrow-up"></i> W / Up / Space to jump</p>
-            <p><i class="fa-solid fa-angles-up"></i> Land on mushrooms to bounce</p>
-            <p><i class="fa-solid fa-circle-notch"></i> Enter portals to teleport</p>
-          </div>
-        </aside>
-
+        <div id="editor-toolbar" style="display: none;"></div>
         <div class="canvas-container">
           <div id="pan-controls" class="pan-controls">
             <button class="pan-btn pan-up" data-dir="up" title="Pan Up"><i class="fa-solid fa-caret-up"></i></button>
@@ -210,13 +165,146 @@
               <button id="btn-restart" class="primary-btn"><i class="fa-solid fa-rotate-left"></i> Edit Level</button>
             </div>
           </div>
-          <canvas id="game-canvas" width="800" height="600"></canvas>
+          <canvas id="game-canvas" width="1200" height="600"></canvas>
         </div>
       </main>
 
-      <footer class="app-footer">
-        <p>Inspired by Jerry Lawson & Studio Ghibli • Built with Vanilla JS & HTML5 Canvas</p>
-      </footer>
+      <!-- BOTTOM ACTION BAR -->
+      <div class="action-bar-wrapper">
+        <div class="action-bar-container" id="action-bar-container">
+          <div class="action-wing left-wing"></div>
+          <div class="action-bar-content">
+            
+            <!-- Group 1: Player objects -->
+            <div class="action-group" id="group-player">
+              <button class="action-group-btn" title="Player objects">
+                <i class="fa-solid fa-person-running"></i>
+                <span>Player</span>
+              </button>
+              <div class="group-popup" id="popup-player">
+                <button class="tool-btn popup-item-btn" data-tool="player"><i class="fa-solid fa-person-running"></i> Platform player</button>
+                <button class="popup-item-btn soon" data-name="Top down player"><i class="fa-solid fa-user-astronaut"></i> Top down player</button>
+                <button class="popup-item-btn soon" data-name="Vertical paddle"><i class="fa-solid fa-grip-lines-vertical"></i> Vertical paddle</button>
+                <button class="popup-item-btn soon" data-name="Horizontal paddle"><i class="fa-solid fa-grip-lines"></i> Horizontal paddle</button>
+                <button class="popup-item-btn soon" data-name="Bouncing ball"><i class="fa-solid fa-basketball"></i> Bouncing ball</button>
+              </div>
+            </div>
+
+            <!-- Group 2: Blocks -->
+            <div class="action-group" id="group-blocks">
+              <button class="action-group-btn active" title="Blocks">
+                <i class="fa-solid fa-cubes"></i>
+                <span>Blocks</span>
+              </button>
+              <div class="group-popup" id="popup-blocks">
+                <button class="tool-btn popup-item-btn active" data-tool="wall"><i class="fa-solid fa-cube"></i> Solid block</button>
+                <button class="popup-item-btn soon" data-name="Breakable block"><i class="fa-solid fa-border-none"></i> Breakable block</button>
+                <button class="popup-item-btn soon" data-name="Moveable block"><i class="fa-solid fa-arrows-up-down-left-right"></i> Moveable block</button>
+                <button class="tool-btn popup-item-btn" data-tool="fire"><i class="fa-solid fa-fire"></i> Fire</button>
+                <button class="tool-btn popup-item-btn" data-tool="spikes"><i class="fa-solid fa-mountain"></i> Spikes</button>
+              </div>
+            </div>
+
+            <!-- Group 3: Special -->
+            <div class="action-group" id="group-special">
+              <button class="action-group-btn" title="Special">
+                <i class="fa-solid fa-star"></i>
+                <span>Special</span>
+              </button>
+              <div class="group-popup" id="popup-special">
+                <button class="tool-btn popup-item-btn" data-tool="goal"><i class="fa-solid fa-door-open"></i> Goal flag</button>
+                <button class="popup-item-btn soon" data-name="Save flag"><i class="fa-solid fa-flag"></i> Save flag</button>
+                <button class="popup-item-btn soon" data-name="Coin"><i class="fa-solid fa-coins"></i> Coin</button>
+                <button class="tool-btn popup-item-btn" data-tool="trampoline"><i class="fa-solid fa-circle-up"></i> Powerup</button>
+              </div>
+            </div>
+
+            <!-- Group 4: Enemies -->
+            <div class="action-group" id="group-enemies">
+              <button class="action-group-btn" title="Enemies">
+                <i class="fa-solid fa-ghost"></i>
+                <span>Enemies</span>
+              </button>
+              <div class="group-popup" id="popup-enemies">
+                <button class="popup-item-btn soon" data-name="Enemy"><i class="fa-solid fa-spider"></i> Basic enemy</button>
+                <button class="popup-item-btn soon" data-name="Horizontal enemy"><i class="fa-solid fa-arrows-left-right"></i> Horiz enemy</button>
+                <button class="popup-item-btn soon" data-name="Vertical enemy"><i class="fa-solid fa-arrows-up-down"></i> Vert enemy</button>
+                <button class="popup-item-btn soon" data-name="Diagonal enemy"><i class="fa-solid fa-arrow-trend-up"></i> Diag enemy</button>
+                <button class="popup-item-btn soon" data-name="Chasing enemy"><i class="fa-solid fa-eye"></i> Chasing enemy</button>
+                <button class="popup-item-btn soon" data-name="4 way lazer"><i class="fa-solid fa-bullseye"></i> 4 way lazer</button>
+              </div>
+            </div>
+
+            <!-- Group 5: Barriers -->
+            <div class="action-group" id="group-barriers">
+              <button class="action-group-btn" title="Barriers">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Barriers</span>
+              </button>
+              <div class="group-popup" id="popup-barriers">
+                <button class="popup-item-btn soon" data-name="Key"><i class="fa-solid fa-key"></i> Key</button>
+                <button class="tool-btn popup-item-btn" data-tool="portal"><i class="fa-solid fa-circle-notch"></i> Portal</button>
+                <button class="popup-item-btn soon" data-name="Lock"><i class="fa-solid fa-lock"></i> Lock</button>
+              </div>
+            </div>
+
+            <!-- Group 6: Switches -->
+            <div class="action-group" id="group-switches">
+              <button class="action-group-btn" title="Switches">
+                <i class="fa-solid fa-toggle-on"></i>
+                <span>Switches</span>
+              </button>
+              <div class="group-popup" id="popup-switches">
+                <button class="popup-item-btn soon" data-name="Switch"><i class="fa-solid fa-toggle-off"></i> Switch</button>
+                <button class="popup-item-btn soon" data-name="Switch block on"><i class="fa-solid fa-square-check"></i> Switch block on</button>
+                <button class="popup-item-btn soon" data-name="Switch block off"><i class="fa-solid fa-square"></i> Switch block off</button>
+                <button class="popup-item-btn soon" data-name="Falling block"><i class="fa-solid fa-arrow-down-short-wide"></i> Falling block</button>
+              </div>
+            </div>
+
+            <!-- Group 7: Erase -->
+            <div class="action-group" id="group-erase">
+              <button class="tool-btn action-group-btn erase-action" data-tool="erase" title="Erase">
+                <i class="fa-solid fa-eraser"></i>
+                <span>Erase</span>
+              </button>
+            </div>
+
+            <!-- Group 8: Change style -->
+            <div class="action-group" id="group-style">
+              <button class="action-group-btn style-action" title="Change style">
+                <i class="fa-solid fa-palette"></i>
+                <span>Style</span>
+              </button>
+              <div class="group-popup" id="popup-style">
+                <button class="popup-item-btn theme-btn active" data-theme="default"><i class="fa-solid fa-circle" style="color:#528c46"></i> Default</button>
+                <button class="popup-item-btn theme-btn" data-theme="16bit"><i class="fa-solid fa-circle" style="color:#b85c27"></i> 16-bit</button>
+                <button class="popup-item-btn theme-btn" data-theme="butterflies"><i class="fa-solid fa-circle" style="color:#00f2fe"></i> Butterflies</button>
+                <button class="popup-item-btn theme-btn" data-theme="icecream"><i class="fa-solid fa-circle" style="color:#b8e0d2"></i> Ice cream</button>
+                <button class="popup-item-btn theme-btn" data-theme="spooky"><i class="fa-solid fa-circle" style="color:#686de0"></i> Spooky</button>
+              </div>
+            </div>
+
+            <!-- Group 9: Undo -->
+            <div class="action-group" id="group-undo">
+              <button id="btn-undo-action" class="action-group-btn undo-action" title="Undo Last Change">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>Undo</span>
+              </button>
+            </div>
+
+          </div>
+          <div class="action-wing right-wing"></div>
+        </div>
+      </div>
+
+      <!-- TOAST CONTAINER -->
+      <div id="toast-container" class="toast-container hidden">
+        <div class="toast-content">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span id="toast-message">Item coming soon!</span>
+        </div>
+      </div>
     </div>
 
     <!-- RENAME OVERLAY MODAL -->

@@ -232,6 +232,76 @@ const TRACKS = {
 
       return steps;
     })()
+  },
+  ladygaga: {
+    tempo: 119,
+    steps: (() => {
+      const steps = [];
+      for (let i = 0; i < 64; i++) {
+        steps.push({});
+      }
+
+      // Lead melody: "Bad Romance" (Rah rah ah ah ah...)
+      // Bar 1 (Am)
+      steps[0].lead = 69; // A4
+      steps[2].lead = 69;
+      steps[4].lead = 72; // C5
+      steps[6].lead = 69;
+      steps[8].lead = 69;
+      steps[10].lead = 72; // C5
+      steps[12].lead = 72;
+      steps[14].lead = 76; // E5
+
+      // Bar 2 (C)
+      steps[16].lead = 72; // C5
+      steps[18].lead = 72;
+      steps[20].lead = 69; // A4
+      steps[22].lead = 69;
+      steps[24].lead = 72; // C5
+      steps[26].lead = 71; // B4
+      steps[28].lead = 69; // A4
+
+      // Bar 3 (F)
+      steps[32].lead = 76; // E5
+      steps[34].lead = 76;
+      steps[36].lead = 74; // D5
+      steps[38].lead = 72; // C5
+      steps[40].lead = 71; // B4
+
+      // Bar 4 (G)
+      steps[48].lead = 76; // E5
+      steps[50].lead = 76;
+      steps[52].lead = 74; // D5
+      steps[54].lead = 72; // C5
+      steps[56].lead = 69; // A4
+
+      // Pulsing 8th note synthpop bassline (even steps)
+      const bassNotes = [45, 48, 41, 43]; // A2, C3, F2, G2
+      for (let bar = 0; bar < 4; bar++) {
+        const offset = bar * 16;
+        const bNote = bassNotes[bar];
+        for (let s = 0; s < 16; s += 2) {
+          steps[offset + s].bass = bNote;
+        }
+      }
+
+      // High-energy synth arpeggios
+      const arps = [
+        [57, 60, 64], // Am
+        [60, 64, 67], // C
+        [53, 57, 60], // F
+        [55, 59, 62]  // G
+      ];
+      for (let bar = 0; bar < 4; bar++) {
+        const offset = bar * 16;
+        const chord = arps[bar];
+        [0, 3, 6, 8, 11, 14].forEach((s, idx) => {
+          steps[offset + s].arp = chord[idx % chord.length];
+        });
+      }
+
+      return steps;
+    })()
   }
 };
 

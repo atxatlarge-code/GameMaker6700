@@ -170,7 +170,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnScrollUp = document.getElementById('btn-scroll-up');
   const btnScrollDown = document.getElementById('btn-scroll-down');
 
-  const toolbar = document.getElementById('editor-toolbar');
+  const toolbar = document.getElementById('action-bar-container') || document.getElementById('editor-toolbar');
   const toolButtons = document.querySelectorAll('.tool-btn');
   const gameCanvas = document.getElementById('game-canvas');
 
@@ -394,18 +394,139 @@ window.addEventListener('DOMContentLoaded', () => {
     renameOverlay.classList.add('hidden');
   });
 
-  // Tool Selection Handlers
-  toolButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      if (engine.mode === CONFIG.MODE_PLAY) return;
+  // Toast Alert Helper
+  const toastContainer = document.getElementById('toast-container');
+  const toastMessage = document.getElementById('toast-message');
+  let toastTimeout = null;
 
-      toolButtons.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
+  function showToast(msg) {
+    if (!toastContainer || !toastMessage) return;
+    toastMessage.innerText = msg;
+    toastContainer.classList.remove('hidden');
+    toastContainer.classList.add('show');
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toastContainer.classList.remove('show');
+      setTimeout(() => toastContainer.classList.add('hidden'), 300);
+    }, 2000);
+  }
+
+  // Action Bar Group Popup Toggles
+  const actionGroups = document.querySelectorAll('.action-group');
+  const actionGroupButtons = document.querySelectorAll('.action-group-btn');
+
+  actionGroupButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      if (engine.mode === CONFIG.MODE_PLAY) return;
+      e.stopPropagation();
+
+      const group = btn.closest('.action-group');
+      if (!group) return;
+      const isAlreadyOpen = group.classList.contains('open');
+
+      // Close all open popups
+      actionGroups.forEach(g => g.classList.remove('open'));
+
+      // If it has a popup and wasn't already open, open it
+      const popup = group.querySelector('.group-popup');
+      if (popup && !isAlreadyOpen) {
+        group.classList.add('open');
+      }
+
+      // If this button is Erase standalone, handle it
+      if (btn.classList.contains('erase-action')) {
+        actionGroupButtons.forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.popup-item-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        editor.setTool('erase');
+      }
+    });
+  });
+
+  // Close dropups when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.action-group')) {
+      actionGroups.forEach(g => g.classList.remove('open'));
+    }
+  });
+
+  // Tool Popup Items Selection Handlers
+  toolButtons.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      if (engine.mode === CONFIG.MODE_PLAY) return;
+      e.stopPropagation();
+
       const tool = btn.getAttribute('data-tool');
+      if (!tool) return;
+
+      // Update active states for item buttons
+      document.querySelectorAll('.popup-item-btn, .action-group-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Update active states for group buttons
+      const parentGroup = btn.closest('.action-group');
+      if (parentGroup) {
+        const groupBtn = parentGroup.querySelector('.action-group-btn');
+        if (groupBtn) groupBtn.classList.add('active');
+      }
+
+      actionGroups.forEach(g => g.classList.remove('open'));
       editor.setTool(tool);
       btn.blur();
     });
   });
+
+  // "Coming Soon" Buttons Handler
+  const soonButtons = document.querySelectorAll('.popup-item-btn.soon');
+  soonButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      if (engine.mode === CONFIG.MODE_PLAY) return;
+      e.stopPropagation();
+      const name = btn.getAttribute('data-name') || 'Item';
+      showToast(`${name} is coming soon!`);
+      actionGroups.forEach(g => g.classList.remove('open'));
+    });
+  });
+
+  // Theme Switching Buttons
+  const themeButtons = document.querySelectorAll('.theme-btn');
+
+  themeButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      if (engine.mode === CONFIG.MODE_PLAY) return;
+      e.stopPropagation();
+
+      const theme = btn.getAttribute('data-theme') || 'default';
+      themeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (editorView) {
+        // Remove existing theme classes
+        editorView.classList.forEach(cls => {
+          if (cls.startsWith('theme-')) editorView.classList.remove(cls);
+        });
+        editorView.classList.add(`theme-${theme}`);
+      }
+      engine.setTheme(theme);
+      actionGroups.forEach(g => g.classList.remove('open'));
+    });
+  });
+
+  // Undo Action Button
+  const btnUndoAction = document.getElementById('btn-undo-action');
+  if (btnUndoAction) {
+    btnUndoAction.addEventListener('click', (e) => {
+      if (engine.mode === CONFIG.MODE_PLAY) return;
+      e.stopPropagation();
+
+      if (level.undo()) {
+        audio.playTileSound();
+      } else {
+        showToast('Nothing to undo!');
+      }
+      actionGroups.forEach(g => g.classList.remove('open'));
+    });
+  }
 
   // Mode Toggling
   btnEditMode.addEventListener('click', () => {

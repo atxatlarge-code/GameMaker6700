@@ -12,6 +12,7 @@ export class Level {
     this._nextPortal = 1;
     this.isPreset = true;
     this.onModify = null;
+    this.history = [];
     this.initDefaultGrid();
   }
 
@@ -25,6 +26,7 @@ export class Level {
     this.portal2 = levelData.portal2 ? { ...levelData.portal2 } : null;
     this._nextPortal = 1;
     this.isPreset = levelData.isPreset || false;
+    this.history = [];
   }
 
   export() {
@@ -38,6 +40,35 @@ export class Level {
       portal2: this.portal2 ? { ...this.portal2 } : null,
       isPreset: this.isPreset,
     };
+  }
+
+  pushHistory() {
+    this.history.push({
+      grid: JSON.parse(JSON.stringify(this.grid)),
+      playerSpawn: { ...this.playerSpawn },
+      goalPos: { ...this.goalPos },
+      portal1: this.portal1 ? { ...this.portal1 } : null,
+      portal2: this.portal2 ? { ...this.portal2 } : null,
+      _nextPortal: this._nextPortal,
+    });
+    if (this.history.length > 30) {
+      this.history.shift();
+    }
+  }
+
+  undo() {
+    if (this.history.length > 0) {
+      const state = this.history.pop();
+      this.grid = state.grid;
+      this.playerSpawn = state.playerSpawn;
+      this.goalPos = state.goalPos;
+      this.portal1 = state.portal1;
+      this.portal2 = state.portal2;
+      this._nextPortal = state._nextPortal;
+      if (this.onModify) this.onModify();
+      return true;
+    }
+    return false;
   }
 
   initDefaultGrid() {
@@ -63,6 +94,7 @@ export class Level {
     // Default portals in Mushroom Forest preset
     this.portal1 = { col: 16, row: 27 };
     this.portal2 = { col: 42, row: 27 };
+    this.history = [];
   }
 
   getTile(col, row) {
@@ -74,11 +106,12 @@ export class Level {
 
   setTile(col, row, value) {
     if (col >= 0 && col < CONFIG.GRID_COLS && row >= 0 && row < CONFIG.GRID_ROWS) {
-      if (value !== 0) {
-        if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
-        if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
-      }
       if (this.grid[row][col] !== value) {
+        this.pushHistory();
+        if (value !== 0) {
+          if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
+          if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
+        }
         this.grid[row][col] = value;
         if (this.onModify) this.onModify();
       }
@@ -87,21 +120,27 @@ export class Level {
 
   setPlayerSpawn(col, row) {
     if (col >= 0 && col < CONFIG.GRID_COLS && row >= 0 && row < CONFIG.GRID_ROWS) {
-      this.playerSpawn = { col, row };
-      if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
-      if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
-      this.setTile(col, row, 0);
-      if (this.onModify) this.onModify();
+      if (this.playerSpawn.col !== col || this.playerSpawn.row !== row) {
+        this.pushHistory();
+        this.playerSpawn = { col, row };
+        if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
+        if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
+        this.grid[row][col] = 0;
+        if (this.onModify) this.onModify();
+      }
     }
   }
 
   setGoalPos(col, row) {
     if (col >= 0 && col < CONFIG.GRID_COLS && row >= 0 && row < CONFIG.GRID_ROWS) {
-      this.goalPos = { col, row };
-      if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
-      if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
-      this.setTile(col, row, 0);
-      if (this.onModify) this.onModify();
+      if (this.goalPos.col !== col || this.goalPos.row !== row) {
+        this.pushHistory();
+        this.goalPos = { col, row };
+        if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
+        if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
+        this.grid[row][col] = 0;
+        if (this.onModify) this.onModify();
+      }
     }
   }
 
@@ -110,6 +149,7 @@ export class Level {
       if (this.portal1 && this.portal1.col === col && this.portal1.row === row) return;
       if (this.portal2 && this.portal2.col === col && this.portal2.row === row) return;
 
+      this.pushHistory();
       if (!this.portal1) {
         this.portal1 = { col, row };
       } else if (!this.portal2) {
@@ -123,8 +163,25 @@ export class Level {
           this._nextPortal = 2;
         }
       }
-      this.setTile(col, row, 0);
+      this.grid[row][col] = 0;
       if (this.onModify) this.onModify();
     }
   }
+
+  removePortal(col, row) {
+    if (this.portal1 && this.portal1.col === col && this.portal1.row === row) {
+      this.pushHistory();
+      this.portal1 = null;
+      if (this.onModify) this.onModify();
+      return true;
+    }
+    if (this.portal2 && this.portal2.col === col && this.portal2.row === row) {
+      this.pushHistory();
+      this.portal2 = null;
+      if (this.onModify) this.onModify();
+      return true;
+    }
+    return false;
+  }
 }
+
