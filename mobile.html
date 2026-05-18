@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Mobile Arcade - Game Maker 6700</title>
+  
+  <!-- FontAwesome & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Quicksand:wght@500;700&family=Press+Start+2P&family=VT323&family=Inter:wght@500;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="mobile-arcade-body">
+
+  <div class="mobile-app-container">
+    <!-- Top HUD Overlay Bar -->
+    <header class="mobile-hud">
+      <div class="hud-left">
+        <a href="index.html" class="mobile-hud-btn yellow-btn" title="Return to Workbench">
+          <i class="fa-solid fa-gamepad"></i>
+          <span>Workbench</span>
+        </a>
+      </div>
+      
+      <div class="hud-center">
+        <div class="mobile-level-banner">
+          <span id="mobile-level-title">Platformer Basics</span>
+        </div>
+      </div>
+      
+      <div class="hud-right">
+        <button id="btn-mobile-restart" class="mobile-hud-btn action-btn" title="Restart Level">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+        <button id="btn-mobile-music" class="mobile-hud-btn action-btn" title="Toggle Music">
+          <i class="fa-solid fa-circle-play"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Game Viewport Container -->
+    <main class="mobile-canvas-wrapper">
+      <canvas id="game-canvas" width="1200" height="600"></canvas>
+    </main>
+
+    <!-- Translucent Sphere Touch Controls Overlay -->
+    <div id="touch-controls-overlay" class="touch-controls-overlay">
+      <!-- Left Virtual Joystick Sphere -->
+      <div class="touch-sphere-container left-sphere-container">
+        <div id="joystick-sphere" class="translucent-sphere joystick-sphere">
+          <div id="joystick-inner" class="sphere-inner-puck"></div>
+        </div>
+      </div>
+
+      <!-- Right Action / Jump Sphere -->
+      <div class="touch-sphere-container right-sphere-container">
+        <button id="jump-sphere" class="translucent-sphere jump-sphere" aria-label="Jump">
+          <i class="fa-solid fa-angles-up jump-icon"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Win Overlay Modal -->
+    <div id="win-overlay" class="overlay hidden mobile-win-overlay">
+      <div class="overlay-modal glass-modal">
+        <h2>🎉 Level Complete!</h2>
+        <p>Outstanding run! You successfully guided the character to the magical portal.</p>
+        <div class="modal-buttons">
+          <button id="btn-win-restart" class="primary-btn"><i class="fa-solid fa-rotate-left"></i> Play Again</button>
+          <a href="index.html" class="secondary-btn" style="text-decoration:none;"><i class="fa-solid fa-gamepad"></i> Back to Workbench</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/mobile.js"></script>
+</body>
+</html>

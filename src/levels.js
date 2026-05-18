@@ -17,19 +17,24 @@ function createBlankGrid() {
   return grid;
 }
 
-// Preset 1: Mushroom Forest (Original default)
+// Preset 1: Mushroom Forest (default)
 function createMushroomForestGrid() {
   const grid = createBlankGrid();
-  // Platforms
-  grid[27][12] = 1; grid[27][13] = 1; grid[27][14] = 1;
-  grid[25][18] = 1; grid[25][19] = 1;
-  grid[23][24] = 1; grid[23][25] = 1; grid[23][26] = 1;
-  grid[25][32] = 1; grid[25][33] = 1;
-  grid[27][38] = 1; grid[27][39] = 1;
-  // Mushrooms
-  grid[27][9] = 2; grid[27][21] = 2; grid[27][35] = 2;
+  grid[22][50] = 1; grid[22][51] = 1;
+  grid[23][23] = 1; grid[23][24] = 1; grid[23][25] = 1; grid[23][26] = 1; grid[23][49] = 1; grid[23][50] = 1; grid[23][51] = 1;
+  grid[24][23] = 1; grid[24][26] = 1; grid[24][48] = 1; grid[24][49] = 1; grid[24][50] = 1; grid[24][51] = 1;
+  grid[25][14] = 1; grid[25][15] = 1; grid[25][16] = 1; grid[25][17] = 1; grid[25][18] = 1; grid[25][19] = 1;
+  grid[25][23] = 1; grid[25][26] = 1; grid[25][32] = 1; grid[25][33] = 1;
+  grid[25][47] = 1; grid[25][48] = 1; grid[25][49] = 1; grid[25][50] = 1; grid[25][51] = 1;
+  grid[26][14] = 1; grid[26][19] = 1; grid[26][23] = 1; grid[26][26] = 1;
+  grid[26][32] = 1; grid[26][33] = 1; grid[26][38] = 1; grid[26][39] = 1;
+  grid[26][46] = 1; grid[26][47] = 1; grid[26][48] = 1; grid[26][49] = 1; grid[26][50] = 1; grid[26][51] = 1;
+  grid[27][9] = 2; grid[27][12] = 1; grid[27][13] = 1; grid[27][14] = 1; grid[27][19] = 1; grid[27][21] = 2;
+  grid[27][23] = 1; grid[27][26] = 1; grid[27][32] = 1; grid[27][33] = 1; grid[27][35] = 2; grid[27][38] = 1; grid[27][39] = 1;
+  grid[27][45] = 1; grid[27][46] = 1; grid[27][47] = 1; grid[27][48] = 1; grid[27][49] = 1; grid[27][50] = 1; grid[27][51] = 1;
   return grid;
 }
+
 
 // Preset 2: Platformer Basics
 function createPlatformerGrid() {
@@ -203,10 +208,10 @@ function createTowerOfPerilGrid() {
 const PRESETS = [
   {
     id: 'preset-1',
-    name: 'Mushroom Forest',
+    name: 'Mushroom Forest (default)',
     grid: createMushroomForestGrid(),
     playerSpawn: { col: 5, row: 27 },
-    goalPos: { col: 52, row: 27 },
+    goalPos: { col: 55, row: 19 },
     portal1: { col: 16, row: 27 },
     portal2: { col: 42, row: 27 },
     isPreset: true,

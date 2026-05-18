@@ -167,6 +167,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnDelLevel = document.getElementById('btn-del-level');
   const btnDupLevel = document.getElementById('btn-dup-level');
   const btnShareLevel = document.getElementById('btn-share-level');
+  const btnMobileArcade = document.getElementById('btn-mobile-arcade');
+  const btnMobileEditor = document.getElementById('btn-mobile-editor');
   const btnScrollUp = document.getElementById('btn-scroll-up');
   const btnScrollDown = document.getElementById('btn-scroll-down');
 
@@ -329,6 +331,18 @@ window.addEventListener('DOMContentLoaded', () => {
   btnMenuEdit.addEventListener('click', () => {
     openLevelInMode(CONFIG.MODE_EDIT);
   });
+
+  if (btnMobileArcade) {
+    btnMobileArcade.addEventListener('click', () => {
+      window.location.href = `mobile.html?level=${selectedLevel.id}`;
+    });
+  }
+
+  if (btnMobileEditor) {
+    btnMobileEditor.addEventListener('click', () => {
+      window.location.href = `mobile.html?level=${level.id || selectedLevel.id}`;
+    });
+  }
 
   btnDelLevel.addEventListener('click', () => {
     if (selectedLevel.isPreset) {

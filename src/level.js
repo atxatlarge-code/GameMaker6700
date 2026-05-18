@@ -3,10 +3,10 @@ import { CONFIG } from './config.js';
 export class Level {
   constructor() {
     this.id = 'preset-1';
-    this.name = 'Mushroom Forest';
+    this.name = 'Mushroom Forest (default)';
     this.grid = [];
     this.playerSpawn = { col: 5, row: 27 };
-    this.goalPos = { col: 52, row: 27 };
+    this.goalPos = { col: 55, row: 19 };
     this.portal1 = null;
     this.portal2 = null;
     this._nextPortal = 1;
@@ -84,12 +84,18 @@ export class Level {
       }
       this.grid.push(row);
     }
-    this.grid[27][12] = 1; this.grid[27][13] = 1; this.grid[27][14] = 1;
-    this.grid[25][18] = 1; this.grid[25][19] = 1;
-    this.grid[23][24] = 1; this.grid[23][25] = 1; this.grid[23][26] = 1;
-    this.grid[25][32] = 1; this.grid[25][33] = 1;
-    this.grid[27][38] = 1; this.grid[27][39] = 1;
-    this.grid[27][9] = 2; this.grid[27][21] = 2; this.grid[27][35] = 2;
+    this.grid[22][50] = 1; this.grid[22][51] = 1;
+    this.grid[23][23] = 1; this.grid[23][24] = 1; this.grid[23][25] = 1; this.grid[23][26] = 1; this.grid[23][49] = 1; this.grid[23][50] = 1; this.grid[23][51] = 1;
+    this.grid[24][23] = 1; this.grid[24][26] = 1; this.grid[24][48] = 1; this.grid[24][49] = 1; this.grid[24][50] = 1; this.grid[24][51] = 1;
+    this.grid[25][14] = 1; this.grid[25][15] = 1; this.grid[25][16] = 1; this.grid[25][17] = 1; this.grid[25][18] = 1; this.grid[25][19] = 1;
+    this.grid[25][23] = 1; this.grid[25][26] = 1; this.grid[25][32] = 1; this.grid[25][33] = 1;
+    this.grid[25][47] = 1; this.grid[25][48] = 1; this.grid[25][49] = 1; this.grid[25][50] = 1; this.grid[25][51] = 1;
+    this.grid[26][14] = 1; this.grid[26][19] = 1; this.grid[26][23] = 1; this.grid[26][26] = 1;
+    this.grid[26][32] = 1; this.grid[26][33] = 1; this.grid[26][38] = 1; this.grid[26][39] = 1;
+    this.grid[26][46] = 1; this.grid[26][47] = 1; this.grid[26][48] = 1; this.grid[26][49] = 1; this.grid[26][50] = 1; this.grid[26][51] = 1;
+    this.grid[27][9] = 2; this.grid[27][12] = 1; this.grid[27][13] = 1; this.grid[27][14] = 1; this.grid[27][19] = 1; this.grid[27][21] = 2;
+    this.grid[27][23] = 1; this.grid[27][26] = 1; this.grid[27][32] = 1; this.grid[27][33] = 1; this.grid[27][35] = 2; this.grid[27][38] = 1; this.grid[27][39] = 1;
+    this.grid[27][45] = 1; this.grid[27][46] = 1; this.grid[27][47] = 1; this.grid[27][48] = 1; this.grid[27][49] = 1; this.grid[27][50] = 1; this.grid[27][51] = 1;
     
     // Default portals in Mushroom Forest preset
     this.portal1 = { col: 16, row: 27 };

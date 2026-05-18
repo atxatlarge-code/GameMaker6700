@@ -3,7 +3,7 @@ const SEED_THREADS = [
   {
     id: 'thread-seed-1',
     levelId: 'preset-1',
-    levelName: 'Mushroom Forest',
+    levelName: 'Mushroom Forest (default)',
     title: 'How do I reach the high doorway?',
     playerName: 'Chihiro101',
     createdAt: Date.now() - 3600000 * 3, // 3 hours ago
