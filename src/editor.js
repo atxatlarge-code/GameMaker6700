@@ -68,6 +68,35 @@ export class Editor {
       this.hoverCol = -1;
       this.hoverRow = -1;
     });
+
+    // Mobile touch support for editing
+    this.canvas.addEventListener('touchstart', (e) => {
+      if (this.engine && this.engine.mode === CONFIG.MODE_PLAY) return;
+      e.preventDefault();
+      if (e.touches.length > 0) {
+        this.isMouseDown = true;
+        this.lastMouseX = e.touches[0].clientX;
+        this.lastMouseY = e.touches[0].clientY;
+        this.handleInput();
+      }
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchmove', (e) => {
+      if (this.engine && this.engine.mode === CONFIG.MODE_PLAY) return;
+      e.preventDefault();
+      if (e.touches.length > 0) {
+        this.lastMouseX = e.touches[0].clientX;
+        this.lastMouseY = e.touches[0].clientY;
+        this.updateHover();
+        if (this.isMouseDown) {
+          this.handleInput();
+        }
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+      this.isMouseDown = false;
+    });
   }
 
   getGridCoords() {

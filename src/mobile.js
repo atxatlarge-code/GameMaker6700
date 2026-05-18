@@ -89,14 +89,15 @@ window.addEventListener('DOMContentLoaded', () => {
     levelTitleEl.textContent = targetLevelData.name;
   }
 
-  // Resize canvas to match window proportions cleanly
+  // Resize canvas to zoom in exactly 10 squares tall while keeping precise screen dimensions/proportions
   function resizeCanvas() {
     const wrapper = document.querySelector('.mobile-canvas-wrapper');
-    if (!wrapper) return;
+    if (!wrapper || wrapper.clientHeight === 0) return;
     const w = wrapper.clientWidth;
     const h = wrapper.clientHeight;
-    gameCanvas.width = Math.min(1600, w * window.devicePixelRatio || 2);
-    gameCanvas.height = Math.min(800, h * window.devicePixelRatio || 2);
+    // Exactly 10 squares tall (10 * CONFIG.TILE_SIZE = 400px)
+    gameCanvas.height = 10 * CONFIG.TILE_SIZE;
+    gameCanvas.width = Math.round(gameCanvas.height * (w / h));
   }
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
@@ -132,7 +133,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Music toggle
   audio.onStateChange = (isPlaying) => {
     if (btnMusic) {
-      btnMusic.innerHTML = isPlaying ? '<i class="fa-solid fa-circle-pause"></i>' : '<i class="fa-solid fa-circle-play"></i>';
+      btnMusic.innerHTML = isPlaying ? '<i class="fa-solid fa-music"></i>' : '<i class="fa-solid fa-volume-xmark"></i>';
       btnMusic.classList.toggle('playing', isPlaying);
     }
   };
@@ -141,6 +142,27 @@ window.addEventListener('DOMContentLoaded', () => {
     audio.toggleMusic();
     btnMusic.blur();
   });
+
+  // Mode Toggle (Play / Edit)
+  const btnModeToggle = document.getElementById('btn-mobile-mode-toggle');
+  const touchControlsOverlay = document.getElementById('touch-controls-overlay');
+
+  if (btnModeToggle) {
+    btnModeToggle.addEventListener('click', () => {
+      if (engine.mode === CONFIG.MODE_PLAY) {
+        engine.setMode(CONFIG.MODE_EDIT);
+        btnModeToggle.innerHTML = '<i class="fa-solid fa-play"></i>';
+        btnModeToggle.classList.add('edit-active');
+        if (touchControlsOverlay) touchControlsOverlay.style.display = 'none';
+      } else {
+        engine.setMode(CONFIG.MODE_PLAY);
+        btnModeToggle.innerHTML = '<i class="fa-solid fa-pen"></i>';
+        btnModeToggle.classList.remove('edit-active');
+        if (touchControlsOverlay) touchControlsOverlay.style.display = 'flex';
+      }
+      btnModeToggle.blur();
+    });
+  }
 
   // ==========================================
   // MULTI-TOUCH LAWSON SPHERES CONTROLLER
