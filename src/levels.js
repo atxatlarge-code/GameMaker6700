@@ -17,7 +17,7 @@ function createBlankGrid() {
   return grid;
 }
 
-// Preset 1: Mushroom Forest (default)
+// Preset 1: Mushroom Forest
 function createMushroomForestGrid() {
   const grid = createBlankGrid();
   grid[22][50] = 1; grid[22][51] = 1;
@@ -208,7 +208,7 @@ function createTowerOfPerilGrid() {
 const PRESETS = [
   {
     id: 'preset-1',
-    name: 'Mushroom Forest (default)',
+    name: 'Mushroom Forest',
     grid: createMushroomForestGrid(),
     playerSpawn: { col: 5, row: 27 },
     goalPos: { col: 55, row: 19 },

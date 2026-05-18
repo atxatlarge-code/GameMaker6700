@@ -3,7 +3,7 @@ import { CONFIG } from './config.js';
 export class Level {
   constructor() {
     this.id = 'preset-1';
-    this.name = 'Mushroom Forest (default)';
+    this.name = 'Mushroom Forest';
     this.grid = [];
     this.playerSpawn = { col: 5, row: 27 };
     this.goalPos = { col: 55, row: 19 };

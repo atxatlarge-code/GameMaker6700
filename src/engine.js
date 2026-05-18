@@ -100,10 +100,10 @@ export class Engine {
     this.teleportParticles = [];
 
     // Center camera near player spawn when resetting
-    const maxCamX = Math.max(0, CONFIG.GRID_COLS * CONFIG.TILE_SIZE - CONFIG.CANVAS_WIDTH);
-    const maxCamY = Math.max(0, CONFIG.GRID_ROWS * CONFIG.TILE_SIZE - CONFIG.CANVAS_HEIGHT);
-    const targetX = this.player.x + this.player.width / 2 - CONFIG.CANVAS_WIDTH / 2;
-    const targetY = this.player.y + this.player.height / 2 - CONFIG.CANVAS_HEIGHT / 2;
+    const maxCamX = Math.max(0, CONFIG.GRID_COLS * CONFIG.TILE_SIZE - this.canvas.width);
+    const maxCamY = Math.max(0, CONFIG.GRID_ROWS * CONFIG.TILE_SIZE - this.canvas.height);
+    const targetX = this.player.x + this.player.width / 2 - this.canvas.width / 2;
+    const targetY = this.player.y + this.player.height / 2 - this.canvas.height / 2;
     this.camera.x = Math.max(0, Math.min(maxCamX, targetX));
     this.camera.y = Math.max(0, Math.min(maxCamY, targetY));
   }
@@ -176,8 +176,8 @@ export class Engine {
   }
 
   updateCamera() {
-    const maxCamX = Math.max(0, CONFIG.GRID_COLS * CONFIG.TILE_SIZE - CONFIG.CANVAS_WIDTH);
-    const maxCamY = Math.max(0, CONFIG.GRID_ROWS * CONFIG.TILE_SIZE - CONFIG.CANVAS_HEIGHT);
+    const maxCamX = Math.max(0, CONFIG.GRID_COLS * CONFIG.TILE_SIZE - this.canvas.width);
+    const maxCamY = Math.max(0, CONFIG.GRID_ROWS * CONFIG.TILE_SIZE - this.canvas.height);
 
     if (this.mode === CONFIG.MODE_EDIT) {
       const speed = CONFIG.CAMERA_PAN_SPEED || 12;
@@ -198,8 +198,8 @@ export class Engine {
       }
     } else if (this.mode === CONFIG.MODE_PLAY) {
       // Smoothly track player
-      const targetX = this.player.x + this.player.width / 2 - CONFIG.CANVAS_WIDTH / 2;
-      const targetY = this.player.y + this.player.height / 2 - CONFIG.CANVAS_HEIGHT / 2;
+      const targetX = this.player.x + this.player.width / 2 - this.canvas.width / 2;
+      const targetY = this.player.y + this.player.height / 2 - this.canvas.height / 2;
       this.camera.x += (targetX - this.camera.x) * 0.1;
       this.camera.y += (targetY - this.camera.y) * 0.1;
 
@@ -550,16 +550,16 @@ export class Engine {
 
   render() {
     // Clear Canvas
-    this.ctx.clearRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.ctx.save();
     this.ctx.translate(-Math.floor(this.camera.x), -Math.floor(this.camera.y));
 
     // 1. Render Level Grid (only tiles in or near view)
     const minCol = Math.max(0, Math.floor(this.camera.x / CONFIG.TILE_SIZE));
-    const maxCol = Math.min(CONFIG.GRID_COLS - 1, Math.floor((this.camera.x + CONFIG.CANVAS_WIDTH) / CONFIG.TILE_SIZE));
+    const maxCol = Math.min(CONFIG.GRID_COLS - 1, Math.floor((this.camera.x + this.canvas.width) / CONFIG.TILE_SIZE));
     const minRow = Math.max(0, Math.floor(this.camera.y / CONFIG.TILE_SIZE));
-    const maxRow = Math.min(CONFIG.GRID_ROWS - 1, Math.floor((this.camera.y + CONFIG.CANVAS_HEIGHT) / CONFIG.TILE_SIZE));
+    const maxRow = Math.min(CONFIG.GRID_ROWS - 1, Math.floor((this.camera.y + this.canvas.height) / CONFIG.TILE_SIZE));
 
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
