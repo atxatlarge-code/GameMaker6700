@@ -46,10 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
       cachedThreads = threads;
       updateStudioMetrics();
 
-      // Auto-select first thread matching filter
       const matching = cachedThreads.filter(t => t.status === studioFilter);
       if (matching.length > 0) {
         studioSelectedThreadId = matching[0].id;
+        messageService.markThreadAsRead(studioSelectedThreadId, 'creator');
       }
 
       renderStudioSidebar();
@@ -78,8 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
       el.className = `thread-item ${t.id === studioSelectedThreadId ? 'active' : ''} ${t.status === 'resolved' ? 'resolved' : ''}`;
       const dateStr = new Date(t.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
       
-      const lastMsg = t.messages[t.messages.length - 1];
-      const isUnread = t.status === 'open' && lastMsg?.senderRole === 'player';
+      const isUnread = messageService.isThreadUnread(t, 'creator');
 
       el.innerHTML = `
         <div class="thread-top">
@@ -95,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       el.addEventListener('click', () => {
         studioSelectedThreadId = t.id;
+        messageService.markThreadAsRead(studioSelectedThreadId, 'creator');
         renderStudioSidebar();
         renderStudioMain();
       });
@@ -163,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     studioInputText.value = '';
     await messageService.addReply(studioSelectedThreadId, 'creator', text);
     cachedThreads = await messageService.fetchThreads();
+    messageService.markThreadAsRead(studioSelectedThreadId, 'creator');
     renderStudioSidebar();
     renderStudioMain();
   }
@@ -174,6 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
     tabFilterOpen.classList.add('active');
     const matching = cachedThreads.filter(t => t.status === studioFilter);
     studioSelectedThreadId = matching.length > 0 ? matching[0].id : null;
+    if (studioSelectedThreadId) {
+      messageService.markThreadAsRead(studioSelectedThreadId, 'creator');
+    }
     renderStudioSidebar();
     renderStudioMain();
   });
@@ -184,6 +188,9 @@ document.addEventListener('DOMContentLoaded', () => {
     tabFilterRes.classList.add('active');
     const matching = cachedThreads.filter(t => t.status === studioFilter);
     studioSelectedThreadId = matching.length > 0 ? matching[0].id : null;
+    if (studioSelectedThreadId) {
+      messageService.markThreadAsRead(studioSelectedThreadId, 'creator');
+    }
     renderStudioSidebar();
     renderStudioMain();
   });
@@ -282,6 +289,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const matching = cachedThreads.filter(t => t.status === studioFilter);
       if ((!studioSelectedThreadId || !matching.some(t => t.id === studioSelectedThreadId)) && matching.length > 0) {
         studioSelectedThreadId = matching[0].id;
+      }
+      if (studioSelectedThreadId) {
+        messageService.markThreadAsRead(studioSelectedThreadId, 'creator');
       }
 
       renderStudioSidebar();

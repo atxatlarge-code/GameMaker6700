@@ -481,12 +481,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnCancelCloud = document.getElementById('btn-cancel-cloud');
 
   function updateUnreadBadges() {
-    let unreadCount = 0;
-    if (currentPersona === 'creator') {
-      unreadCount = cachedThreads.filter(t => t.status === 'open').length;
-    } else {
-      unreadCount = cachedThreads.filter(t => t.messages[t.messages.length - 1]?.senderRole === 'creator').length;
-    }
+    const unreadCount = messageService.getUnreadCount(cachedThreads, currentPersona);
 
     const openCount = cachedThreads.filter(t => t.status === 'open').length;
     const badgeStudio = document.getElementById('badge-studio');
@@ -519,10 +514,7 @@ window.addEventListener('DOMContentLoaded', () => {
       el.className = `thread-item ${t.id === activeThreadId ? 'active' : ''} ${t.status === 'resolved' ? 'resolved' : ''}`;
       
       const dateStr = new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const lastMsg = t.messages[t.messages.length - 1];
-      const isUnreadForCreator = currentPersona === 'creator' && t.status === 'open' && lastMsg?.senderRole === 'player';
-      const isUnreadForPlayer = currentPersona === 'player' && lastMsg?.senderRole === 'creator';
-      const showUnreadDot = isUnreadForCreator || isUnreadForPlayer;
+      const showUnreadDot = messageService.isThreadUnread(t, currentPersona);
 
       el.innerHTML = `
         <div class="thread-top">
@@ -538,8 +530,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
       el.addEventListener('click', () => {
         activeThreadId = t.id;
+        messageService.markThreadAsRead(activeThreadId, currentPersona);
         renderThreadsSidebar();
         renderChatView();
+        updateUnreadBadges();
       });
 
       threadListContainer.appendChild(el);
@@ -613,6 +607,9 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!activeThreadId && cachedThreads.length > 0) {
       activeThreadId = cachedThreads[0].id;
     }
+    if (activeThreadId) {
+      messageService.markThreadAsRead(activeThreadId, currentPersona);
+    }
     renderThreadsSidebar();
     renderChatView();
     updateUnreadBadges();
@@ -621,6 +618,9 @@ window.addEventListener('DOMContentLoaded', () => {
       cachedThreads = threads;
       if (!activeThreadId && cachedThreads.length > 0) {
         activeThreadId = cachedThreads[0].id;
+      }
+      if (activeThreadId) {
+        messageService.markThreadAsRead(activeThreadId, currentPersona);
       }
       renderThreadsSidebar();
       renderChatView();
@@ -638,6 +638,9 @@ window.addEventListener('DOMContentLoaded', () => {
     currentPersona = 'player';
     personaCreator.classList.remove('active');
     personaPlayer.classList.add('active');
+    if (activeThreadId) {
+      messageService.markThreadAsRead(activeThreadId, currentPersona);
+    }
     renderThreadsSidebar();
     renderChatView();
     updateUnreadBadges();
@@ -647,6 +650,9 @@ window.addEventListener('DOMContentLoaded', () => {
     currentPersona = 'creator';
     personaPlayer.classList.remove('active');
     personaCreator.classList.add('active');
+    if (activeThreadId) {
+      messageService.markThreadAsRead(activeThreadId, currentPersona);
+    }
     renderThreadsSidebar();
     renderChatView();
     updateUnreadBadges();
@@ -696,6 +702,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const created = await messageService.createThread(lvlId, lvlName, title, pName, text);
     cachedThreads = await messageService.fetchThreads();
     activeThreadId = created.id;
+    messageService.markThreadAsRead(activeThreadId, currentPersona);
     
     newThreadState.classList.add('hidden');
     renderThreadsSidebar();
@@ -710,6 +717,7 @@ window.addEventListener('DOMContentLoaded', () => {
     inputReplyText.value = '';
     await messageService.addReply(activeThreadId, currentPersona, text);
     cachedThreads = await messageService.fetchThreads();
+    messageService.markThreadAsRead(activeThreadId, currentPersona);
     renderThreadsSidebar();
     renderChatView();
     updateUnreadBadges();
@@ -751,6 +759,9 @@ window.addEventListener('DOMContentLoaded', () => {
     alert('Cloud config saved! Synchronizing messages...');
     cachedThreads = await messageService.fetchThreads();
     if (!activeThreadId && cachedThreads.length > 0) activeThreadId = cachedThreads[0].id;
+    if (activeThreadId) {
+      messageService.markThreadAsRead(activeThreadId, currentPersona);
+    }
     renderThreadsSidebar();
     renderChatView();
     updateUnreadBadges();
@@ -787,11 +798,12 @@ window.addEventListener('DOMContentLoaded', () => {
       const newTotalMessages = fresh.reduce((sum, t) => sum + t.messages.length, 0);
 
       cachedThreads = fresh;
-      updateUnreadBadges();
-      if (!messagesOverlay.classList.contains('hidden')) {
+      if (!messagesOverlay.classList.contains('hidden') && activeThreadId) {
+        messageService.markThreadAsRead(activeThreadId, currentPersona);
         renderThreadsSidebar();
         renderChatView();
       }
+      updateUnreadBadges();
 
       if (newTotalMessages > prevTotalMessages) {
         audio.playTileSound();

@@ -56,11 +56,61 @@ const SEED_THREADS = [
 
 const LOCAL_STORAGE_KEY = 'gm6700_local_messages';
 const CONFIG_STORAGE_KEY = 'gm6700_cloud_config';
+const READ_STORAGE_KEY = 'gm6700_read_status';
 
 export class CloudMessageService {
   constructor() {
     this.cloudConfig = this.loadConfig();
     this.localThreads = this.loadLocalThreads();
+    this.readMap = this.loadReadMap();
+  }
+
+  loadReadMap() {
+    try {
+      const stored = localStorage.getItem(READ_STORAGE_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch (e) {
+      console.error('Error loading read map:', e);
+    }
+    return {};
+  }
+
+  saveReadMap() {
+    try {
+      localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(this.readMap));
+    } catch (e) {
+      console.error('Error saving read map:', e);
+    }
+  }
+
+  markThreadAsRead(threadId, persona) {
+    if (!threadId || !persona) return;
+    if (!this.readMap[threadId]) {
+      this.readMap[threadId] = {};
+    }
+    this.readMap[threadId][persona] = Date.now();
+    this.saveReadMap();
+  }
+
+  isThreadUnread(thread, persona) {
+    if (!thread || !thread.messages || thread.messages.length === 0) return false;
+    
+    if (thread.status === 'resolved') return false;
+
+    const lastMsg = thread.messages[thread.messages.length - 1];
+    
+    const expectedRole = persona === 'player' ? 'creator' : 'player';
+    if (lastMsg.senderRole !== expectedRole) return false;
+
+    const lastReadTime = (this.readMap[thread.id] && this.readMap[thread.id][persona]) || 0;
+    const msgTime = new Date(lastMsg.timestamp).getTime();
+
+    return msgTime > lastReadTime;
+  }
+
+  getUnreadCount(threads, persona) {
+    if (!threads) return 0;
+    return threads.filter(t => this.isThreadUnread(t, persona)).length;
   }
 
   loadConfig() {
