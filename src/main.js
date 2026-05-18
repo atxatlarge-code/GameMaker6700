@@ -22,59 +22,72 @@ function loadAndRemoveWhiteBg(src, previewSelector, callback) {
     callback(null);
   };
   img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
+    // Try pixel-level white-bg removal; fall back to raw image if canvas is tainted
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
 
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imgData.data;
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
 
-    let minX = canvas.width;
-    let minY = canvas.height;
-    let maxX = 0;
-    let maxY = 0;
+      let minX = canvas.width;
+      let minY = canvas.height;
+      let maxX = 0;
+      let maxY = 0;
 
-    // Convert white/near-white pixels to transparent and find bounding box
-    for (let y = 0; y < canvas.height; y++) {
-      for (let x = 0; x < canvas.width; x++) {
-        const i = (y * canvas.width + x) * 4;
-        if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) {
-          data[i + 3] = 0; // Make transparent
-        } else if (data[i + 3] > 0) {
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
+      // Convert white/near-white pixels to transparent and find bounding box
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) {
+            data[i + 3] = 0; // Make transparent
+          } else if (data[i + 3] > 0) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
         }
       }
-    }
-    ctx.putImageData(imgData, 0, 0);
+      ctx.putImageData(imgData, 0, 0);
 
-    let finalCanvas = canvas;
-    if (maxX >= minX && maxY >= minY) {
-      const cropW = maxX - minX + 1;
-      const cropH = maxY - minY + 1;
-      finalCanvas = document.createElement('canvas');
-      finalCanvas.width = cropW;
-      finalCanvas.height = cropH;
-      const cropCtx = finalCanvas.getContext('2d');
-      cropCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
-    }
+      let finalCanvas = canvas;
+      if (maxX >= minX && maxY >= minY) {
+        const cropW = maxX - minX + 1;
+        const cropH = maxY - minY + 1;
+        finalCanvas = document.createElement('canvas');
+        finalCanvas.width = cropW;
+        finalCanvas.height = cropH;
+        const cropCtx = finalCanvas.getContext('2d');
+        cropCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+      }
 
-    const processedImg = new Image();
-    processedImg.onload = () => {
+      const processedImg = new Image();
+      processedImg.onload = () => {
+        const previewEl = document.querySelector(previewSelector);
+        if (previewEl) {
+          previewEl.style.backgroundImage = `url(${processedImg.src})`;
+        }
+        callback(processedImg);
+        // Re-render menu UI to update previews if needed
+        if (window.updateMenuUI) window.updateMenuUI();
+      };
+      processedImg.src = finalCanvas.toDataURL();
+    } catch (e) {
+      // Canvas tainted (SecurityError) — use raw image directly
       const previewEl = document.querySelector(previewSelector);
       if (previewEl) {
-        previewEl.style.backgroundImage = `url(${processedImg.src})`;
+        previewEl.style.backgroundImage = `url(${img.src})`;
       }
-      callback(processedImg);
-      // Re-render menu UI to update previews if needed
+      callback(img);
       if (window.updateMenuUI) window.updateMenuUI();
-    };
-    processedImg.src = finalCanvas.toDataURL();
+    }
   };
+  // crossOrigin helps avoid canvas taint when served with proper CORS headers
+  img.crossOrigin = 'anonymous';
   img.src = src;
 }
 

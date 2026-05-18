@@ -15,62 +15,72 @@ const assets = {
   spikes: null,
 };
 
-function loadAndRemoveWhiteBg(src, callback) {
+// On mobile, canvas pixel manipulation (getImageData) causes SecurityError/taint
+// on iOS Safari and other browsers. Load images directly instead.
+function loadImage(src, callback) {
   const img = new Image();
   img.onerror = () => callback(null);
   img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
+    // Try white-bg removal, but fall back to raw image if canvas is tainted
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
 
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imgData.data;
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
 
-    let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+      let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
 
-    for (let y = 0; y < canvas.height; y++) {
-      for (let x = 0; x < canvas.width; x++) {
-        const i = (y * canvas.width + x) * 4;
-        if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) {
-          data[i + 3] = 0; // Make transparent
-        } else if (data[i + 3] > 0) {
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) {
+            data[i + 3] = 0;
+          } else if (data[i + 3] > 0) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
         }
       }
-    }
-    ctx.putImageData(imgData, 0, 0);
+      ctx.putImageData(imgData, 0, 0);
 
-    let finalCanvas = canvas;
-    if (maxX >= minX && maxY >= minY) {
-      const cropW = maxX - minX + 1;
-      const cropH = maxY - minY + 1;
-      finalCanvas = document.createElement('canvas');
-      finalCanvas.width = cropW;
-      finalCanvas.height = cropH;
-      const cropCtx = finalCanvas.getContext('2d');
-      cropCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
-    }
+      let finalCanvas = canvas;
+      if (maxX >= minX && maxY >= minY) {
+        const cropW = maxX - minX + 1;
+        const cropH = maxY - minY + 1;
+        finalCanvas = document.createElement('canvas');
+        finalCanvas.width = cropW;
+        finalCanvas.height = cropH;
+        const cropCtx = finalCanvas.getContext('2d');
+        cropCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+      }
 
-    const processedImg = new Image();
-    processedImg.onload = () => callback(processedImg);
-    processedImg.src = finalCanvas.toDataURL();
+      const processedImg = new Image();
+      processedImg.onload = () => callback(processedImg);
+      processedImg.src = finalCanvas.toDataURL();
+    } catch (e) {
+      // Canvas tainted (SecurityError on mobile) — use raw image directly
+      callback(img);
+    }
   };
+  // crossOrigin attribute helps avoid taint when served with CORS headers
+  img.crossOrigin = 'anonymous';
   img.src = src;
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   // Load assets
-  loadAndRemoveWhiteBg('assets/ground.png', (img) => { if (img) assets.ground = img; });
-  loadAndRemoveWhiteBg('assets/player.png', (img) => { if (img) assets.player = img; });
-  loadAndRemoveWhiteBg('assets/goal.png', (img) => { if (img) assets.goal = img; });
-  loadAndRemoveWhiteBg('assets/trampoline.png', (img) => { if (img) assets.trampoline = img; });
-  loadAndRemoveWhiteBg('assets/fire.png', (img) => { if (img) assets.fire = img; });
-  loadAndRemoveWhiteBg('assets/spikes.png', (img) => { if (img) assets.spikes = img; });
+  loadImage('assets/ground.png', (img) => { if (img) assets.ground = img; });
+  loadImage('assets/player.png', (img) => { if (img) assets.player = img; });
+  loadImage('assets/goal.png', (img) => { if (img) assets.goal = img; });
+  loadImage('assets/trampoline.png', (img) => { if (img) assets.trampoline = img; });
+  loadImage('assets/fire.png', (img) => { if (img) assets.fire = img; });
+  loadImage('assets/spikes.png', (img) => { if (img) assets.spikes = img; });
 
   // Parse URL parameter for level ID
   const urlParams = new URLSearchParams(window.location.search);
