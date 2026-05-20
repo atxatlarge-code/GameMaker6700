@@ -5,7 +5,7 @@ import { Engine } from './engine.js';
 import { LevelManager } from './levels.js';
 import { audio } from './audio.js';
 import { messageService } from './messages.js';
-import { solveLevel } from './pathfinder.js';
+import { solveLevel, AsyncPathfinder } from './pathfinder.js';
 
 // Load Assets object
 const assets = {
@@ -638,47 +638,175 @@ window.addEventListener('DOMContentLoaded', () => {
     btnPlayMode.blur();
   });
 
+  const pathfinderOverlay = document.getElementById('pathfinder-overlay');
+  const pathfinderStatus = document.getElementById('pathfinder-status');
+  const solverProgressBar = document.getElementById('solver-progress-bar');
+  const solverStats = document.getElementById('solver-stats');
+  const btnCancelSolve = document.getElementById('btn-cancel-solve');
+
+  let isSolveCancelled = false;
+
+  btnCancelSolve.addEventListener('click', () => {
+    isSolveCancelled = true;
+    pathfinderOverlay.classList.add('hidden');
+    engine.onPostRender = null;
+    btnSolveMode.style.pointerEvents = 'auto';
+  });
+
   btnSolveMode.addEventListener('click', () => {
-    // Update UI immediately to show we are thinking
+    // Reset solve cancellation state
+    isSolveCancelled = false;
+
+    // Get original HTML for solve button
     const originalHTML = btnSolveMode.innerHTML;
     btnSolveMode.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Solving...';
     btnSolveMode.style.pointerEvents = 'none';
-    
-    // Yield to the browser to render the updated button
-    setTimeout(() => {
-      // Run pathfinder
-      const result = solveLevel(engine);
-      
-      // Restore UI
-      btnSolveMode.innerHTML = originalHTML;
-      btnSolveMode.style.pointerEvents = 'auto';
-      btnSolveMode.blur();
 
-      if (!result || !result.solution) {
-        alert("No solution found! This level might be impossible.");
+    // Show pathfinder overlay UI
+    pathfinderOverlay.classList.remove('hidden');
+    pathfinderStatus.innerHTML = 'Initializing Pathfinder...';
+    solverProgressBar.style.width = '0%';
+    solverProgressBar.style.background = 'linear-gradient(90deg, #3b82f6, #06b6d4)';
+    solverStats.innerHTML = 'Iterations: 0 / 20000<br>States explored: 0';
+
+    // Instantiate Async Pathfinder
+    const solver = new AsyncPathfinder(engine);
+
+    // Register real-time search tree drawing hook
+    engine.onPostRender = (ctx) => {
+      // Draw explored cloud points
+      ctx.fillStyle = 'rgba(6, 182, 212, 0.35)';
+      for (const pt of solver.exploredPoints) {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    // Run the step loop using requestAnimationFrame
+    const runSolveStep = () => {
+      if (isSolveCancelled) {
+        btnSolveMode.innerHTML = originalHTML;
+        btnSolveMode.style.pointerEvents = 'auto';
         return;
       }
 
-      // Set autoplay values
-      engine.isAutoplay = true;
-      engine.autoplayPath = result.solution;
-      engine.autoplayIndex = 0;
-      engine.autoplayFrameCount = 0;
+      // Step the solver 350 iterations per frame
+      const stepRes = solver.step(350);
 
-      // Toggle button active states
-      btnEditMode.classList.remove('active');
-      btnPlayMode.classList.remove('active');
-      btnSolveMode.classList.add('active');
+      // Update progress UI
+      const progress = Math.min(100, (solver.iterations / solver.maxIterations) * 100);
+      solverProgressBar.style.width = `${progress}%`;
+      solverStats.innerHTML = `
+        Iterations: ${solver.iterations} / ${solver.maxIterations}<br>
+        States explored: ${solver.exploredPoints.length}
+      `;
+      pathfinderStatus.innerHTML = 'Simulating physics in parallel universes...';
 
-      // Run in play mode
-      toolbar.style.opacity = '0.5';
-      toolbar.style.pointerEvents = 'none';
-      winOverlay.classList.add('hidden');
-      
-      engine.setMode(CONFIG.MODE_PLAY);
-      engine.resetPlayer();
-      engine.hasWon = false;
-    }, 50);
+      if (stepRes.done) {
+        if (stepRes.success) {
+          // Success! Confirmed path found
+          pathfinderStatus.innerHTML = `<span style="color: #10b981; font-weight: bold;"><i class="fa-solid fa-circle-check"></i> PATH CONFIRMED!</span>`;
+          solverProgressBar.style.width = '100%';
+          solverProgressBar.style.background = '#10b981';
+
+          // Trace winning path coordinates for glowing visualization
+          const winningPathPoints = [];
+          const originalState = solver.saveEngine();
+          
+          solver.restoreEngine(solver.originalState);
+          winningPathPoints.push({ x: engine.player.x, y: engine.player.y });
+          
+          for (const act of stepRes.solution) {
+            engine.keys.left = act.left;
+            engine.keys.right = act.right;
+            if (act.jump && engine.player.isGrounded) {
+              engine.player.vy = -CONFIG.JUMP_FORCE;
+              engine.player.isGrounded = false;
+            }
+            for (let f = 0; f < 5; f++) {
+              engine.update();
+            }
+            winningPathPoints.push({ x: engine.player.x, y: engine.player.y });
+          }
+          solver.restoreEngine(originalState);
+
+          // Update drawing hook to display the winning glowing neon line on top of the search cloud
+          engine.onPostRender = (ctx) => {
+            // 1. Draw cloud
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.15)';
+            for (const pt of solver.exploredPoints) {
+              ctx.beginPath();
+              ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
+
+            // 2. Draw winning path
+            ctx.strokeStyle = 'rgba(236, 72, 153, 0.95)';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.shadowColor = 'rgba(236, 72, 153, 0.8)';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(winningPathPoints[0].x, winningPathPoints[0].y);
+            for (let i = 1; i < winningPathPoints.length; i++) {
+              ctx.lineTo(winningPathPoints[i].x, winningPathPoints[i].y);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0; // Reset shadow effects
+          };
+
+          // Delay for 1.2s to let the user see the winning path, then autoplay
+          setTimeout(() => {
+            if (isSolveCancelled) return;
+
+            // Hide overlay
+            pathfinderOverlay.classList.add('hidden');
+            engine.onPostRender = null;
+
+            // Set engine autoplay properties
+            engine.isAutoplay = true;
+            engine.autoplayPath = stepRes.solution;
+            engine.autoplayIndex = 0;
+            engine.autoplayFrameCount = 0;
+
+            // Update UI buttons and toggle mode
+            btnEditMode.classList.remove('active');
+            btnPlayMode.classList.remove('active');
+            btnSolveMode.classList.add('active');
+
+            toolbar.style.opacity = '0.5';
+            toolbar.style.pointerEvents = 'none';
+            winOverlay.classList.add('hidden');
+
+            engine.setMode(CONFIG.MODE_PLAY);
+            engine.resetPlayer();
+            engine.hasWon = false;
+
+            // Reset Solve button UI
+            btnSolveMode.innerHTML = originalHTML;
+            btnSolveMode.style.pointerEvents = 'auto';
+            btnSolveMode.blur();
+          }, 1200);
+
+        } else {
+          // No solution found
+          pathfinderStatus.innerHTML = `<span style="color: #ef4444; font-weight: bold;"><i class="fa-solid fa-triangle-exclamation"></i> NO PATH FOUND!</span>`;
+          solverProgressBar.style.background = '#ef4444';
+          
+          btnSolveMode.innerHTML = originalHTML;
+          btnSolveMode.style.pointerEvents = 'auto';
+          btnSolveMode.blur();
+        }
+        return;
+      }
+
+      requestAnimationFrame(runSolveStep);
+    };
+
+    // Begin async step loop
+    requestAnimationFrame(runSolveStep);
   });
 
   btnRestart.addEventListener('click', () => {

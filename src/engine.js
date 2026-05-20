@@ -1142,6 +1142,10 @@ export class Engine {
       this.editor.render();
     }
 
+    if (this.onPostRender) {
+      this.onPostRender(this.ctx);
+    }
+
     this.ctx.restore();
   }
 }

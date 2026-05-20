@@ -168,6 +168,22 @@
               <button id="btn-restart" class="primary-btn"><i class="fa-solid fa-rotate-left"></i> Edit Level</button>
             </div>
           </div>
+          <div id="pathfinder-overlay" class="overlay hidden">
+            <div class="overlay-modal pathfinder-modal">
+              <h2><i class="fa-solid fa-robot"></i> AI Pathfinder</h2>
+              <p id="pathfinder-status">Analyzing Level Dynamics...</p>
+              <div class="solver-progress-container">
+                <div id="solver-progress-bar" class="solver-progress-bar"></div>
+              </div>
+              <div class="solver-stats" id="solver-stats">
+                Iterations: 0 / 20000<br>
+                States explored: 0
+              </div>
+              <div class="modal-buttons" style="margin-top: 1.5rem;">
+                <button id="btn-cancel-solve" class="secondary-btn"><i class="fa-solid fa-xmark"></i> Cancel</button>
+              </div>
+            </div>
+          </div>
           <canvas id="game-canvas" width="1200" height="600"></canvas>
         </div>
       </main>
