@@ -643,19 +643,64 @@ window.addEventListener('DOMContentLoaded', () => {
   const solverProgressBar = document.getElementById('solver-progress-bar');
   const solverStats = document.getElementById('solver-stats');
   const btnCancelSolve = document.getElementById('btn-cancel-solve');
+  const btnProceedSolve = document.getElementById('btn-proceed-solve');
 
   let isSolveCancelled = false;
+  let currentAutoplayPath = null;
 
   btnCancelSolve.addEventListener('click', () => {
     isSolveCancelled = true;
     pathfinderOverlay.classList.add('hidden');
     engine.onPostRender = null;
     btnSolveMode.style.pointerEvents = 'auto';
+    btnSolveMode.innerHTML = '<i class="fa-solid fa-robot"></i> Solve';
+    btnProceedSolve.classList.add('hidden');
+    currentAutoplayPath = null;
+  });
+
+  btnProceedSolve.addEventListener('click', () => {
+    if (!currentAutoplayPath) return;
+
+    // Hide overlay and clean up renderer
+    pathfinderOverlay.classList.add('hidden');
+    engine.onPostRender = null;
+
+    // Set engine autoplay properties
+    engine.isAutoplay = true;
+    engine.autoplayPath = currentAutoplayPath;
+    engine.autoplayIndex = 0;
+    engine.autoplayFrameCount = 0;
+
+    // Update UI buttons and toggle mode
+    btnEditMode.classList.remove('active');
+    btnPlayMode.classList.remove('active');
+    btnSolveMode.classList.add('active');
+
+    toolbar.style.opacity = '0.5';
+    toolbar.style.pointerEvents = 'none';
+    winOverlay.classList.add('hidden');
+
+    engine.setMode(CONFIG.MODE_PLAY);
+    engine.resetPlayer();
+    engine.hasWon = false;
+
+    // Reset Solve button UI
+    btnSolveMode.innerHTML = '<i class="fa-solid fa-robot"></i> Solve';
+    btnSolveMode.style.pointerEvents = 'auto';
+    btnSolveMode.blur();
+
+    // Clean up
+    btnProceedSolve.classList.add('hidden');
+    currentAutoplayPath = null;
   });
 
   btnSolveMode.addEventListener('click', () => {
     // Reset solve cancellation state
     isSolveCancelled = false;
+
+    btnCancelSolve.innerHTML = '<i class="fa-solid fa-xmark"></i> Cancel';
+    btnProceedSolve.classList.add('hidden');
+    currentAutoplayPath = null;
 
     // Get original HTML for solve button
     const originalHTML = btnSolveMode.innerHTML;
@@ -757,45 +802,21 @@ window.addEventListener('DOMContentLoaded', () => {
             ctx.shadowBlur = 0; // Reset shadow effects
           };
 
-          // Delay for 1.2s to let the user see the winning path, then autoplay
-          setTimeout(() => {
-            if (isSolveCancelled) return;
+          // Save path and display Proceed button
+          currentAutoplayPath = stepRes.solution;
+          btnProceedSolve.classList.remove('hidden');
+          btnCancelSolve.innerHTML = '<i class="fa-solid fa-xmark"></i> Close';
 
-            // Hide overlay
-            pathfinderOverlay.classList.add('hidden');
-            engine.onPostRender = null;
-
-            // Set engine autoplay properties
-            engine.isAutoplay = true;
-            engine.autoplayPath = stepRes.solution;
-            engine.autoplayIndex = 0;
-            engine.autoplayFrameCount = 0;
-
-            // Update UI buttons and toggle mode
-            btnEditMode.classList.remove('active');
-            btnPlayMode.classList.remove('active');
-            btnSolveMode.classList.add('active');
-
-            toolbar.style.opacity = '0.5';
-            toolbar.style.pointerEvents = 'none';
-            winOverlay.classList.add('hidden');
-
-            engine.setMode(CONFIG.MODE_PLAY);
-            engine.resetPlayer();
-            engine.hasWon = false;
-
-            // Reset Solve button UI
-            btnSolveMode.innerHTML = originalHTML;
-            btnSolveMode.style.pointerEvents = 'auto';
-            btnSolveMode.blur();
-          }, 1200);
+          // Reset Solve button UI state (while keeping modal open with the path shown)
+          btnSolveMode.innerHTML = '<i class="fa-solid fa-robot"></i> Solve';
+          btnSolveMode.style.pointerEvents = 'auto';
 
         } else {
           // No solution found
           pathfinderStatus.innerHTML = `<span style="color: #ef4444; font-weight: bold;"><i class="fa-solid fa-triangle-exclamation"></i> NO PATH FOUND!</span>`;
           solverProgressBar.style.background = '#ef4444';
           
-          btnSolveMode.innerHTML = originalHTML;
+          btnSolveMode.innerHTML = '<i class="fa-solid fa-robot"></i> Solve';
           btnSolveMode.style.pointerEvents = 'auto';
           btnSolveMode.blur();
         }
