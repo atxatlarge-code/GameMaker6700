@@ -39,6 +39,14 @@ export class Engine {
     this.portalCooldown = 0;
     this.teleportParticles = [];
 
+    this.isAutoplay = false;
+    this.autoplayPath = null;
+    this.autoplayIndex = 0;
+    this.autoplayFrameCount = 0;
+
+    // Live enemy instances (created when entering play mode)
+    this.liveEnemies = [];
+
     this.keys = {
       left: false,
       right: false,
@@ -98,6 +106,26 @@ export class Engine {
     this.deathParticles = [];
     this.portalCooldown = 0;
     this.teleportParticles = [];
+
+    // Re-initialise live enemies from level definition
+    this.liveEnemies = this.level.enemies.map(e => ({
+      id: e.id,
+      // Pixel position – centre of spawn tile
+      x: e.col * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - 32) / 2,
+      y: e.row * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - 38),
+      width: 32,
+      height: 38,
+      vx: e.speed,
+      vy: 0,
+      isGrounded: false,
+      speed: e.speed,
+      // Patrol bounds in pixels
+      patrolLeft: (e.col - e.patrolRange) * CONFIG.TILE_SIZE,
+      patrolRight: (e.col + e.patrolRange) * CONFIG.TILE_SIZE,
+      facing: 'right',
+      walkFrame: 0,
+      walkTimer: 0,
+    }));
 
     // Center camera near player spawn when resetting
     const maxCamX = Math.max(0, CONFIG.GRID_COLS * CONFIG.TILE_SIZE - this.canvas.width);
@@ -229,8 +257,37 @@ export class Engine {
       });
       if (this.deathTimer <= 0) {
         this.resetPlayer();
+        if (this.isAutoplay) {
+          this.autoplayIndex = 0;
+          this.autoplayFrameCount = 0;
+          this.hasWon = false;
+        }
       }
       return;
+    }
+
+    // Autoplay action override
+    if (this.isAutoplay) {
+      if (this.autoplayPath && this.autoplayIndex < this.autoplayPath.length) {
+        const act = this.autoplayPath[this.autoplayIndex];
+        this.keys.left = act.left;
+        this.keys.right = act.right;
+
+        if (act.jump && this.player.isGrounded) {
+          this.player.vy = -CONFIG.JUMP_FORCE;
+          this.player.isGrounded = false;
+          audio.playJumpSound();
+        }
+
+        this.autoplayFrameCount++;
+        if (this.autoplayFrameCount >= 5) {
+          this.autoplayFrameCount = 0;
+          this.autoplayIndex++;
+        }
+      } else {
+        this.keys.left = false;
+        this.keys.right = false;
+      }
     }
 
     // Update bounce animation timers
@@ -286,6 +343,9 @@ export class Engine {
 
     // Check Portals
     this.checkPortals();
+
+    // Update and check enemies
+    this.updateEnemies();
 
     // Boundary check (if player falls off world bottom, reset)
     if (this.player.y > CONFIG.GRID_ROWS * CONFIG.TILE_SIZE + 100) {
@@ -395,6 +455,150 @@ export class Engine {
           this.killPlayer();
           return;
         }
+      }
+    }
+  }
+
+  // ── Enemy AI ─────────────────────────────────────────────────────────────
+  updateEnemies() {
+    if (this.isDead || this.hasWon) return;
+
+    for (const enemy of this.liveEnemies) {
+
+      // ── Gravity ────────────────────────────────────────────────────────────
+      enemy.vy += CONFIG.GRAVITY;
+      if (enemy.vy > 12) enemy.vy = 12; // terminal velocity
+
+      // ── Vertical movement & ground collision ───────────────────────────────
+      enemy.isGrounded = false;
+      enemy.y += enemy.vy;
+
+      // Resolve vertical tile collisions
+      const eBoxV = {
+        left: enemy.x + 2,
+        right: enemy.x + enemy.width - 2,
+        top: enemy.y,
+        bottom: enemy.y + enemy.height,
+      };
+      const minColV = Math.max(0, Math.floor(eBoxV.left / CONFIG.TILE_SIZE));
+      const maxColV = Math.min(CONFIG.GRID_COLS - 1, Math.floor((eBoxV.right - 0.01) / CONFIG.TILE_SIZE));
+      const minRowV = Math.max(0, Math.floor(eBoxV.top / CONFIG.TILE_SIZE));
+      const maxRowV = Math.min(CONFIG.GRID_ROWS - 1, Math.floor((eBoxV.bottom - 0.01) / CONFIG.TILE_SIZE));
+
+      for (let r = minRowV; r <= maxRowV; r++) {
+        for (let c = minColV; c <= maxColV; c++) {
+          const tv = this.level.getTile(c, r);
+          if (tv !== 1 && tv !== 2) continue;
+          const tileTop = r * CONFIG.TILE_SIZE;
+          const tileBot = tileTop + CONFIG.TILE_SIZE;
+          if (enemy.vy > 0 && eBoxV.bottom > tileTop && (eBoxV.bottom - enemy.vy) <= tileTop) {
+            enemy.y = tileTop - enemy.height;
+            enemy.vy = 0;
+            enemy.isGrounded = true;
+            eBoxV.top = enemy.y;
+            eBoxV.bottom = enemy.y + enemy.height;
+          } else if (enemy.vy < 0 && eBoxV.top < tileBot && (eBoxV.top - enemy.vy) >= tileBot) {
+            enemy.y = tileBot;
+            enemy.vy = 0;
+            eBoxV.top = enemy.y;
+            eBoxV.bottom = enemy.y + enemy.height;
+          }
+        }
+      }
+
+      // ── Horizontal patrol (only when on the ground) ────────────────────────
+      if (enemy.isGrounded) {
+        // Advance walk animation
+        enemy.walkTimer++;
+        if (enemy.walkTimer >= 8) {
+          enemy.walkTimer = 0;
+          enemy.walkFrame = (enemy.walkFrame + 1) % 4;
+        }
+
+        enemy.x += enemy.vx;
+
+        // Wall collision: check mid-body row
+        const checkY = enemy.y + enemy.height * 0.5;
+        const row = Math.floor(checkY / CONFIG.TILE_SIZE);
+        // Ground row = row directly below enemy's feet
+        const footRow = Math.floor((enemy.y + enemy.height + 1) / CONFIG.TILE_SIZE);
+
+        if (enemy.vx > 0) {
+          const rightCol = Math.floor((enemy.x + enemy.width) / CONFIG.TILE_SIZE);
+          // Reverse if hitting a wall OR if about to step off an edge
+          const nextFloor = this.level.getTile(rightCol, footRow);
+          const wallAhead = this.level.getTile(rightCol, row) === 1;
+          const edgeAhead = nextFloor !== 1 && nextFloor !== 2;
+          if (wallAhead || edgeAhead) {
+            enemy.x = rightCol * CONFIG.TILE_SIZE - enemy.width;
+            enemy.vx = -enemy.speed;
+            enemy.facing = 'left';
+          }
+        } else {
+          const leftCol = Math.floor(enemy.x / CONFIG.TILE_SIZE);
+          // Reverse if hitting a wall OR if about to step off an edge
+          const nextFloor = this.level.getTile(leftCol, footRow);
+          const wallAhead = this.level.getTile(leftCol, row) === 1;
+          const edgeAhead = nextFloor !== 1 && nextFloor !== 2;
+          if (wallAhead || edgeAhead) {
+            enemy.x = (leftCol + 1) * CONFIG.TILE_SIZE;
+            enemy.vx = enemy.speed;
+            enemy.facing = 'right';
+          }
+        }
+
+        // Patrol range edges
+        if (enemy.x <= enemy.patrolLeft) {
+          enemy.x = enemy.patrolLeft;
+          enemy.vx = enemy.speed;
+          enemy.facing = 'right';
+        } else if (enemy.x + enemy.width >= enemy.patrolRight) {
+          enemy.x = enemy.patrolRight - enemy.width;
+          enemy.vx = -enemy.speed;
+          enemy.facing = 'left';
+        }
+      } else {
+        // Airborne – freeze walk animation so legs don't flail in the air
+        enemy.walkFrame = 0;
+      }
+
+      // Reset if enemy falls off the world
+      if (enemy.y > CONFIG.GRID_ROWS * CONFIG.TILE_SIZE + 100) {
+        enemy.y = enemy.height * -1;
+        enemy.vy = 0;
+      }
+    }
+
+    // Check player collision with any enemy
+    this.checkEnemyCollisions();
+  }
+
+  checkEnemyCollisions() {
+    if (this.isDead || this.hasWon) return;
+    const inset = 4;
+    const playerBox = {
+      left: this.player.x + inset,
+      right: this.player.x + this.player.width - inset,
+      top: this.player.y + inset,
+      bottom: this.player.y + this.player.height - inset,
+    };
+
+    for (const enemy of this.liveEnemies) {
+      const eBox = {
+        left: enemy.x + inset,
+        right: enemy.x + enemy.width - inset,
+        top: enemy.y + inset,
+        bottom: enemy.y + enemy.height - inset,
+      };
+      const overlapping = !(
+        playerBox.right < eBox.left ||
+        playerBox.left > eBox.right ||
+        playerBox.bottom < eBox.top ||
+        playerBox.top > eBox.bottom
+      );
+      if (overlapping) {
+        this.killPlayer();
+        return;
       }
     }
   }
@@ -764,7 +968,160 @@ export class Engine {
       }
     }
 
-    // 4. Render Editor Overlay if in Edit Mode
+    // 4. Render Enemies – Ghibli Soot Sprite style (play mode = live; edit mode = spawn markers)
+    const drawSootSprite = (ctx, cx, cy, radius, walkFrame, alpha = 1) => {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // ── Soft shadow ────────────────────────────────────────────────────────
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.22;
+      const shadowGrad = ctx.createRadialGradient(cx, cy + radius + 2, 0, cx, cy + radius + 2, radius * 0.9);
+      shadowGrad.addColorStop(0, 'rgba(0,0,0,0.7)');
+      shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = shadowGrad;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + radius + 3, radius * 0.85, radius * 0.28, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // ── Fluffy body (main round blob) ──────────────────────────────────────
+      // Slight vertical bob driven by walkFrame
+      const bob = Math.sin(walkFrame * Math.PI / 2) * (radius * 0.06);
+      const bodyY = cy + bob;
+
+      // Outer glow / soft aura – warm charcoal
+      const aura = ctx.createRadialGradient(cx - radius * 0.15, bodyY - radius * 0.1, 0, cx, bodyY, radius * 1.35);
+      aura.addColorStop(0, 'rgba(60,45,55,0)');
+      aura.addColorStop(0.6, 'rgba(30,22,28,0)');
+      aura.addColorStop(1, 'rgba(20,12,18,0.18)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(cx, bodyY, radius * 1.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Main body – slightly warm dark charcoal gradient
+      const bodyGrad = ctx.createRadialGradient(cx - radius * 0.25, bodyY - radius * 0.25, radius * 0.05, cx, bodyY, radius);
+      bodyGrad.addColorStop(0, '#3d3035');   // warm highlight
+      bodyGrad.addColorStop(0.45, '#1e1720');
+      bodyGrad.addColorStop(1, '#0e0b10');   // deep shadow
+      ctx.fillStyle = bodyGrad;
+      ctx.beginPath();
+      ctx.arc(cx, bodyY, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // ── Fluffy bumps around silhouette (hand-drawn Ghibli feel) ────────────
+      const bumps = 9;
+      const bumpR = radius * 0.28;
+      for (let i = 0; i < bumps; i++) {
+        const angle = (i / bumps) * Math.PI * 2 - Math.PI * 0.5;
+        const bx = cx + Math.cos(angle) * (radius * 0.88);
+        const by = bodyY + Math.sin(angle) * (radius * 0.88);
+        // Each bump has a slightly different size for organic feel
+        const br = bumpR * (0.75 + 0.35 * Math.sin(i * 2.3 + 1.1));
+        ctx.fillStyle = i % 2 === 0 ? '#221c25' : '#1a141e';
+        ctx.beginPath();
+        ctx.arc(bx, by, br, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ── Large Ghibli eyes ──────────────────────────────────────────────────
+      const eyeOffsetX = radius * 0.38;
+      const eyeOffsetY = radius * 0.05;
+      const eyeR = radius * 0.38;
+
+      // Eye whites – very soft, slightly warm
+      [-1, 1].forEach(side => {
+        const ex = cx + side * eyeOffsetX;
+        const ey2 = bodyY + eyeOffsetY;
+
+        // Soft outer ring for the eye
+        ctx.fillStyle = 'rgba(245,240,235,0.96)';
+        ctx.beginPath();
+        ctx.arc(ex, ey2, eyeR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Deep black iris / pupil
+        ctx.fillStyle = '#0d0a0f';
+        ctx.beginPath();
+        ctx.arc(ex, ey2 + eyeR * 0.08, eyeR * 0.62, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Large warm-brown iris ring (Ghibli eyes have depth)
+        ctx.strokeStyle = 'rgba(90,55,30,0.5)';
+        ctx.lineWidth = eyeR * 0.18;
+        ctx.beginPath();
+        ctx.arc(ex, ey2 + eyeR * 0.08, eyeR * 0.44, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Primary white catchlight (big, upper-left – classic Ghibli)
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.beginPath();
+        ctx.arc(ex - eyeR * 0.22, ey2 - eyeR * 0.22, eyeR * 0.22, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Secondary tiny catchlight (lower-right)
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.beginPath();
+        ctx.arc(ex + eyeR * 0.22, ey2 + eyeR * 0.18, eyeR * 0.09, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // ── Scurrying thin Ghibli legs ─────────────────────────────────────────
+      // 4 legs, alternating up/down with walkFrame
+      const legY = bodyY + radius * 0.72;
+      const legSpacing = radius * 0.38;
+      const legLen = radius * 0.52;
+      ctx.strokeStyle = '#1e1720';
+      ctx.lineWidth = Math.max(1.5, radius * 0.12);
+      ctx.lineCap = 'round';
+      for (let i = -1; i <= 2; i++) {
+        const lx = cx + (i - 0.5) * legSpacing;
+        // Alt legs bob opposite phase
+        const phase = (i + walkFrame) % 2 === 0 ? 1 : -1;
+        const footY = legY + legLen + phase * (radius * 0.15);
+        ctx.beginPath();
+        ctx.moveTo(lx, legY);
+        ctx.quadraticCurveTo(lx + phase * (radius * 0.1), legY + legLen * 0.5, lx, footY);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    };
+
+    if (this.mode === CONFIG.MODE_PLAY) {
+      for (const enemy of this.liveEnemies) {
+        // Centre of the sprite
+        const cx = enemy.x + enemy.width / 2;
+        const cy = enemy.y + enemy.height / 2 - enemy.height * 0.05;
+        const radius = enemy.width * 0.52;
+        drawSootSprite(this.ctx, cx, cy, radius, enemy.walkFrame);
+      }
+    } else if (this.mode === CONFIG.MODE_EDIT) {
+      // Ghost spawn markers in edit mode
+      for (const e of this.level.enemies) {
+        const cx = e.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+        const cy = e.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+        const radius = CONFIG.TILE_SIZE * 0.38;
+        drawSootSprite(this.ctx, cx, cy, radius, 0, 0.6);
+        // Patrol range dashed line
+        this.ctx.save();
+        this.ctx.strokeStyle = 'rgba(180,150,180,0.3)';
+        this.ctx.lineWidth = 1;
+        this.ctx.setLineDash([4, 4]);
+        this.ctx.strokeRect(
+          (e.col - e.patrolRange) * CONFIG.TILE_SIZE,
+          e.row * CONFIG.TILE_SIZE,
+          e.patrolRange * 2 * CONFIG.TILE_SIZE,
+          CONFIG.TILE_SIZE
+        );
+        this.ctx.setLineDash([]);
+        this.ctx.restore();
+      }
+    }
+
+
+    // 5. Render Editor Overlay if in Edit Mode
     if (this.mode === CONFIG.MODE_EDIT) {
       this.editor.render();
     }

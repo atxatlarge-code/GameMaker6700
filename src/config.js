@@ -26,5 +26,10 @@ export const CONFIG = {
   TOOL_SPIKES: 'spikes',
   TOOL_PORTAL: 'portal',
   TOOL_ERASE: 'erase',
+  TOOL_ENEMY: 'enemy',
+
+  // Enemy defaults
+  ENEMY_SPEED: 1.8,
+  ENEMY_PATROL_RANGE: 5, // tiles either side before turning
 };
 

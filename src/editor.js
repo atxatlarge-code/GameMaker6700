@@ -157,8 +157,15 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_ENEMY:
+        if (this.level.addEnemy(col, row, CONFIG.ENEMY_SPEED, CONFIG.ENEMY_PATROL_RANGE)) {
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_ERASE:
         if (this.level.removePortal(col, row)) {
+          audio.playEraseSound();
+        } else if (this.level.removeEnemy(col, row)) {
           audio.playEraseSound();
         } else if (this.level.getTile(col, row) !== 0) {
           this.level.setTile(col, row, 0);
@@ -271,6 +278,52 @@ export class Editor {
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           }
           break;
+        case CONFIG.TOOL_ENEMY: {
+          const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
+          const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4) ||
+            (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
+            (this.level.goalPos && this.level.goalPos.col === this.hoverCol && this.level.goalPos.row === this.hoverRow) ||
+            ((this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||
+             (this.level.portal2 && this.level.portal2.col === this.hoverCol && this.level.portal2.row === this.hoverRow));
+
+          if (isInvalid) {
+            // Draw soft red warning square underneath
+            this.ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+            // Make the ghost sprite more transparent/dimmed
+            this.ctx.globalAlpha = 0.25;
+          }
+
+          // Ghost soot sprite hover preview
+          const cx2 = x + CONFIG.TILE_SIZE / 2;
+          const cy2 = y + CONFIG.TILE_SIZE / 2;
+          const r2 = CONFIG.TILE_SIZE * 0.36;
+          // Bumps
+          for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2 - Math.PI * 0.5;
+            this.ctx.fillStyle = 'rgba(30,23,32,0.8)';
+            this.ctx.beginPath();
+            this.ctx.arc(cx2 + Math.cos(a) * r2 * 0.88, cy2 + Math.sin(a) * r2 * 0.88, r2 * 0.25, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+          // Body
+          this.ctx.fillStyle = 'rgba(30,23,32,0.85)';
+          this.ctx.beginPath();
+          this.ctx.arc(cx2, cy2, r2, 0, Math.PI * 2);
+          this.ctx.fill();
+          // Eyes
+          this.ctx.fillStyle = 'rgba(245,240,235,0.9)';
+          this.ctx.beginPath();
+          this.ctx.arc(cx2 - r2 * 0.36, cy2, r2 * 0.32, 0, Math.PI * 2);
+          this.ctx.arc(cx2 + r2 * 0.36, cy2, r2 * 0.32, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#0d0a0f';
+          this.ctx.beginPath();
+          this.ctx.arc(cx2 - r2 * 0.33, cy2 + r2 * 0.04, r2 * 0.18, 0, Math.PI * 2);
+          this.ctx.arc(cx2 + r2 * 0.39, cy2 + r2 * 0.04, r2 * 0.18, 0, Math.PI * 2);
+          this.ctx.fill();
+          break;
+        }
         case CONFIG.TOOL_ERASE:
           this.ctx.fillStyle = 'rgba(184, 84, 80, 0.6)';
           this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
@@ -279,7 +332,17 @@ export class Editor {
       this.ctx.restore();
 
       // Border highlight around hovered tile
-      this.ctx.strokeStyle = '#d4a359';
+      let isValid = true;
+      if (this.currentTool === CONFIG.TOOL_ENEMY) {
+        const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
+        const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4) ||
+          (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
+          (this.level.goalPos && this.level.goalPos.col === this.hoverCol && this.level.goalPos.row === this.hoverRow) ||
+          ((this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||
+           (this.level.portal2 && this.level.portal2.col === this.hoverCol && this.level.portal2.row === this.hoverRow));
+        if (isInvalid) isValid = false;
+      }
+      this.ctx.strokeStyle = isValid ? '#d4a359' : '#ef4444';
       this.ctx.lineWidth = 2;
       this.ctx.strokeRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
     }

@@ -5,6 +5,7 @@ import { Engine } from './engine.js';
 import { LevelManager } from './levels.js';
 import { audio } from './audio.js';
 import { messageService } from './messages.js';
+import { solveLevel } from './pathfinder.js';
 
 // Load Assets object
 const assets = {
@@ -207,6 +208,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnRestart = document.getElementById('btn-restart');
   const btnEditMode = document.getElementById('btn-edit-mode');
   const btnPlayMode = document.getElementById('btn-play-mode');
+  const btnSolveMode = document.getElementById('btn-solve-mode');
   const btnMenu = document.getElementById('btn-menu');
   const btnRenameLevel = document.getElementById('btn-rename-level');
   const btnSaveName = document.getElementById('btn-save-name');
@@ -233,6 +235,7 @@ window.addEventListener('DOMContentLoaded', () => {
     audio.playWinSound();
     winOverlay.classList.remove('hidden');
   });
+  window.engine = engine;
 
   // Music Selection Setup
   const musicSelect = document.getElementById('music-select');
@@ -613,22 +616,69 @@ window.addEventListener('DOMContentLoaded', () => {
   // Mode Toggling
   btnEditMode.addEventListener('click', () => {
     btnPlayMode.classList.remove('active');
+    btnSolveMode.classList.remove('active');
     btnEditMode.classList.add('active');
     toolbar.style.opacity = '1';
     toolbar.style.pointerEvents = 'auto';
     winOverlay.classList.add('hidden');
+    engine.isAutoplay = false;
     engine.setMode(CONFIG.MODE_EDIT);
     btnEditMode.blur();
   });
 
   btnPlayMode.addEventListener('click', () => {
     btnEditMode.classList.remove('active');
+    btnSolveMode.classList.remove('active');
     btnPlayMode.classList.add('active');
     toolbar.style.opacity = '0.5';
     toolbar.style.pointerEvents = 'none';
     winOverlay.classList.add('hidden');
+    engine.isAutoplay = false;
     engine.setMode(CONFIG.MODE_PLAY);
     btnPlayMode.blur();
+  });
+
+  btnSolveMode.addEventListener('click', () => {
+    // Update UI immediately to show we are thinking
+    const originalHTML = btnSolveMode.innerHTML;
+    btnSolveMode.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Solving...';
+    btnSolveMode.style.pointerEvents = 'none';
+    
+    // Yield to the browser to render the updated button
+    setTimeout(() => {
+      // Run pathfinder
+      const result = solveLevel(engine);
+      
+      // Restore UI
+      btnSolveMode.innerHTML = originalHTML;
+      btnSolveMode.style.pointerEvents = 'auto';
+      btnSolveMode.blur();
+
+      if (!result || !result.solution) {
+        alert("No solution found! This level might be impossible.");
+        return;
+      }
+
+      // Set autoplay values
+      engine.isAutoplay = true;
+      engine.autoplayPath = result.solution;
+      engine.autoplayIndex = 0;
+      engine.autoplayFrameCount = 0;
+
+      // Toggle button active states
+      btnEditMode.classList.remove('active');
+      btnPlayMode.classList.remove('active');
+      btnSolveMode.classList.add('active');
+
+      // Run in play mode
+      toolbar.style.opacity = '0.5';
+      toolbar.style.pointerEvents = 'none';
+      winOverlay.classList.add('hidden');
+      
+      engine.setMode(CONFIG.MODE_PLAY);
+      engine.resetPlayer();
+      engine.hasWon = false;
+    }, 50);
   });
 
   btnRestart.addEventListener('click', () => {
