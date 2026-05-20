@@ -117,8 +117,10 @@
     <div id="editor-view" class="view hidden">
       <header class="app-header">
         <div class="logo">
-          <i class="fa-solid fa-leaf logo-icon"></i>
-          <h1>Game Maker 6700</h1>
+          <div class="mode-toggle">
+            <button id="btn-edit-mode" class="mode-btn active"><i class="fa-solid fa-pen-ruler"></i> Edit</button>
+            <button id="btn-play-mode" class="mode-btn play"><i class="fa-solid fa-play"></i> Play</button>
+          </div>
           <div class="current-level-badge">
             <span id="current-level-name">Mushroom Forest</span>
             <button id="btn-rename-level" class="rename-badge-btn" title="Rename Level"><i class="fa-solid fa-pen"></i></button>
@@ -136,10 +138,6 @@
               <option value="blackeyedpeas">🥊 Tonight's Gonna be a Good Fight</option>
               <option value="ladygaga">👑 Bad Romance</option>
             </select>
-          </div>
-          <div class="mode-toggle">
-            <button id="btn-edit-mode" class="mode-btn active"><i class="fa-solid fa-pen-ruler"></i> Edit</button>
-            <button id="btn-play-mode" class="mode-btn play"><i class="fa-solid fa-play"></i> Play</button>
           </div>
           <button id="btn-mobile-editor" class="nav-menu-btn" title="Play on Mobile Arcade">
             <i class="fa-solid fa-mobile-screen-button"></i> Mobile
@@ -182,11 +180,12 @@
             <!-- Group 1: Player objects -->
             <div class="action-group" id="group-player">
               <button class="action-group-btn" title="Player objects">
-                <i class="fa-solid fa-person-running"></i>
-                <span>Player</span>
+                <img id="img-group-player" src="assets/player.png" class="tool-icon-img" alt="Player">
               </button>
               <div class="group-popup" id="popup-player">
-                <button class="tool-btn popup-item-btn" data-tool="player"><i class="fa-solid fa-person-running"></i> Platform player</button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player" title="Platform player">
+                  <img id="img-tool-player" src="assets/player.png" class="tool-icon-img" alt="Platform player">
+                </button>
                 <button class="popup-item-btn soon" data-name="Top down player"><i class="fa-solid fa-user-astronaut"></i> Top down player</button>
                 <button class="popup-item-btn soon" data-name="Vertical paddle"><i class="fa-solid fa-grip-lines-vertical"></i> Vertical paddle</button>
                 <button class="popup-item-btn soon" data-name="Horizontal paddle"><i class="fa-solid fa-grip-lines"></i> Horizontal paddle</button>
@@ -197,29 +196,46 @@
             <!-- Group 2: Blocks -->
             <div class="action-group" id="group-blocks">
               <button class="action-group-btn active" title="Blocks">
-                <i class="fa-solid fa-cubes"></i>
-                <span>Blocks</span>
+                <img id="img-group-blocks" src="assets/ground.png" class="tool-icon-img" alt="Blocks">
               </button>
               <div class="group-popup" id="popup-blocks">
-                <button class="tool-btn popup-item-btn active" data-tool="wall"><i class="fa-solid fa-cube"></i> Solid block</button>
+                <button class="tool-btn popup-item-btn icon-only-btn active" data-tool="wall" title="Solid block">
+                  <img id="img-tool-wall" src="assets/ground.png" class="tool-icon-img" alt="Solid block">
+                </button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="fire" title="Fire">
+                  <svg viewBox="0 0 32 32" class="tool-icon-svg">
+                    <defs>
+                      <linearGradient id="fireGrad" x1="0" y1="1" x2="0" y2="0">
+                        <stop offset="0%" stop-color="#ff3b30"/>
+                        <stop offset="60%" stop-color="#ff9500"/>
+                        <stop offset="100%" stop-color="#ffd60a"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M 4 32 C 4 22, 6 12, 10 6 C 12 14, 13 18, 16 12 C 19 18, 20 22, 22 8 C 26 15, 28 22, 28 32 Z" fill="url(#fireGrad)"/>
+                  </svg>
+                </button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="spikes" title="Spikes">
+                  <img id="img-tool-spikes" src="assets/spikes.png" class="tool-icon-img" alt="Spikes">
+                </button>
                 <button class="popup-item-btn soon" data-name="Breakable block"><i class="fa-solid fa-border-none"></i> Breakable block</button>
                 <button class="popup-item-btn soon" data-name="Moveable block"><i class="fa-solid fa-arrows-up-down-left-right"></i> Moveable block</button>
-                <button class="tool-btn popup-item-btn" data-tool="fire"><i class="fa-solid fa-fire"></i> Fire</button>
-                <button class="tool-btn popup-item-btn" data-tool="spikes"><i class="fa-solid fa-mountain"></i> Spikes</button>
               </div>
             </div>
 
             <!-- Group 3: Special -->
             <div class="action-group" id="group-special">
               <button class="action-group-btn" title="Special">
-                <i class="fa-solid fa-star"></i>
-                <span>Special</span>
+                <img id="img-group-special" src="assets/goal.png" class="tool-icon-img" alt="Special">
               </button>
               <div class="group-popup" id="popup-special">
-                <button class="tool-btn popup-item-btn" data-tool="goal"><i class="fa-solid fa-door-open"></i> Goal flag</button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="goal" title="Goal flag">
+                  <img id="img-tool-goal" src="assets/goal.png" class="tool-icon-img" alt="Goal flag">
+                </button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="trampoline" title="Powerup">
+                  <img id="img-tool-trampoline" src="assets/trampoline.png" class="tool-icon-img" alt="Powerup">
+                </button>
                 <button class="popup-item-btn soon" data-name="Save flag"><i class="fa-solid fa-flag"></i> Save flag</button>
                 <button class="popup-item-btn soon" data-name="Coin"><i class="fa-solid fa-coins"></i> Coin</button>
-                <button class="tool-btn popup-item-btn" data-tool="trampoline"><i class="fa-solid fa-circle-up"></i> Powerup</button>
               </div>
             </div>
 
@@ -242,12 +258,47 @@
             <!-- Group 5: Barriers -->
             <div class="action-group" id="group-barriers">
               <button class="action-group-btn" title="Barriers">
-                <i class="fa-solid fa-shield-halved"></i>
-                <span>Barriers</span>
+                <svg id="img-group-barriers" viewBox="0 0 32 32" class="tool-icon-svg">
+                  <defs>
+                    <radialGradient id="portalCyanGroup" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#ffffff"/>
+                      <stop offset="30%" stop-color="#22d3ee"/>
+                      <stop offset="70%" stop-color="#0891b2"/>
+                      <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+                    </radialGradient>
+                    <radialGradient id="portalPinkGroup" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#ffffff"/>
+                      <stop offset="30%" stop-color="#f472b6"/>
+                      <stop offset="70%" stop-color="#db2777"/>
+                      <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+                    </radialGradient>
+                  </defs>
+                  <circle cx="11" cy="11" r="10" fill="url(#portalCyanGroup)"/>
+                  <circle cx="21" cy="21" r="10" fill="url(#portalPinkGroup)"/>
+                </svg>
               </button>
               <div class="group-popup" id="popup-barriers">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="portal" title="Portal">
+                  <svg viewBox="0 0 32 32" class="tool-icon-svg">
+                    <defs>
+                      <radialGradient id="portalCyanItem" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#ffffff"/>
+                        <stop offset="30%" stop-color="#22d3ee"/>
+                        <stop offset="70%" stop-color="#0891b2"/>
+                        <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+                      </radialGradient>
+                      <radialGradient id="portalPinkItem" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#ffffff"/>
+                        <stop offset="30%" stop-color="#f472b6"/>
+                        <stop offset="70%" stop-color="#db2777"/>
+                        <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+                      </radialGradient>
+                    </defs>
+                    <circle cx="11" cy="11" r="10" fill="url(#portalCyanItem)"/>
+                    <circle cx="21" cy="21" r="10" fill="url(#portalPinkItem)"/>
+                  </svg>
+                </button>
                 <button class="popup-item-btn soon" data-name="Key"><i class="fa-solid fa-key"></i> Key</button>
-                <button class="tool-btn popup-item-btn" data-tool="portal"><i class="fa-solid fa-circle-notch"></i> Portal</button>
                 <button class="popup-item-btn soon" data-name="Lock"><i class="fa-solid fa-lock"></i> Lock</button>
               </div>
             </div>

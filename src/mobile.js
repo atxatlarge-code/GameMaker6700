@@ -79,7 +79,6 @@ window.addEventListener('DOMContentLoaded', () => {
   loadImage('assets/player.png', (img) => { if (img) assets.player = img; });
   loadImage('assets/goal.png', (img) => { if (img) assets.goal = img; });
   loadImage('assets/trampoline.png', (img) => { if (img) assets.trampoline = img; });
-  loadImage('assets/fire.png', (img) => { if (img) assets.fire = img; });
   loadImage('assets/spikes.png', (img) => { if (img) assets.spikes = img; });
 
   // Parse URL parameter for level ID

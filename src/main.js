@@ -154,12 +154,49 @@ function renderLevelPreview(canvas, levelObj) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  loadAndRemoveWhiteBg('assets/ground.png', '.ground-preview', (img) => { if (img) assets.ground = img; });
-  loadAndRemoveWhiteBg('assets/player.png', '.player-preview', (img) => { if (img) assets.player = img; });
-  loadAndRemoveWhiteBg('assets/goal.png', '.goal-preview', (img) => { if (img) assets.goal = img; });
-  loadAndRemoveWhiteBg('assets/trampoline.png', '.trampoline-preview', (img) => { if (img) assets.trampoline = img; });
-  loadAndRemoveWhiteBg('assets/fire.png', '.fire-preview', (img) => { if (img) assets.fire = img; });
-  loadAndRemoveWhiteBg('assets/spikes.png', '.spikes-preview', (img) => { if (img) assets.spikes = img; });
+  loadAndRemoveWhiteBg('assets/ground.png', '.ground-preview', (img) => {
+    if (img) {
+      assets.ground = img;
+      const wallImg = document.getElementById('img-tool-wall');
+      if (wallImg) wallImg.src = img.src;
+      const groupImg = document.getElementById('img-group-blocks');
+      if (groupImg && groupImg.src.includes('ground.png')) groupImg.src = img.src;
+    }
+  });
+  loadAndRemoveWhiteBg('assets/player.png', '.player-preview', (img) => {
+    if (img) {
+      assets.player = img;
+      const playerImg = document.getElementById('img-tool-player');
+      if (playerImg) playerImg.src = img.src;
+      const groupImg = document.getElementById('img-group-player');
+      if (groupImg && groupImg.src.includes('player.png')) groupImg.src = img.src;
+    }
+  });
+  loadAndRemoveWhiteBg('assets/goal.png', '.goal-preview', (img) => {
+    if (img) {
+      assets.goal = img;
+      const goalImg = document.getElementById('img-tool-goal');
+      if (goalImg) goalImg.src = img.src;
+      const groupImg = document.getElementById('img-group-special');
+      if (groupImg && groupImg.src.includes('goal.png')) groupImg.src = img.src;
+    }
+  });
+  loadAndRemoveWhiteBg('assets/trampoline.png', '.trampoline-preview', (img) => {
+    if (img) {
+      assets.trampoline = img;
+      const trampImg = document.getElementById('img-tool-trampoline');
+      if (trampImg) trampImg.src = img.src;
+      const groupImg = document.getElementById('img-group-special');
+      if (groupImg && groupImg.src.includes('trampoline.png')) groupImg.src = img.src;
+    }
+  });
+  loadAndRemoveWhiteBg('assets/spikes.png', '.spikes-preview', (img) => {
+    if (img) {
+      assets.spikes = img;
+      const spikesImg = document.getElementById('img-tool-spikes');
+      if (spikesImg) spikesImg.src = img.src;
+    }
+  });
 
   const menuView = document.getElementById('menu-view');
   const editorView = document.getElementById('editor-view');
@@ -494,7 +531,25 @@ window.addEventListener('DOMContentLoaded', () => {
       const parentGroup = btn.closest('.action-group');
       if (parentGroup) {
         const groupBtn = parentGroup.querySelector('.action-group-btn');
-        if (groupBtn) groupBtn.classList.add('active');
+        if (groupBtn) {
+          groupBtn.classList.add('active');
+          // If this is blocks, player, special, or barriers, dynamically update its icon to match the selected item
+          if (parentGroup.id === 'group-blocks' || parentGroup.id === 'group-player' || parentGroup.id === 'group-special' || parentGroup.id === 'group-barriers') {
+            const innerImgOrSvg = btn.querySelector('.tool-icon-img, .tool-icon-svg');
+            if (innerImgOrSvg) {
+              const clone = innerImgOrSvg.cloneNode(true);
+              if (clone.classList.contains('tool-icon-img')) {
+                clone.style.width = '40px';
+                clone.style.height = '40px';
+              } else if (clone.classList.contains('tool-icon-svg')) {
+                clone.style.width = '40px';
+                clone.style.height = '40px';
+              }
+              groupBtn.innerHTML = '';
+              groupBtn.appendChild(clone);
+            }
+          }
+        }
       }
 
       actionGroups.forEach(g => g.classList.remove('open'));
