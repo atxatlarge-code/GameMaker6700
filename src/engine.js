@@ -597,8 +597,24 @@ export class Engine {
         playerBox.top > eBox.bottom
       );
       if (overlapping) {
-        this.killPlayer();
-        return;
+        // Stomp condition: player is falling and their feet (previous frame) were above the enemy's upper half
+        const isStomp = this.player.vy > 0 && (this.player.y + this.player.height - this.player.vy) <= enemy.y + 16;
+        if (isStomp) {
+          // Bounce player upwards
+          this.player.vy = -CONFIG.JUMP_FORCE * 0.85;
+          this.player.isGrounded = false;
+          
+          // Spawn dark soot particles
+          this.spawnTeleportParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '#1e1720');
+          audio.playBounceSound();
+          
+          // Remove this enemy
+          this.liveEnemies = this.liveEnemies.filter(le => le.id !== enemy.id);
+          return;
+        } else {
+          this.killPlayer();
+          return;
+        }
       }
     }
   }

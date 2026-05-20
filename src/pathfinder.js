@@ -11,6 +11,25 @@ export function solveLevel(engine) {
   const goalX = engine.level.goalPos.col * CONFIG.TILE_SIZE;
   const goalY = engine.level.goalPos.row * CONFIG.TILE_SIZE;
 
+  // Temporarily initialize live enemies for the simulation if they aren't already initialized
+  const originalEnemies = engine.liveEnemies;
+  engine.liveEnemies = engine.level.enemies.map(e => ({
+    id: e.id,
+    x: e.col * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - 32) / 2,
+    y: e.row * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - 38),
+    width: 32,
+    height: 38,
+    vx: e.speed,
+    vy: 0,
+    isGrounded: false,
+    speed: e.speed,
+    patrolLeft: (e.col - e.patrolRange) * CONFIG.TILE_SIZE,
+    patrolRight: (e.col + e.patrolRange) * CONFIG.TILE_SIZE,
+    facing: 'right',
+    walkFrame: 0,
+    walkTimer: 0,
+  }));
+
   // Helper to save the exact state of the engine
   const saveEngine = () => ({
     x: engine.player.x,
@@ -22,7 +41,8 @@ export function solveLevel(engine) {
     isDead: engine.isDead,
     deathTimer: engine.deathTimer,
     portalCooldown: engine.portalCooldown,
-    hasWon: engine.hasWon
+    hasWon: engine.hasWon,
+    enemies: engine.liveEnemies.map(e => ({ ...e }))
   });
 
   // Helper to restore the exact state of the engine
@@ -37,6 +57,9 @@ export function solveLevel(engine) {
     engine.deathTimer = s.deathTimer;
     engine.portalCooldown = s.portalCooldown;
     engine.hasWon = s.hasWon;
+
+    // Restore enemies to their exact stored positions and states
+    engine.liveEnemies = s.enemies.map(se => ({ ...se }));
   };
 
   const startState = {
@@ -49,7 +72,12 @@ export function solveLevel(engine) {
 
   const getDiscretizedKey = (s) => {
     // Round positions to nearest 5px and velocities to nearest 0.1 to allow state aggregation
-    return `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 10)},${Math.round(s.vy * 10)}`;
+    const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 10)},${Math.round(s.vy * 10)},${s.isGrounded}`;
+    
+    // Include enemy positions rounded to nearest 10px to prevent pruning valid stomp/patrol paths
+    const enemyPart = s.enemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
+    
+    return `${playerPart}|${enemyPart}`;
   };
 
   const getHeuristic = (s) => {
@@ -124,6 +152,7 @@ export function solveLevel(engine) {
         deathTimer: engine.deathTimer,
         portalCooldown: engine.portalCooldown,
         hasWon: engine.hasWon,
+        enemies: engine.liveEnemies.map(e => ({ ...e })),
         path: [...curr.path, act]
       };
 
@@ -136,6 +165,7 @@ export function solveLevel(engine) {
 
   // Restore the engine to its clean starting state
   restoreEngine(originalState);
+  engine.liveEnemies = originalEnemies;
 
   return { solution, iterations };
 }
