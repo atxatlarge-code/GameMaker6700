@@ -8,6 +8,7 @@ import { CONFIG } from './config.js';
  * @returns {{ solution: Array<Object>|null, iterations: number }}
  */
 export function solveLevel(engine) {
+  engine.resetPlayer();
   const goalX = engine.level.goalPos.col * CONFIG.TILE_SIZE;
   const goalY = engine.level.goalPos.row * CONFIG.TILE_SIZE;
 
@@ -170,6 +171,7 @@ export function solveLevel(engine) {
 
 export class AsyncPathfinder {
   constructor(engine) {
+    engine.resetPlayer();
     this.engine = engine;
     this.goalX = engine.level.goalPos.col * CONFIG.TILE_SIZE;
     this.goalY = engine.level.goalPos.row * CONFIG.TILE_SIZE;

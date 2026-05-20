@@ -695,6 +695,9 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   btnSolveMode.addEventListener('click', () => {
+    // Reset player position so they start from the spawn point visually and simulation-wise
+    engine.resetPlayer();
+
     // Reset solve cancellation state
     isSolveCancelled = false;
 
