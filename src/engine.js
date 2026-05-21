@@ -38,6 +38,13 @@ export class Engine {
     this.deathParticles = [];
     this.portalCooldown = 0;
     this.teleportParticles = [];
+    this.playGrid = null;
+    this.coinsCollected = 0;
+    this.totalCoins = 0;
+    this.coinParticles = [];
+    this.breakParticles = [];
+    this.screenShake = 0;
+    this.isSimulation = false;
 
     this.isAutoplay = false;
     this.autoplayPath = null;
@@ -62,8 +69,10 @@ export class Engine {
   setMode(mode) {
     this.mode = mode;
     const panControls = document.getElementById('pan-controls');
+    const playHud = document.getElementById('play-hud');
     if (mode === CONFIG.MODE_PLAY) {
       if (panControls) panControls.classList.add('hidden');
+      if (playHud) playHud.classList.remove('hidden');
       this.resetPlayer();
       this.hasWon = false;
       if (this.editor) {
@@ -73,9 +82,30 @@ export class Engine {
       }
     } else {
       if (panControls) panControls.classList.remove('hidden');
+      if (playHud) playHud.classList.add('hidden');
     }
     this.keys = { left: false, right: false, up: false };
     this.panKeys = { up: false, down: false, left: false, right: false };
+  }
+
+  getTile(col, row) {
+    if (this.mode === CONFIG.MODE_PLAY && this.playGrid) {
+      if (col < 0 || col >= CONFIG.GRID_COLS || row < 0 || row >= CONFIG.GRID_ROWS) {
+        return 1;
+      }
+      return this.playGrid[row][col];
+    }
+    return this.level.getTile(col, row);
+  }
+
+  setTile(col, row, value) {
+    if (this.mode === CONFIG.MODE_PLAY && this.playGrid) {
+      if (col >= 0 && col < CONFIG.GRID_COLS && row >= 0 && row < CONFIG.GRID_ROWS) {
+        this.playGrid[row][col] = value;
+      }
+    } else {
+      this.level.setTile(col, row, value);
+    }
   }
 
   setTheme(theme) {
@@ -106,6 +136,28 @@ export class Engine {
     this.deathParticles = [];
     this.portalCooldown = 0;
     this.teleportParticles = [];
+    this.coinParticles = [];
+    this.breakParticles = [];
+    this.screenShake = 0;
+
+    if (this.mode === CONFIG.MODE_PLAY) {
+      this.playGrid = JSON.parse(JSON.stringify(this.level.grid));
+      this.coinsCollected = 0;
+      this.totalCoins = 0;
+      for (let r = 0; r < CONFIG.GRID_ROWS; r++) {
+        for (let c = 0; c < CONFIG.GRID_COLS; c++) {
+          if (this.playGrid[r][c] === 5) {
+            this.totalCoins++;
+          }
+        }
+      }
+      const hudVal = document.getElementById('hud-coins-collected');
+      const hudTotal = document.getElementById('hud-total-coins');
+      if (hudVal) hudVal.textContent = '0';
+      if (hudTotal) hudTotal.textContent = this.totalCoins.toString();
+    } else {
+      this.playGrid = null;
+    }
 
     // Re-initialise live enemies from level definition
     this.liveEnemies = this.level.enemies.map(e => ({
@@ -310,6 +362,30 @@ export class Engine {
     });
     this.teleportParticles = this.teleportParticles.filter(p => p.alpha > 0);
 
+    // Update coin particles
+    this.coinParticles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.05; // slight gravity
+      p.alpha = Math.max(0, p.alpha - 0.04);
+    });
+    this.coinParticles = this.coinParticles.filter(p => p.alpha > 0);
+
+    // Update break particles
+    this.breakParticles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += CONFIG.GRAVITY * 0.3;
+      p.rotation += p.vRotation;
+      p.alpha = Math.max(0, p.alpha - 0.03);
+    });
+    this.breakParticles = this.breakParticles.filter(p => p.alpha > 0);
+
+    // Update screen shake
+    if (this.screenShake > 0) {
+      this.screenShake = Math.max(0, this.screenShake - 0.5);
+    }
+
     // Horizontal Movement
     if (this.keys.left) {
       this.player.vx = -CONFIG.MOVE_SPEED;
@@ -343,6 +419,9 @@ export class Engine {
 
     // Check Portals
     this.checkPortals();
+
+    // Check Coins
+    this.checkCoins();
 
     // Update and check enemies
     this.updateEnemies();
@@ -400,6 +479,14 @@ export class Engine {
   }
 
   teleportPlayer(fromPortal, toPortal, fromColor, toColor) {
+    if (this.isSimulation) {
+      this.portalCooldown = 30;
+      this.player.x = toPortal.col * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.width) / 2;
+      this.player.y = toPortal.row * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.height);
+      this.player.vx = 0;
+      this.player.vy = 0;
+      return;
+    }
     audio.playPortalSound();
     this.portalCooldown = 30;
 
@@ -432,6 +519,58 @@ export class Engine {
     }
   }
 
+  checkCoins() {
+    if (this.isDead || this.hasWon) return;
+
+    const inset = 2;
+    const playerBox = {
+      left: this.player.x + inset,
+      right: this.player.x + this.player.width - inset,
+      top: this.player.y + inset,
+      bottom: this.player.y + this.player.height - inset,
+    };
+
+    const minCol = Math.max(0, Math.floor(playerBox.left / CONFIG.TILE_SIZE));
+    const maxCol = Math.min(CONFIG.GRID_COLS - 1, Math.floor((playerBox.right - 0.01) / CONFIG.TILE_SIZE));
+    const minRow = Math.max(0, Math.floor(playerBox.top / CONFIG.TILE_SIZE));
+    const maxRow = Math.min(CONFIG.GRID_ROWS - 1, Math.floor((playerBox.bottom - 0.01) / CONFIG.TILE_SIZE));
+
+    for (let r = minRow; r <= maxRow; r++) {
+      for (let c = minCol; c <= maxCol; c++) {
+        const tileVal = this.getTile(c, r);
+        if (tileVal === 5) {
+          this.setTile(c, r, 0);
+          this.coinsCollected++;
+          
+          if (this.isSimulation) continue;
+
+          audio.playCoinSound();
+          const hudVal = document.getElementById('hud-coins-collected');
+          if (hudVal) hudVal.textContent = this.coinsCollected.toString();
+
+          const coinCenterX = c * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+          const coinCenterY = r * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+          this.spawnCoinParticles(coinCenterX, coinCenterY);
+        }
+      }
+    }
+  }
+
+  spawnCoinParticles(x, y) {
+    for (let i = 0; i < 8; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 3;
+      this.coinParticles.push({
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1.5,
+        size: 2 + Math.random() * 3,
+        alpha: 1,
+      });
+    }
+  }
+
   checkHazards() {
     if (this.isDead || this.hasWon) return;
 
@@ -450,7 +589,7 @@ export class Engine {
 
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
-        const tileVal = this.level.getTile(c, r);
+        const tileVal = this.getTile(c, r);
         if (tileVal === 3 || tileVal === 4) {
           this.killPlayer();
           return;
@@ -487,7 +626,7 @@ export class Engine {
 
       for (let r = minRowV; r <= maxRowV; r++) {
         for (let c = minColV; c <= maxColV; c++) {
-          const tv = this.level.getTile(c, r);
+          const tv = this.getTile(c, r);
           if (tv !== 1 && tv !== 2) continue;
           const tileTop = r * CONFIG.TILE_SIZE;
           const tileBot = tileTop + CONFIG.TILE_SIZE;
@@ -526,8 +665,8 @@ export class Engine {
         if (enemy.vx > 0) {
           const rightCol = Math.floor((enemy.x + enemy.width) / CONFIG.TILE_SIZE);
           // Reverse if hitting a wall OR if about to step off an edge
-          const nextFloor = this.level.getTile(rightCol, footRow);
-          const wallAhead = this.level.getTile(rightCol, row) === 1;
+          const nextFloor = this.getTile(rightCol, footRow);
+          const wallAhead = this.getTile(rightCol, row) === 1;
           const edgeAhead = nextFloor !== 1 && nextFloor !== 2;
           if (wallAhead || edgeAhead) {
             enemy.x = rightCol * CONFIG.TILE_SIZE - enemy.width;
@@ -537,8 +676,8 @@ export class Engine {
         } else {
           const leftCol = Math.floor(enemy.x / CONFIG.TILE_SIZE);
           // Reverse if hitting a wall OR if about to step off an edge
-          const nextFloor = this.level.getTile(leftCol, footRow);
-          const wallAhead = this.level.getTile(leftCol, row) === 1;
+          const nextFloor = this.getTile(leftCol, footRow);
+          const wallAhead = this.getTile(leftCol, row) === 1;
           const edgeAhead = nextFloor !== 1 && nextFloor !== 2;
           if (wallAhead || edgeAhead) {
             enemy.x = (leftCol + 1) * CONFIG.TILE_SIZE;
@@ -604,9 +743,11 @@ export class Engine {
           this.player.vy = -CONFIG.JUMP_FORCE * 0.85;
           this.player.isGrounded = false;
           
-          // Spawn dark soot particles
-          this.spawnTeleportParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '#1e1720');
-          audio.playBounceSound();
+          if (!this.isSimulation) {
+            // Spawn dark soot particles
+            this.spawnTeleportParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '#1e1720');
+            audio.playBounceSound();
+          }
           
           // Remove this enemy
           this.liveEnemies = this.liveEnemies.filter(le => le.id !== enemy.id);
@@ -623,6 +764,8 @@ export class Engine {
     if (this.isDead || this.hasWon) return;
     this.isDead = true;
     this.deathTimer = 40;
+    if (this.isSimulation) return;
+    
     this.deathParticles = [];
     audio.playDeathSound();
 
@@ -644,6 +787,50 @@ export class Engine {
     }
   }
 
+  breakBlock(col, row) {
+    // Clear tile value to 0 in playGrid
+    if (this.playGrid) {
+      this.playGrid[row][col] = 0;
+    }
+    if (this.isSimulation) return;
+
+    // 1. Play break SFX
+    audio.playBreakSound();
+
+    // 3. Trigger screen shake (removed)
+    this.screenShake = 0;
+
+    // 4. Generate break particles
+    const px = (col + 0.5) * CONFIG.TILE_SIZE;
+    const py = (row + 0.5) * CONFIG.TILE_SIZE;
+
+    // Get color themes for breakable block
+    const themeColors = {
+      '16bit': ['#b85c27', '#d3733c', '#ac5827', '#5c2a0f'],
+      'butterflies': ['#ea698b', '#ff8da1', '#c75175', '#9b2247'],
+      'icecream': ['#ffb3c6', '#ffe5ec', '#f8ad9d', '#e07a5f'],
+      'spooky': ['#5c3d91', '#704da8', '#482e78', '#2e1954'],
+      'default': ['#ab7a4e', '#c69c6d', '#8c6239', '#5c3a21']
+    };
+    const colors = themeColors[this.theme] || themeColors['default'];
+
+    for (let i = 0; i < 16; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.5 + Math.random() * 4;
+      this.breakParticles.push({
+        x: px + (Math.random() - 0.5) * 20,
+        y: py + (Math.random() - 0.5) * 20,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1.5,
+        size: 3 + Math.random() * 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * Math.PI * 2,
+        vRotation: (Math.random() - 0.5) * 0.2,
+        alpha: 1,
+      });
+    }
+  }
+
   getOverlappingTiles(box) {
     const minCol = Math.max(0, Math.floor(box.left / CONFIG.TILE_SIZE));
     const maxCol = Math.min(CONFIG.GRID_COLS - 1, Math.floor((box.right - 0.01) / CONFIG.TILE_SIZE));
@@ -653,8 +840,8 @@ export class Engine {
     const tiles = [];
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
-        const tileVal = this.level.getTile(c, r);
-        if (tileVal === 1 || tileVal === 2) {
+        const tileVal = this.getTile(c, r);
+        if (tileVal === 1 || tileVal === 2 || tileVal === 6) {
           tiles.push({ col: c, row: r, type: tileVal });
         }
       }
@@ -722,8 +909,11 @@ export class Engine {
           if (tile.type === 2) {
             this.player.vy = -CONFIG.TRAMPOLINE_BOUNCE_FORCE;
             this.player.isGrounded = false;
-            audio.playBounceSound();
-            this.bounceAnims.set(`${tile.col},${tile.row}`, { timer: 15 });
+            
+            if (!this.isSimulation) {
+              audio.playBounceSound();
+              this.bounceAnims.set(`${tile.col},${tile.row}`, { timer: 15 });
+            }
           }
         }
       } else if (this.player.vy < 0) {
@@ -733,6 +923,10 @@ export class Engine {
           this.player.vy = 0;
           playerBox.top = this.player.y;
           playerBox.bottom = this.player.y + this.player.height;
+
+          if (tile.type === 6) {
+            this.breakBlock(tile.col, tile.row);
+          }
         }
       }
     }
@@ -773,7 +967,13 @@ export class Engine {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.ctx.save();
-    this.ctx.translate(-Math.floor(this.camera.x), -Math.floor(this.camera.y));
+    let shakeX = 0;
+    let shakeY = 0;
+    if (this.screenShake > 0) {
+      shakeX = (Math.random() - 0.5) * this.screenShake;
+      shakeY = (Math.random() - 0.5) * this.screenShake;
+    }
+    this.ctx.translate(-Math.floor(this.camera.x) + shakeX, -Math.floor(this.camera.y) + shakeY);
 
     // 1. Render Level Grid (only tiles in or near view)
     const minCol = Math.max(0, Math.floor(this.camera.x / CONFIG.TILE_SIZE));
@@ -783,7 +983,7 @@ export class Engine {
 
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
-        const tileVal = this.level.getTile(c, r);
+        const tileVal = this.getTile(c, r);
         const x = c * CONFIG.TILE_SIZE;
         const y = r * CONFIG.TILE_SIZE;
 
@@ -884,6 +1084,51 @@ export class Engine {
             }
           }
           this.ctx.restore();
+        } else if (tileVal === 5) {
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2);
+
+          const floatOffset = Math.sin(Date.now() * 0.004 + (c * 17) + (r * 23)) * 3;
+          this.ctx.translate(0, floatOffset);
+
+          const spinScale = Math.cos(Date.now() * 0.006 + (c * 7) + (r * 11));
+          this.ctx.scale(spinScale, 1);
+
+          const outerGrad = this.ctx.createRadialGradient(0, 0, CONFIG.TILE_SIZE * 0.1, 0, 0, CONFIG.TILE_SIZE * 0.35);
+          outerGrad.addColorStop(0, '#ffe57f');
+          outerGrad.addColorStop(0.7, '#ffd60a');
+          outerGrad.addColorStop(1, '#ffab00');
+          this.ctx.fillStyle = outerGrad;
+          this.ctx.strokeStyle = '#d4a359';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, CONFIG.TILE_SIZE * 0.32, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.stroke();
+
+          this.ctx.fillStyle = '#ffd60a';
+          this.ctx.strokeStyle = '#ffe57f';
+          this.ctx.lineWidth = 1;
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, CONFIG.TILE_SIZE * 0.22, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.stroke();
+
+          this.ctx.fillStyle = '#ffab00';
+          this.ctx.font = 'bold 13px sans-serif';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText('$', 0, 0.5);
+
+          this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.beginPath();
+          this.ctx.arc(-2, -2, CONFIG.TILE_SIZE * 0.2, Math.PI, Math.PI * 1.5);
+          this.ctx.stroke();
+
+          this.ctx.restore();
+        } else if (tileVal === 6) {
+          this.editor.renderBreakableBlock(x, y, 1, c, r, this);
         }
       }
     }
@@ -945,6 +1190,36 @@ export class Engine {
       this.ctx.beginPath();
       this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       this.ctx.fill();
+      this.ctx.restore();
+    });
+
+    // Render Coin Particles
+    this.coinParticles.forEach(p => {
+      this.ctx.save();
+      this.ctx.globalAlpha = p.alpha;
+      this.ctx.fillStyle = '#ffe57f';
+      this.ctx.strokeStyle = '#ffd60a';
+      this.ctx.lineWidth = 1;
+      this.ctx.translate(p.x, p.y);
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, -p.size);
+      this.ctx.lineTo(p.size * 0.7, 0);
+      this.ctx.lineTo(0, p.size);
+      this.ctx.lineTo(-p.size * 0.7, 0);
+      this.ctx.closePath();
+      this.ctx.fill();
+      this.ctx.stroke();
+      this.ctx.restore();
+    });
+
+    // Render Break Particles
+    this.breakParticles.forEach(p => {
+      this.ctx.save();
+      this.ctx.globalAlpha = p.alpha;
+      this.ctx.fillStyle = p.color;
+      this.ctx.translate(p.x, p.y);
+      this.ctx.rotate(p.rotation);
+      this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
       this.ctx.restore();
     });
 

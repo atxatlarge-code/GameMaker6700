@@ -41,6 +41,314 @@ export class Editor {
     }
   }
 
+  getBreakableColors() {
+    switch (this.theme) {
+      case '16bit':
+        return {
+          primary: '#b85c27',
+          light: '#d3733c',
+          dark: '#ac5827',
+          border: '#7a3f1b',
+          detail: '#54280f',
+          crack: '#ffffff',
+          straw: '#ffd000'
+        };
+      case 'butterflies':
+        return {
+          primary: '#ea698b',
+          light: '#ff8da1',
+          dark: '#c75175',
+          border: '#b23a5c',
+          detail: '#801c3e',
+          crack: '#ffd60a',
+          straw: '#ffea75'
+        };
+      case 'icecream':
+        return {
+          primary: '#ffb3c6',
+          light: '#ffe5ec',
+          dark: '#f8ad9d',
+          border: '#eb937c',
+          detail: '#fcd5c3',
+          crack: '#f49097',
+          straw: '#ffe58f'
+        };
+      case 'spooky':
+        return {
+          primary: '#5c3d91',
+          light: '#704da8',
+          dark: '#482e78',
+          border: '#4e2e80',
+          detail: '#351a5e',
+          crack: '#00ffcc',
+          straw: '#d4fc34'
+        };
+      default: // default theme (Forest)
+        return {
+          primary: '#ab7a4e',
+          light: '#c69c6d',
+          dark: '#8c6239',
+          border: '#754b2d',
+          detail: '#542e14',
+          crack: '#ffffff',
+          straw: '#e0ad34'
+        };
+    }
+  }
+
+  renderBreakableBlock(x, y, alpha = 1, col = null, row = null, engine = null) {
+    this.ctx.save();
+    this.ctx.globalAlpha = alpha;
+    this.ctx.translate(x, y);
+
+    const colors = this.getBreakableColors();
+    const size = CONFIG.TILE_SIZE;
+
+    const c = col !== null ? col : 0;
+    const r = row !== null ? row : 0;
+
+    // Check neighbors of type 6 (breakable block)
+    const hasLeft = col !== null && engine && engine.getTile(col - 1, row) === 6;
+    const hasRight = col !== null && engine && engine.getTile(col + 1, row) === 6;
+    const hasTop = row !== null && engine && engine.getTile(col, row - 1) === 6;
+    const hasBottom = row !== null && engine && engine.getTile(col, row + 1) === 6;
+
+    // Helper to get a stable, wobbly offset along grid coordinates
+    const getWobble = (seed) => {
+      const val = Math.sin(seed) * 10000;
+      return val - Math.floor(val);
+    };
+
+    // Helper to draw a wobbly segment between two points
+    const drawWobbleLine = (x1, y1, x2, y2, seed, wobbleAmt = 1.5) => {
+      this.ctx.beginPath();
+      this.ctx.moveTo(x1, y1);
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len === 0) return;
+      const nx = -dy / len;
+      const ny = dx / len;
+      const w = (getWobble(seed) - 0.5) * wobbleAmt;
+      this.ctx.quadraticCurveTo(mx + nx * w, my + ny * w, x2, y2);
+      this.ctx.stroke();
+    };
+
+    // Helper to shade individual rounded mud bricks (highlights & shadows)
+    const drawBrickShading = (bx, by, bw, bh, seed) => {
+      // Highlight on top & left of the brick (rounded look)
+      this.ctx.strokeStyle = colors.light;
+      this.ctx.lineWidth = 1.5;
+      this.ctx.beginPath();
+      this.ctx.moveTo(bx + 2.5, by + bh - 2.5);
+      this.ctx.quadraticCurveTo(bx + 2.5, by + 2.5, bx + bw / 2, by + 2.5);
+      this.ctx.quadraticCurveTo(bx + bw - 2.5, by + 2.5, bx + bw - 2.5, by + 2.5);
+      this.ctx.stroke();
+
+      // Shadow on bottom & right of the brick
+      this.ctx.strokeStyle = colors.detail;
+      this.ctx.lineWidth = 1.5;
+      this.ctx.beginPath();
+      this.ctx.moveTo(bx + bw - 2.5, by + 2.5);
+      this.ctx.quadraticCurveTo(bx + bw - 2.5, by + bh - 2.5, bx + bw / 2, by + bh - 2.5);
+      this.ctx.quadraticCurveTo(bx + 2.5, by + bh - 2.5, bx + 2.5, by + bh - 2.5);
+      this.ctx.stroke();
+    };
+
+    // 1. Fill unified base mud block background using the wobbly outline
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, 0);
+
+    // Top edge path
+    if (hasTop) {
+      this.ctx.lineTo(size, 0);
+    } else {
+      const w = (getWobble(c * 17 + r * 31) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size / 2, w, size, 0);
+    }
+
+    // Right edge path
+    if (hasRight) {
+      this.ctx.lineTo(size, size);
+    } else {
+      const w = (getWobble(c * 19 + r * 29) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size + w, size / 2, size, size);
+    }
+
+    // Bottom edge path
+    if (hasBottom) {
+      this.ctx.lineTo(0, size);
+    } else {
+      const w = (getWobble(c * 23 + r * 37) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size / 2, size + w, 0, size);
+    }
+
+    // Left edge path
+    if (hasLeft) {
+      this.ctx.lineTo(0, 0);
+    } else {
+      const w = (getWobble(c * 13 + r * 41) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(w, size / 2, 0, 0);
+    }
+    this.ctx.closePath();
+
+    // Create Studio Ghibli-esque warm base linear gradient
+    const grad = this.ctx.createLinearGradient(0, 0, 0, size);
+    grad.addColorStop(0, colors.light);
+    grad.addColorStop(1, colors.dark);
+    this.ctx.fillStyle = grad;
+    this.ctx.fill();
+
+    // 2. Draw wobbly mud brick joints (crevices) inside and along active boundaries
+    this.ctx.strokeStyle = colors.border;
+    this.ctx.lineWidth = 2.2;
+    this.ctx.lineCap = 'round';
+    this.ctx.lineJoin = 'round';
+
+    // Horizontal staggered joint line across the middle
+    drawWobbleLine(0, 20, size, 20, c * 11 + r * 19, 2.5);
+
+    const varIdx = col !== null ? Math.abs(col) % 5 : 0;
+    const seed = c * 71 + r * 93;
+
+    if (varIdx === 0) {
+      // Variety 0: Top split at 20, Bottom split at 10
+      drawWobbleLine(20, 0, 20, 20, seed + 1, 2);
+      drawWobbleLine(10, 20, 10, size, seed + 2, 2);
+
+      // Top-Left brick
+      drawBrickShading(1.5, 1.5, 17, 17, seed + 3);
+      // Top-Right brick
+      drawBrickShading(21.5, 1.5, 9, 17, seed + 4);
+      // Bottom-Left brick
+      drawBrickShading(1.5, 21.5, 7, 9, seed + 5);
+      // Bottom-Right brick
+      drawBrickShading(11.5, 21.5, 19, 9, seed + 6);
+    } else if (varIdx === 1) {
+      // Variety 1: Top split at 10, Bottom split at 22
+      drawWobbleLine(10, 0, 10, 20, seed + 1, 2);
+      drawWobbleLine(22, 20, 22, size, seed + 2, 2);
+
+      // Top-Left brick
+      drawBrickShading(1.5, 1.5, 7, 17, seed + 3);
+      // Top-Right brick
+      drawBrickShading(11.5, 1.5, 19, 17, seed + 4);
+      // Bottom-Left brick
+      drawBrickShading(1.5, 21.5, 19, 9, seed + 5);
+      // Bottom-Right brick
+      drawBrickShading(23.5, 21.5, 7, 9, seed + 6);
+    } else if (varIdx === 2) {
+      // Variety 2: Top split at 24, Bottom split none
+      drawWobbleLine(24, 0, 24, 20, seed + 1, 2);
+
+      // Top-Left brick
+      drawBrickShading(1.5, 1.5, 21, 17, seed + 3);
+      // Top-Right brick
+      drawBrickShading(25.5, 1.5, 5, 17, seed + 4);
+      // Bottom full brick
+      drawBrickShading(1.5, 21.5, size - 3, 9, seed + 5);
+    } else if (varIdx === 3) {
+      // Variety 3: Top split none, Bottom split at 14
+      drawWobbleLine(14, 20, 14, size, seed + 1, 2);
+
+      // Top full brick
+      drawBrickShading(1.5, 1.5, size - 3, 17, seed + 3);
+      // Bottom-Left brick
+      drawBrickShading(1.5, 21.5, 11, 9, seed + 4);
+      // Bottom-Right brick
+      drawBrickShading(15.5, 21.5, 15, 9, seed + 5);
+    } else {
+      // Variety 4: Top split at 12, Bottom split at 20
+      drawWobbleLine(12, 0, 12, 20, seed + 1, 2);
+      drawWobbleLine(20, 20, 20, size, seed + 2, 2);
+
+      // Top-Left brick
+      drawBrickShading(1.5, 1.5, 9, 17, seed + 3);
+      // Top-Right brick
+      drawBrickShading(13.5, 1.5, 17, 17, seed + 4);
+      // Bottom-Left brick
+      drawBrickShading(1.5, 21.5, 17, 9, seed + 5);
+      // Bottom-Right brick
+      drawBrickShading(21.5, 21.5, 9, 9, seed + 6);
+    }
+
+    // 4. Draw Hand-Drawn Outline Strokes on external exposed edges (non-molded)
+    this.ctx.strokeStyle = colors.border;
+    this.ctx.lineWidth = 2.5;
+
+    if (!hasTop) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, 0);
+      const w = (getWobble(c * 17 + r * 31) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size / 2, w, size, 0);
+      this.ctx.stroke();
+    }
+    if (!hasRight) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(size, 0);
+      const w = (getWobble(c * 19 + r * 29) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size + w, size / 2, size, size);
+      this.ctx.stroke();
+    }
+    if (!hasBottom) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(size, size);
+      const w = (getWobble(c * 23 + r * 37) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size / 2, size + w, 0, size);
+      this.ctx.stroke();
+    }
+    if (!hasLeft) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, size);
+      const w = (getWobble(c * 13 + r * 41) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(w, size / 2, 0, 0);
+      this.ctx.stroke();
+    }
+
+    // 5. Draw straw flecks and organic textures (gives the Ghibli mud-brick look)
+    this.ctx.strokeStyle = colors.straw;
+    this.ctx.lineWidth = 1;
+    const strawSeed = c * 3 + r * 7;
+    for (let i = 0; i < 4; i++) {
+      const fx = 5 + getWobble(strawSeed + i * 2) * (size - 10);
+      const fy = 5 + getWobble(strawSeed + i * 3) * (size - 10);
+      const fa = getWobble(strawSeed + i * 5) * Math.PI * 2;
+      const fl = 3 + getWobble(strawSeed + i * 7) * 4;
+      this.ctx.beginPath();
+      this.ctx.moveTo(fx, fy);
+      this.ctx.lineTo(fx + Math.cos(fa) * fl, fy + Math.sin(fa) * fl);
+      this.ctx.stroke();
+    }
+
+    // 6. Exposed moss/grass tufts on top (very Studio Ghibli style)
+    if (!hasTop) {
+      let mossColor = '#689f38'; // forest/grass green
+      if (this.theme === 'spooky') mossColor = '#00ffcc';
+      else if (this.theme === 'butterflies') mossColor = '#9b2247';
+      else if (this.theme === 'icecream') mossColor = '#e07a5f';
+
+      this.ctx.fillStyle = mossColor;
+      this.ctx.beginPath();
+      // Left blade
+      this.ctx.moveTo(size * 0.2, 1);
+      this.ctx.quadraticCurveTo(size * 0.22, -3.5, size * 0.25, -2);
+      this.ctx.quadraticCurveTo(size * 0.23, -1, size * 0.28, 1);
+      // Center blade
+      this.ctx.moveTo(size * 0.5, 1);
+      this.ctx.quadraticCurveTo(size * 0.48, -4.5, size * 0.45, -2.5);
+      this.ctx.quadraticCurveTo(size * 0.52, -1, size * 0.55, 1);
+      // Right blade
+      this.ctx.moveTo(size * 0.8, 1);
+      this.ctx.quadraticCurveTo(size * 0.78, -3.5, size * 0.75, -2);
+      this.ctx.quadraticCurveTo(size * 0.82, -1, size * 0.85, 1);
+      this.ctx.fill();
+    }
+
+    this.ctx.restore();
+  }
+
   initListeners() {
     this.canvas.addEventListener('mousedown', (e) => {
       if (this.engine && this.engine.mode === CONFIG.MODE_PLAY) return;
@@ -139,6 +447,12 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_BREAKABLE:
+        if (this.level.getTile(col, row) !== 6) {
+          this.level.setTile(col, row, 6);
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_TRAMPOLINE:
         if (this.level.getTile(col, row) !== 2) {
           this.level.setTile(col, row, 2);
@@ -154,6 +468,12 @@ export class Editor {
       case CONFIG.TOOL_SPIKES:
         if (this.level.getTile(col, row) !== 4) {
           this.level.setTile(col, row, 4);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_COIN:
+        if (this.level.getTile(col, row) !== 5) {
+          this.level.setTile(col, row, 5);
           audio.playTileSound();
         }
         break;
@@ -230,6 +550,9 @@ export class Editor {
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           }
           break;
+        case CONFIG.TOOL_BREAKABLE:
+          this.renderBreakableBlock(x, y, 0.5);
+          break;
         case CONFIG.TOOL_TRAMPOLINE:
           if (this.assets.trampoline) {
             this.ctx.drawImage(this.assets.trampoline, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
@@ -253,6 +576,24 @@ export class Editor {
             this.ctx.fillStyle = '#dbe2ef';
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           }
+          break;
+        case CONFIG.TOOL_COIN:
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2);
+          this.ctx.fillStyle = '#ffd60a';
+          this.ctx.strokeStyle = '#d4a359';
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, CONFIG.TILE_SIZE * 0.3, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.stroke();
+          
+          this.ctx.fillStyle = '#d4a359';
+          this.ctx.font = 'bold 12px sans-serif';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText('$', 0, 0);
+          this.ctx.restore();
           break;
         case CONFIG.TOOL_PORTAL:
           const cx = x + CONFIG.TILE_SIZE / 2;
@@ -280,7 +621,7 @@ export class Editor {
           break;
         case CONFIG.TOOL_ENEMY: {
           const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
-          const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4) ||
+          const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 5 || tileVal === 6) ||
             (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
             (this.level.goalPos && this.level.goalPos.col === this.hoverCol && this.level.goalPos.row === this.hoverRow) ||
             ((this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||
@@ -335,7 +676,7 @@ export class Editor {
       let isValid = true;
       if (this.currentTool === CONFIG.TOOL_ENEMY) {
         const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
-        const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4) ||
+        const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6) ||
           (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
           (this.level.goalPos && this.level.goalPos.col === this.hoverCol && this.level.goalPos.row === this.hoverRow) ||
           ((this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||

@@ -311,6 +311,7 @@ class AudioEngine {
     this.masterGain = null;
     this.currentTrackKey = 'none';
     this.isPlaying = false;
+    this.isSimulation = false;
     
     this.tempo = 120;
     this.step = 0;
@@ -413,6 +414,7 @@ class AudioEngine {
   }
 
   playSynthNote(freq, type, startTime, duration, volume = 0.2) {
+    if (this.isSimulation) return;
     if (!this.ctx || !freq) return;
     try {
       const osc = this.ctx.createOscillator();
@@ -437,6 +439,7 @@ class AudioEngine {
 
   // SFX
   playJumpSound() {
+    if (this.isSimulation) return;
     this.ensureUnlocked();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -459,6 +462,7 @@ class AudioEngine {
   }
 
   playBounceSound() {
+    if (this.isSimulation) return;
     this.ensureUnlocked();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -482,6 +486,7 @@ class AudioEngine {
   }
 
   playTileSound() {
+    if (this.isSimulation) return;
     this.ensureUnlocked();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -504,6 +509,7 @@ class AudioEngine {
   }
 
   playEraseSound() {
+    if (this.isSimulation) return;
     this.ensureUnlocked();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -526,6 +532,7 @@ class AudioEngine {
   }
 
   playDeathSound() {
+    if (this.isSimulation) return;
     this.ensureUnlocked();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -548,6 +555,7 @@ class AudioEngine {
   }
 
   playPortalSound() {
+    if (this.isSimulation) return;
     this.ensureUnlocked();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -569,7 +577,54 @@ class AudioEngine {
     } catch (e) {}
   }
 
+  playCoinSound() {
+    if (this.isSimulation) return;
+    this.ensureUnlocked();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(988, now); // B5
+      osc.frequency.setValueAtTime(1318, now + 0.08); // E6
+      
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.linearRampToValueAtTime(0.0001, now + 0.35);
+      
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } catch (e) {}
+  }
+
+  playBreakSound() {
+    if (this.isSimulation) return;
+    this.ensureUnlocked();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + 0.18);
+      
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.linearRampToValueAtTime(0.0001, now + 0.18);
+      
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } catch (e) {}
+  }
+
   playWinSound() {
+    if (this.isSimulation) return;
     this.ensureUnlocked();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;

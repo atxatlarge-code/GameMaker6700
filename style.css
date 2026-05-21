@@ -28,20 +28,21 @@ body {
   background-color: var(--bg-color);
   color: var(--text-main);
   font-family: var(--font-main);
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
   padding: 0.4rem 1rem;
   max-width: 1700px;
   margin: 0 auto;
   width: 100%;
+  overflow: hidden;
 }
 
 .view {
@@ -1081,6 +1082,61 @@ canvas {
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   cursor: crosshair;
+}
+
+/* Play HUD Styling */
+.play-hud {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(18, 22, 28, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255, 214, 10, 0.4);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 214, 10, 0.15);
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  pointer-events: none;
+  animation: slideInDown 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+.play-hud.hidden {
+  display: none !important;
+}
+
+.play-hud .hud-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gold-coin-icon {
+  color: #ffd60a;
+  filter: drop-shadow(0 0 4px rgba(255, 214, 10, 0.6));
+  animation: coinPulse 2s infinite ease-in-out;
+}
+
+@keyframes coinPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Overlays */

@@ -123,6 +123,14 @@ function renderLevelPreview(canvas, levelObj) {
       } else if (t === 4) {
         ctx.fillStyle = '#dbe2ef';
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
+      } else if (t === 5) {
+        ctx.fillStyle = '#ffd60a';
+        ctx.beginPath();
+        ctx.arc((c + 0.5) * tileW, (r + 0.5) * tileH, tileW * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (t === 6) {
+        ctx.fillStyle = '#8c6239'; // Brown brick color
+        ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
       }
     }
   }

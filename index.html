@@ -185,6 +185,9 @@
               </div>
             </div>
           </div>
+          <div id="play-hud" class="play-hud hidden">
+            <span class="hud-item"><i class="fa-solid fa-coins gold-coin-icon"></i> <span id="hud-coins-collected">0</span> / <span id="hud-total-coins">0</span></span>
+          </div>
           <canvas id="game-canvas" width="1200" height="600"></canvas>
         </div>
       </main>
@@ -211,6 +214,7 @@
               </div>
             </div>
 
+
             <!-- Group 2: Blocks -->
             <div class="action-group" id="group-blocks">
               <button class="action-group-btn active" title="Blocks">
@@ -235,7 +239,19 @@
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="spikes" title="Spikes">
                   <img id="img-tool-spikes" src="assets/spikes.png" class="tool-icon-img" alt="Spikes">
                 </button>
-                <button class="popup-item-btn soon" data-name="Breakable block"><i class="fa-solid fa-border-none"></i> Breakable block</button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="breakable" title="Breakable block">
+                  <svg viewBox="0 0 32 32" class="tool-icon-svg">
+                    <defs>
+                      <linearGradient id="brickGrad" x1="0" y1="1" x2="0" y2="0">
+                        <stop offset="0%" stop-color="#8c6239"/>
+                        <stop offset="100%" stop-color="#ab7a4e"/>
+                      </linearGradient>
+                    </defs>
+                    <rect x="2" y="2" width="28" height="28" rx="4" fill="url(#brickGrad)" stroke="#5c3a21" stroke-width="2"/>
+                    <path d="M 6 6 L 14 14 L 10 20 L 18 26" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+                    <path d="M 26 8 L 18 16 L 22 22 L 14 28" stroke="#3d200a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+                  </svg>
+                </button>
                 <button class="popup-item-btn soon" data-name="Moveable block"><i class="fa-solid fa-arrows-up-down-left-right"></i> Moveable block</button>
               </div>
             </div>
@@ -253,7 +269,20 @@
                   <img id="img-tool-trampoline" src="assets/trampoline.png" class="tool-icon-img" alt="Powerup">
                 </button>
                 <button class="popup-item-btn soon" data-name="Save flag"><i class="fa-solid fa-flag"></i> Save flag</button>
-                <button class="popup-item-btn soon" data-name="Coin"><i class="fa-solid fa-coins"></i> Coin</button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="coin" title="Coin">
+                  <svg viewBox="0 0 32 32" class="tool-icon-svg">
+                    <defs>
+                      <radialGradient id="coinGrad" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#ffe57f"/>
+                        <stop offset="70%" stop-color="#ffd60a"/>
+                        <stop offset="100%" stop-color="#ffab00"/>
+                      </radialGradient>
+                    </defs>
+                    <circle cx="16" cy="16" r="13" fill="url(#coinGrad)" stroke="#d4a359" stroke-width="2"/>
+                    <circle cx="16" cy="16" r="9" fill="none" stroke="#ffe57f" stroke-width="1"/>
+                    <text x="16" y="21.5" font-family="sans-serif" font-weight="bold" font-size="14" fill="#ffab00" text-anchor="middle">$</text>
+                  </svg>
+                </button>
               </div>
             </div>
 

@@ -27,6 +27,8 @@ export const CONFIG = {
   TOOL_PORTAL: 'portal',
   TOOL_ERASE: 'erase',
   TOOL_ENEMY: 'enemy',
+  TOOL_COIN: 'coin',
+  TOOL_BREAKABLE: 'breakable',
 
   // Enemy defaults
   ENEMY_SPEED: 1.8,
