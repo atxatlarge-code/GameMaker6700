@@ -162,26 +162,78 @@
             <button class="pan-btn pan-right" data-dir="right" title="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
           </div>
           <div id="win-overlay" class="overlay hidden">
-            <div class="overlay-modal">
-              <h2>Level Complete!</h2>
+            <div class="overlay-modal win-modal">
+              <h2>
+                <svg viewBox="0 0 40 44" class="soot-sprite-title-icon" style="width: 32px; height: 35px; display: inline-block; vertical-align: middle; margin-right: 8px;">
+                  <!-- Fluffy bumps -->
+                  <circle cx="20" cy="8"  r="5.5" fill="#221c25"/>
+                  <circle cx="29" cy="11" r="5"   fill="#1a141e"/>
+                  <circle cx="33" cy="20" r="5"   fill="#221c25"/>
+                  <circle cx="30" cy="30" r="4.5" fill="#1a141e"/>
+                  <circle cx="10" cy="11" r="5"   fill="#1a141e"/>
+                  <circle cx="7"  cy="20" r="5"   fill="#221c25"/>
+                  <circle cx="10" cy="30" r="4.5" fill="#1a141e"/>
+                  <!-- Main body -->
+                  <circle cx="20" cy="20" r="13" fill="#1e1720"/>
+                  <!-- Eye whites -->
+                  <circle cx="14" cy="19" r="5.5" fill="rgba(245,240,235,0.97)"/>
+                  <circle cx="26" cy="19" r="5.5" fill="rgba(245,240,235,0.97)"/>
+                  <!-- Pupils -->
+                  <circle cx="14.5" cy="19.5" r="3.2" fill="#0d0a0f"/>
+                  <circle cx="26.5" cy="19.5" r="3.2" fill="#0d0a0f"/>
+                  <!-- Catchlights -->
+                  <circle cx="12.8" cy="17.8" r="1.3" fill="white"/>
+                  <circle cx="25.2" cy="17.8" r="1.3" fill="white"/>
+                  <!-- Legs -->
+                  <line x1="13" y1="32" x2="11" y2="40" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="17" y1="33" x2="17" y2="41" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="23" y1="33" x2="23" y2="41" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="27" y1="32" x2="29" y2="40" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+                Level Complete!
+              </h2>
               <p>You successfully guided the kid to the magical doorway!</p>
               <button id="btn-restart" class="primary-btn"><i class="fa-solid fa-rotate-left"></i> Edit Level</button>
             </div>
           </div>
           <div id="pathfinder-overlay" class="overlay hidden">
             <div class="overlay-modal pathfinder-modal">
-              <h2><i class="fa-solid fa-robot"></i> AI Pathfinder</h2>
-              <p id="pathfinder-status">Analyzing Level Dynamics...</p>
-              <div class="solver-progress-container">
-                <div id="solver-progress-bar" class="solver-progress-bar"></div>
-              </div>
-              <div class="solver-stats" id="solver-stats">
-                Iterations: 0 / 20000<br>
-                States explored: 0
+              <h2>
+                <svg viewBox="0 0 40 44" class="soot-sprite-title-icon" style="width: 32px; height: 35px; display: inline-block; vertical-align: middle; margin-right: 8px;">
+                  <!-- Fluffy bumps -->
+                  <circle cx="20" cy="8"  r="5.5" fill="#221c25"/>
+                  <circle cx="29" cy="11" r="5"   fill="#1a141e"/>
+                  <circle cx="33" cy="20" r="5"   fill="#221c25"/>
+                  <circle cx="30" cy="30" r="4.5" fill="#1a141e"/>
+                  <circle cx="10" cy="11" r="5"   fill="#1a141e"/>
+                  <circle cx="7"  cy="20" r="5"   fill="#221c25"/>
+                  <circle cx="10" cy="30" r="4.5" fill="#1a141e"/>
+                  <!-- Main body -->
+                  <circle cx="20" cy="20" r="13" fill="#1e1720"/>
+                  <!-- Eye whites -->
+                  <circle cx="14" cy="19" r="5.5" fill="rgba(245,240,235,0.97)"/>
+                  <circle cx="26" cy="19" r="5.5" fill="rgba(245,240,235,0.97)"/>
+                  <!-- Pupils -->
+                  <circle cx="14.5" cy="19.5" r="3.2" fill="#0d0a0f"/>
+                  <circle cx="26.5" cy="19.5" r="3.2" fill="#0d0a0f"/>
+                  <!-- Catchlights -->
+                  <circle cx="12.8" cy="17.8" r="1.3" fill="white"/>
+                  <circle cx="25.2" cy="17.8" r="1.3" fill="white"/>
+                  <!-- Legs -->
+                  <line x1="13" y1="32" x2="11" y2="40" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="17" y1="33" x2="17" y2="41" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="23" y1="33" x2="23" y2="41" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="27" y1="32" x2="29" y2="40" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+                <span id="pathfinder-title">Finding Pathway...</span>
+              </h2>
+              <p id="pathfinder-status" style="margin-bottom: 0.5rem;">Consulting the forest spirits...</p>
+              <div class="solver-stats" id="solver-stats" style="margin-top: 1rem;">
+                Paths explored: 0
               </div>
               <div class="modal-buttons" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
                 <button id="btn-cancel-solve" class="secondary-btn"><i class="fa-solid fa-xmark"></i> Cancel</button>
-                <button id="btn-proceed-solve" class="primary-btn hidden" style="background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);"><i class="fa-solid fa-play"></i> Proceed</button>
+                <button id="btn-proceed-solve" class="primary-btn hidden"><i class="fa-solid fa-play"></i> Proceed</button>
               </div>
             </div>
           </div>
@@ -293,6 +345,27 @@
                     <line x1="14" y1="24" x2="17" y2="26" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
                     <!-- Straw 4 -->
                     <line x1="22" y1="6" x2="25" y2="7" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="earth" title="Grass Earth block">
+                  <svg viewBox="0 0 32 32" class="tool-icon-svg">
+                    <defs>
+                      <linearGradient id="earthBlockGrad" x1="0" y1="1" x2="0" y2="0">
+                        <stop offset="0%" stop-color="#8c6239"/>
+                        <stop offset="100%" stop-color="#ab7a4e"/>
+                      </linearGradient>
+                    </defs>
+                    <!-- Earth base -->
+                    <path d="M 2.5 3 C 12 2, 20 2.5, 29.5 3 C 29.8 12, 29.5 20, 29.5 29 C 20 29.5, 12 29.2, 2.5 29 C 2 20, 2.3 12, 2.5 3 Z" fill="url(#earthBlockGrad)" />
+                    <!-- Strata lines -->
+                    <path d="M 2.5 13 C 10 13.5, 20 12.5, 29.5 13" fill="none" stroke="#754b2d" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M 2.5 22 C 10 22.5, 20 21.5, 29.5 22" fill="none" stroke="#754b2d" stroke-width="1.5" stroke-linecap="round"/>
+                    <!-- Grass on Top -->
+                    <path d="M 2.5 3 C 10 2.5, 20 2.8, 29.5 3 L 29.5 9 C 25 7.5, 20 9.5, 15 8 C 10 9, 6 7.5, 2.5 9 Z" fill="#689f38"/>
+                    <!-- Grass on Left side -->
+                    <path d="M 2.5 3 C 2.8 10, 2.5 20, 2.5 29 L 8.5 29 C 7 24, 9 18, 7.5 13 C 8.5 8, 7 5, 8.5 3 Z" fill="#689f38"/>
+                    <!-- Hand-drawn wobbly outline -->
+                    <path d="M 2.5 3 C 12 2, 20 2.5, 29.5 3 C 29.8 12, 29.5 20, 29.5 29 C 20 29.5, 12 29.2, 2.5 29 C 2 20, 2.3 12, 2.5 3" fill="none" stroke="#542e14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </button>
                 <button class="popup-item-btn soon" data-name="Moveable block"><i class="fa-solid fa-arrows-up-down-left-right"></i> Moveable block</button>

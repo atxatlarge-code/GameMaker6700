@@ -1146,8 +1146,9 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(15, 20, 14, 0.85);
-  backdrop-filter: blur(8px);
+  background: rgba(10, 14, 10, 0.35); /* Way less dark, highly translucent green-black */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -3333,31 +3334,98 @@ canvas {
   }
 }
 
-/* AI Pathfinder Real-time Overlay */
-.pathfinder-modal {
-  max-width: 400px;
-  border-color: #3b82f6;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 24px rgba(59, 130, 246, 0.3);
+/* AI Pathfinder & Win Overlay Ghibli Theme Modals */
+.pathfinder-modal, .win-modal {
+  max-width: 480px;
+  position: relative;
+  /* Prevent backdrop blur from bleeding into the card and fuzzying edges */
+  transform: translateZ(0);
+  will-change: transform;
+  
+  background-color: #f7f3e9; /* Watercolor parchment */
+  background-image: radial-gradient(rgba(140, 98, 57, 0.03) 1px, transparent 0),
+                    radial-gradient(rgba(140, 98, 57, 0.03) 1px, transparent 0);
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
+  border: 4px double #8c6239; /* Double brass/wood border */
+  border-radius: 255px 25px 225px 25px / 25px 225px 25px 255px; /* Hand-drawn wobbly border */
+  padding: 3rem 2.5rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 
+              0 0 0 8px rgba(74, 124, 89, 0.15); /* Moss ring shadow */
 }
-.solver-progress-container {
-  width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-  margin: 1rem 0;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+
+.pathfinder-modal h2, .win-modal h2 {
+  font-family: var(--font-accent);
+  color: #5c3d24; /* Warm wood brown */
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
+  text-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
-.solver-progress-bar {
-  width: 0%;
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #06b6d4);
-  box-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
-  transition: width 0.1s ease;
+
+.pathfinder-modal p, .win-modal p {
+  color: #70543e; /* Warm charcoal/mud brown */
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
 }
-.solver-stats {
-  font-family: var(--font-main);
+
+.pathfinder-modal .solver-stats {
+  font-family: var(--font-accent);
   font-size: 0.95rem;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: #8c7561; /* Muted wood brown */
   line-height: 1.6;
+  text-align: center;
+}
+
+/* Ghibli style cancel button (brass/stone) */
+.pathfinder-modal .secondary-btn, .win-modal .secondary-btn {
+  background: linear-gradient(135deg, #ded5c6 0%, #c4b9a8 100%);
+  border: 2px solid #948877;
+  color: #4a4035;
+  font-family: var(--font-accent);
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 0.6rem 1.6rem;
+  box-shadow: 0 3px 0 #948877;
+  transition: all 0.1s ease;
+}
+.pathfinder-modal .secondary-btn:hover, .win-modal .secondary-btn:hover {
+  background: linear-gradient(135deg, #e7decf 0%, #ccbfad 100%);
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 #948877;
+}
+.pathfinder-modal .secondary-btn:active, .win-modal .secondary-btn:active {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
+/* Ghibli style primary/proceed button (walnut/leaf) */
+.pathfinder-modal .primary-btn, .win-modal .primary-btn {
+  background: linear-gradient(135deg, #8c6239 0%, #754b2d 100%) !important;
+  border: 2px solid #542e14 !important;
+  color: #fff !important;
+  font-family: var(--font-accent) !important;
+  font-weight: 700;
+  border-radius: 20px !important;
+  padding: 0.6rem 1.6rem !important;
+  box-shadow: 0 3px 0 #542e14 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.1s ease;
+}
+.pathfinder-modal .primary-btn:hover, .win-modal .primary-btn:hover {
+  background: linear-gradient(135deg, #9a6d41 0%, #835534 100%) !important;
+  transform: translateY(1px) !important;
+  box-shadow: 0 2px 0 #542e14 !important;
+}
+.pathfinder-modal .primary-btn:active, .win-modal .primary-btn:active {
+  transform: translateY(3px) !important;
+  box-shadow: none !important;
 }

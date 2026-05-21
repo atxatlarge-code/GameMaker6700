@@ -87,9 +87,9 @@ export class Level {
     // Only one enemy per tile
     if (this.enemies.some(e => e.col === col && e.row === row)) return false;
 
-    // Check if there is a block (1: Wall, 3: Fire, 4: Spikes, 6: Breakable)
+    // Check if there is a block (1: Wall, 3: Fire, 4: Spikes, 6: Breakable, 7: Earth)
     const tileVal = this.getTile(col, row);
-    if (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6) {
+    if (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6 || tileVal === 7) {
       return false;
     }
 
@@ -178,7 +178,7 @@ export class Level {
         if (value !== 0) {
           if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
           if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
-          if (value === 1 || value === 3 || value === 4 || value === 6) {
+          if (value === 1 || value === 3 || value === 4 || value === 6 || value === 7) {
             this._removeEnemyInternal(col, row);
           }
         }

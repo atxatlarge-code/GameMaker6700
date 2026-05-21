@@ -349,6 +349,275 @@ export class Editor {
     this.ctx.restore();
   }
 
+  renderEarthBlock(x, y, alpha = 1, col = null, row = null, engine = null) {
+    this.ctx.save();
+    this.ctx.globalAlpha = alpha;
+    this.ctx.translate(x, y);
+
+    const colors = this.getBreakableColors();
+    const size = CONFIG.TILE_SIZE;
+
+    const c = col !== null ? col : 0;
+    const r = row !== null ? row : 0;
+
+    // A neighbor is solid if it is a Wall (1), Breakable (6), or Earth (7)
+    const isSolid = (colNum, rowNum) => {
+      if (engine) {
+        const t = engine.getTile(colNum, rowNum);
+        return t === 1 || t === 6 || t === 7;
+      }
+      return false;
+    };
+
+    const hasLeft = col !== null && isSolid(c - 1, r);
+    const hasRight = col !== null && isSolid(c + 1, r);
+    const hasTop = row !== null && isSolid(c, r - 1);
+    const hasBottom = row !== null && isSolid(c, r + 1);
+
+    // Helper to get a stable, wobbly offset along grid coordinates
+    const getWobble = (seed) => {
+      const val = Math.sin(seed) * 10000;
+      return val - Math.floor(val);
+    };
+
+    // 1. Fill base mud block background using the wobbly outline
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, 0);
+
+    // Top edge path
+    if (hasTop) {
+      this.ctx.lineTo(size, 0);
+    } else {
+      const w = (getWobble(c * 17 + r * 31) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size / 2, w, size, 0);
+    }
+
+    // Right edge path
+    if (hasRight) {
+      this.ctx.lineTo(size, size);
+    } else {
+      const w = (getWobble(c * 19 + r * 29) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size + w, size / 2, size, size);
+    }
+
+    // Bottom edge path
+    if (hasBottom) {
+      this.ctx.lineTo(0, size);
+    } else {
+      const w = (getWobble(c * 23 + r * 37) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size / 2, size + w, 0, size);
+    }
+
+    // Left edge path
+    if (hasLeft) {
+      this.ctx.lineTo(0, 0);
+    } else {
+      const w = (getWobble(c * 13 + r * 41) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(w, size / 2, 0, 0);
+    }
+    this.ctx.closePath();
+
+    // Create earthy linear gradient
+    const grad = this.ctx.createLinearGradient(0, 0, 0, size);
+    grad.addColorStop(0, colors.primary);
+    grad.addColorStop(1, colors.dark);
+    this.ctx.fillStyle = grad;
+    this.ctx.fill();
+
+    // 2. Draw wobbly horizontal earth layers (no vertical joints all the way through)
+    const seed = c * 71 + r * 93;
+    let rngVal = seed + 42;
+    const nextRandom = () => {
+      rngVal = Math.sin(rngVal) * 10000;
+      return rngVal - Math.floor(rngVal);
+    };
+
+    const hasStrata1 = nextRandom() > 0.15; // 85% chance for upper strata
+    const hasStrata2 = nextRandom() > 0.25; // 75% chance for lower strata
+
+    this.ctx.strokeStyle = colors.border;
+    this.ctx.lineWidth = 1.8;
+
+    if (hasStrata1) {
+      const y1 = size * (0.28 + nextRandom() * 0.14);
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, y1 + (getWobble(seed) - 0.5) * 4);
+      for (let lx = 0; lx <= size; lx += 8) {
+        const wy = y1 + (getWobble(seed + lx) - 0.5) * 3;
+        this.ctx.lineTo(lx, wy);
+      }
+      this.ctx.stroke();
+    }
+
+    if (hasStrata2) {
+      const y2 = size * (0.62 + nextRandom() * 0.16);
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, y2 + (getWobble(seed + 10) - 0.5) * 4);
+      for (let lx = 0; lx <= size; lx += 8) {
+        const wy = y2 + (getWobble(seed + 10 + lx) - 0.5) * 3;
+        this.ctx.lineTo(lx, wy);
+      }
+      this.ctx.stroke();
+    }
+
+    // 3. Draw organic, highly varied pebble/stone details (randomly distributed per block)
+    const numDetails = Math.floor(nextRandom() * 4); // 0 to 3 details
+    for (let i = 0; i < numDetails; i++) {
+      const minX = hasLeft ? 2 : 6;
+      const maxX = hasRight ? size - 2 : size - 6;
+      const minY = hasTop ? 2 : 12;
+      const maxY = hasBottom ? size - 2 : size - 8;
+
+      if (maxX <= minX || maxY <= minY) continue;
+
+      const px = minX + nextRandom() * (maxX - minX);
+      const py = minY + nextRandom() * (maxY - minY);
+      const detailType = Math.floor(nextRandom() * 3); // 0: round pebble, 1: line/crack, 2: dot cluster
+
+      this.ctx.fillStyle = colors.detail;
+      this.ctx.strokeStyle = colors.detail;
+
+      if (detailType === 0) {
+        // Round pebble
+        const pr = 1.2 + nextRandom() * 2.2;
+        this.ctx.beginPath();
+        this.ctx.arc(px, py, pr, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Highlight
+        if (pr > 1.8) {
+          this.ctx.fillStyle = colors.light;
+          this.ctx.beginPath();
+          this.ctx.arc(px - pr * 0.3, py - pr * 0.3, pr * 0.3, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+      } else if (detailType === 1) {
+        // Horizontal/slanted strata speck
+        const length = 3 + nextRandom() * 5;
+        const angle = (nextRandom() - 0.5) * 0.4;
+        this.ctx.lineWidth = 1.0 + nextRandom() * 0.8;
+        this.ctx.beginPath();
+        this.ctx.moveTo(px - length / 2, py - (length / 2) * Math.sin(angle));
+        this.ctx.lineTo(px + length / 2, py + (length / 2) * Math.sin(angle));
+        this.ctx.stroke();
+      } else {
+        // Small cluster (2 to 3 tiny specks)
+        const numDots = 2 + Math.floor(nextRandom() * 2);
+        for (let d = 0; d < numDots; d++) {
+          const dx = px + (nextRandom() - 0.5) * 5;
+          const dy = py + (nextRandom() - 0.5) * 5;
+          if (dx >= minX && dx <= maxX && dy >= minY && dy <= maxY) {
+            this.ctx.beginPath();
+            this.ctx.arc(dx, dy, 0.8 + nextRandom() * 0.8, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+        }
+      }
+    }
+
+    // 4. Draw grass/moss top/side paths on exposed edges
+    let mossColor = '#689f38'; // default forest green
+    if (this.theme === 'spooky') mossColor = '#00ffcc';
+    else if (this.theme === 'butterflies') mossColor = '#9b2247';
+    else if (this.theme === 'icecream') mossColor = '#e07a5f';
+    else if (this.theme === '16bit') mossColor = '#829c36';
+
+    // Draw grass outline/fill on top if no solid block above
+    if (!hasTop) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, 0);
+      this.ctx.lineTo(size, 0);
+      // Draw wobbly grass clumps hanging down
+      for (let gx = size; gx >= 0; gx -= 5) {
+        const wobble = 6 + Math.sin(gx * 0.35 + seed) * 3.5;
+        this.ctx.lineTo(gx, wobble);
+      }
+      this.ctx.closePath();
+      this.ctx.fillStyle = mossColor;
+      this.ctx.fill();
+
+      // Draw a few small vertical grass blades on top of the block
+      this.ctx.fillStyle = mossColor;
+      this.ctx.beginPath();
+      // Left blade
+      this.ctx.moveTo(size * 0.22, 1);
+      this.ctx.quadraticCurveTo(size * 0.24, -3.5, size * 0.27, -2);
+      this.ctx.quadraticCurveTo(size * 0.25, -1, size * 0.3, 1);
+      // Center blade
+      this.ctx.moveTo(size * 0.5, 1);
+      this.ctx.quadraticCurveTo(size * 0.48, -4.5, size * 0.45, -2.5);
+      this.ctx.quadraticCurveTo(size * 0.52, -1, size * 0.55, 1);
+      // Right blade
+      this.ctx.moveTo(size * 0.78, 1);
+      this.ctx.quadraticCurveTo(size * 0.76, -3.5, size * 0.73, -2);
+      this.ctx.quadraticCurveTo(size * 0.8, -1, size * 0.83, 1);
+      this.ctx.fill();
+    }
+
+    // Draw grass/moss on left side if no solid block on left
+    if (!hasLeft) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, 0);
+      for (let gy = 0; gy <= size; gy += 5) {
+        const wobble = 6 + Math.sin(gy * 0.35 + seed + 1.5) * 3.5;
+        this.ctx.lineTo(wobble, gy);
+      }
+      this.ctx.lineTo(0, size);
+      this.ctx.closePath();
+      this.ctx.fillStyle = mossColor;
+      this.ctx.fill();
+    }
+
+    // Draw grass/moss on right side if no solid block on right
+    if (!hasRight) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(size, 0);
+      for (let gy = 0; gy <= size; gy += 5) {
+        const wobble = size - (6 + Math.sin(gy * 0.35 + seed + 3) * 3.5);
+        this.ctx.lineTo(wobble, gy);
+      }
+      this.ctx.lineTo(size, size);
+      this.ctx.closePath();
+      this.ctx.fillStyle = mossColor;
+      this.ctx.fill();
+    }
+
+    // 5. Draw Hand-Drawn Outline Strokes on external exposed edges (non-molded)
+    this.ctx.strokeStyle = colors.border;
+    this.ctx.lineWidth = 2.5;
+
+    if (!hasTop) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, 0);
+      const w = (getWobble(c * 17 + r * 31) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size / 2, w, size, 0);
+      this.ctx.stroke();
+    }
+    if (!hasRight) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(size, 0);
+      const w = (getWobble(c * 19 + r * 29) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size + w, size / 2, size, size);
+      this.ctx.stroke();
+    }
+    if (!hasBottom) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(size, size);
+      const w = (getWobble(c * 23 + r * 37) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(size / 2, size + w, 0, size);
+      this.ctx.stroke();
+    }
+    if (!hasLeft) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, size);
+      const w = (getWobble(c * 13 + r * 41) - 0.5) * 5;
+      this.ctx.quadraticCurveTo(w, size / 2, 0, 0);
+      this.ctx.stroke();
+    }
+
+    this.ctx.restore();
+  }
+
   initListeners() {
     this.canvas.addEventListener('mousedown', (e) => {
       if (this.engine && this.engine.mode === CONFIG.MODE_PLAY) return;
@@ -453,6 +722,12 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_EARTH:
+        if (this.level.getTile(col, row) !== 7) {
+          this.level.setTile(col, row, 7);
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_TRAMPOLINE:
         if (this.level.getTile(col, row) !== 2) {
           this.level.setTile(col, row, 2);
@@ -553,6 +828,9 @@ export class Editor {
         case CONFIG.TOOL_BREAKABLE:
           this.renderBreakableBlock(x, y, 0.5);
           break;
+        case CONFIG.TOOL_EARTH:
+          this.renderEarthBlock(x, y, 0.5);
+          break;
         case CONFIG.TOOL_TRAMPOLINE:
           if (this.assets.trampoline) {
             this.ctx.drawImage(this.assets.trampoline, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
@@ -621,7 +899,7 @@ export class Editor {
           break;
         case CONFIG.TOOL_ENEMY: {
           const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
-          const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 5 || tileVal === 6) ||
+          const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 5 || tileVal === 6 || tileVal === 7) ||
             (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
             (this.level.goalPos && this.level.goalPos.col === this.hoverCol && this.level.goalPos.row === this.hoverRow) ||
             ((this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||
@@ -676,7 +954,7 @@ export class Editor {
       let isValid = true;
       if (this.currentTool === CONFIG.TOOL_ENEMY) {
         const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
-        const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6) ||
+        const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6 || tileVal === 7) ||
           (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
           (this.level.goalPos && this.level.goalPos.col === this.hoverCol && this.level.goalPos.row === this.hoverRow) ||
           ((this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||

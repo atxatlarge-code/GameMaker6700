@@ -325,7 +325,7 @@ export class Engine {
         this.keys.left = act.left;
         this.keys.right = act.right;
 
-        if (act.jump && this.player.isGrounded) {
+        if (this.autoplayFrameCount === 0 && act.jump && this.player.isGrounded) {
           this.player.vy = -CONFIG.JUMP_FORCE;
           this.player.isGrounded = false;
           audio.playJumpSound();
@@ -627,7 +627,7 @@ export class Engine {
       for (let r = minRowV; r <= maxRowV; r++) {
         for (let c = minColV; c <= maxColV; c++) {
           const tv = this.getTile(c, r);
-          if (tv !== 1 && tv !== 2) continue;
+          if (tv !== 1 && tv !== 2 && tv !== 7) continue;
           const tileTop = r * CONFIG.TILE_SIZE;
           const tileBot = tileTop + CONFIG.TILE_SIZE;
           if (enemy.vy > 0 && eBoxV.bottom > tileTop && (eBoxV.bottom - enemy.vy) <= tileTop) {
@@ -664,10 +664,10 @@ export class Engine {
 
         if (enemy.vx > 0) {
           const rightCol = Math.floor((enemy.x + enemy.width) / CONFIG.TILE_SIZE);
-          // Reverse if hitting a wall OR if about to step off an edge
+           // Reverse if hitting a wall OR if about to step off an edge
           const nextFloor = this.getTile(rightCol, footRow);
-          const wallAhead = this.getTile(rightCol, row) === 1;
-          const edgeAhead = nextFloor !== 1 && nextFloor !== 2;
+          const wallAhead = this.getTile(rightCol, row) === 1 || this.getTile(rightCol, row) === 7;
+          const edgeAhead = nextFloor !== 1 && nextFloor !== 2 && nextFloor !== 7;
           if (wallAhead || edgeAhead) {
             enemy.x = rightCol * CONFIG.TILE_SIZE - enemy.width;
             enemy.vx = -enemy.speed;
@@ -675,10 +675,10 @@ export class Engine {
           }
         } else {
           const leftCol = Math.floor(enemy.x / CONFIG.TILE_SIZE);
-          // Reverse if hitting a wall OR if about to step off an edge
+           // Reverse if hitting a wall OR if about to step off an edge
           const nextFloor = this.getTile(leftCol, footRow);
-          const wallAhead = this.getTile(leftCol, row) === 1;
-          const edgeAhead = nextFloor !== 1 && nextFloor !== 2;
+          const wallAhead = this.getTile(leftCol, row) === 1 || this.getTile(leftCol, row) === 7;
+          const edgeAhead = nextFloor !== 1 && nextFloor !== 2 && nextFloor !== 7;
           if (wallAhead || edgeAhead) {
             enemy.x = (leftCol + 1) * CONFIG.TILE_SIZE;
             enemy.vx = enemy.speed;
@@ -841,7 +841,7 @@ export class Engine {
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const tileVal = this.getTile(c, r);
-        if (tileVal === 1 || tileVal === 2 || tileVal === 6) {
+        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7) {
           tiles.push({ col: c, row: r, type: tileVal });
         }
       }
@@ -958,7 +958,7 @@ export class Engine {
 
     if (isOverlapping) {
       this.hasWon = true;
-      if (this.onWin) this.onWin();
+      if (this.onWin && !this.isSimulation) this.onWin();
     }
   }
 
@@ -1129,6 +1129,8 @@ export class Engine {
           this.ctx.restore();
         } else if (tileVal === 6) {
           this.editor.renderBreakableBlock(x, y, 1, c, r, this);
+        } else if (tileVal === 7) {
+          this.editor.renderEarthBlock(x, y, 1, c, r, this);
         }
       }
     }

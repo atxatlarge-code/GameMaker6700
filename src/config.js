@@ -29,6 +29,7 @@ export const CONFIG = {
   TOOL_ENEMY: 'enemy',
   TOOL_COIN: 'coin',
   TOOL_BREAKABLE: 'breakable',
+  TOOL_EARTH: 'earth',
 
   // Enemy defaults
   ENEMY_SPEED: 1.8,

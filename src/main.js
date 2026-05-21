@@ -131,6 +131,12 @@ function renderLevelPreview(canvas, levelObj) {
       } else if (t === 6) {
         ctx.fillStyle = '#8c6239'; // Brown brick color
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
+      } else if (t === 7) {
+        // Draw mini grass/earth block: bottom 70% brown, top 30% green
+        ctx.fillStyle = '#8c6239'; // Earth brown
+        ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
+        ctx.fillStyle = '#528c46'; // Grass green
+        ctx.fillRect(x, y, tileW + 0.5, (tileH * 0.3) + 0.5);
       }
     }
   }
@@ -647,6 +653,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   const pathfinderOverlay = document.getElementById('pathfinder-overlay');
+  const pathfinderTitle = document.getElementById('pathfinder-title');
   const pathfinderStatus = document.getElementById('pathfinder-status');
   const solverProgressBar = document.getElementById('solver-progress-bar');
   const solverStats = document.getElementById('solver-stats');
@@ -720,18 +727,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Show pathfinder overlay UI
     pathfinderOverlay.classList.remove('hidden');
-    pathfinderStatus.innerHTML = 'Initializing Pathfinder...';
-    solverProgressBar.style.width = '0%';
-    solverProgressBar.style.background = 'linear-gradient(90deg, #3b82f6, #06b6d4)';
-    solverStats.innerHTML = 'Iterations: 0 / 20000<br>States explored: 0';
+    if (pathfinderTitle) pathfinderTitle.textContent = 'Finding Pathway...';
+    pathfinderStatus.innerHTML = 'Consulting the forest spirits...';
+    pathfinderStatus.style.display = 'block';
+    if (solverProgressBar) {
+      solverProgressBar.style.width = '0%';
+      solverProgressBar.style.background = 'linear-gradient(90deg, #6ba462, #4a7c59)';
+    }
+    solverStats.innerHTML = 'Paths explored: 0';
 
     // Instantiate Async Pathfinder
     const solver = new AsyncPathfinder(engine);
 
-    // Register real-time search tree drawing hook
+    // Register real-time search tree drawing hook (Warm golden firefly particles)
     engine.onPostRender = (ctx) => {
-      // Draw explored cloud points
-      ctx.fillStyle = 'rgba(6, 182, 212, 0.35)';
+      ctx.fillStyle = 'rgba(212, 163, 89, 0.25)';
       for (const pt of solver.exploredPoints) {
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
@@ -742,6 +752,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // Run the step loop using requestAnimationFrame
     const runSolveStep = () => {
       if (isSolveCancelled) {
+        solver.cleanup();
         btnSolveMode.innerHTML = originalHTML;
         btnSolveMode.style.pointerEvents = 'auto';
         return;
@@ -752,57 +763,40 @@ window.addEventListener('DOMContentLoaded', () => {
 
       // Update progress UI
       const progress = Math.min(100, (solver.iterations / solver.maxIterations) * 100);
-      solverProgressBar.style.width = `${progress}%`;
-      solverStats.innerHTML = `
-        Iterations: ${solver.iterations} / ${solver.maxIterations}<br>
-        States explored: ${solver.exploredPoints.length}
-      `;
-      pathfinderStatus.innerHTML = 'Simulating physics in parallel universes...';
+      if (solverProgressBar) solverProgressBar.style.width = `${progress}%`;
+      solverStats.innerHTML = `Paths explored: ${solver.iterations}`;
+      pathfinderStatus.innerHTML = 'Following the path of the wind...';
 
       if (stepRes.done) {
         if (stepRes.success) {
           // Success! Confirmed path found
-          pathfinderStatus.innerHTML = `<span style="color: #10b981; font-weight: bold;"><i class="fa-solid fa-circle-check"></i> PATH CONFIRMED!</span>`;
-          solverProgressBar.style.width = '100%';
-          solverProgressBar.style.background = '#10b981';
+          if (pathfinderTitle) pathfinderTitle.textContent = 'Pathway Confirmed';
+          pathfinderStatus.innerHTML = '';
+          pathfinderStatus.style.display = 'none';
+          if (solverProgressBar) {
+            solverProgressBar.style.width = '100%';
+            solverProgressBar.style.background = '#4a7c59';
+          }
 
           // Trace winning path coordinates for glowing visualization
-          const winningPathPoints = [];
-          const originalState = solver.saveEngine();
-          
-          solver.restoreEngine(solver.originalState);
-          winningPathPoints.push({ x: engine.player.x, y: engine.player.y });
-          
-          for (const act of stepRes.solution) {
-            engine.keys.left = act.left;
-            engine.keys.right = act.right;
-            if (act.jump && engine.player.isGrounded) {
-              engine.player.vy = -CONFIG.JUMP_FORCE;
-              engine.player.isGrounded = false;
-            }
-            for (let f = 0; f < 5; f++) {
-              engine.update();
-            }
-            winningPathPoints.push({ x: engine.player.x, y: engine.player.y });
-          }
-          solver.restoreEngine(originalState);
+          const winningPathPoints = solver.getWinningPathPoints();
 
-          // Update drawing hook to display the winning glowing neon line on top of the search cloud
+          // Update drawing hook to display the winning glowing golden thread on top of the search cloud
           engine.onPostRender = (ctx) => {
             // 1. Draw cloud
-            ctx.fillStyle = 'rgba(6, 182, 212, 0.15)';
+            ctx.fillStyle = 'rgba(212, 163, 89, 0.12)';
             for (const pt of solver.exploredPoints) {
               ctx.beginPath();
               ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
               ctx.fill();
             }
 
-            // 2. Draw winning path
-            ctx.strokeStyle = 'rgba(236, 72, 153, 0.95)';
+            // 2. Draw winning path (Glowing golden thread)
+            ctx.strokeStyle = 'rgba(212, 163, 89, 0.95)';
             ctx.lineWidth = 4;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.shadowColor = 'rgba(236, 72, 153, 0.8)';
+            ctx.shadowColor = 'rgba(212, 163, 89, 0.8)';
             ctx.shadowBlur = 10;
             ctx.beginPath();
             ctx.moveTo(winningPathPoints[0].x, winningPathPoints[0].y);
@@ -824,8 +818,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
         } else {
           // No solution found
-          pathfinderStatus.innerHTML = `<span style="color: #ef4444; font-weight: bold;"><i class="fa-solid fa-triangle-exclamation"></i> NO PATH FOUND!</span>`;
-          solverProgressBar.style.background = '#ef4444';
+          if (pathfinderTitle) pathfinderTitle.textContent = 'Pathway Blocked';
+          pathfinderStatus.innerHTML = '';
+          pathfinderStatus.style.display = 'none';
+          if (solverProgressBar) {
+            solverProgressBar.style.background = '#b85450';
+          }
           
           btnSolveMode.innerHTML = '<i class="fa-solid fa-robot"></i> Solve';
           btnSolveMode.style.pointerEvents = 'auto';

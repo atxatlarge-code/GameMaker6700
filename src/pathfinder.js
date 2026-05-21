@@ -24,7 +24,13 @@ function insertSorted(array, item, compareFn) {
  * @returns {{ solution: Array<Object>|null, iterations: number }}
  */
 export function solveLevel(engine) {
+  const originalMode = engine.mode;
+  const originalAutoplay = engine.isAutoplay;
+  engine.mode = CONFIG.MODE_PLAY;
+  engine.isAutoplay = false;
   engine.resetPlayer();
+  engine.hasWon = false;
+
   const goalX = engine.level.goalPos.col * CONFIG.TILE_SIZE;
   const goalY = engine.level.goalPos.row * CONFIG.TILE_SIZE;
 
@@ -181,12 +187,21 @@ export function solveLevel(engine) {
   audio.isSimulation = false;
   engine.isSimulation = false;
 
+  // Restore mode and autoplay
+  engine.mode = originalMode;
+  engine.isAutoplay = originalAutoplay;
+
   return { solution, iterations };
 }
 
 export class AsyncPathfinder {
   constructor(engine) {
+    this.originalMode = engine.mode;
+    this.originalAutoplay = engine.isAutoplay;
+    engine.mode = CONFIG.MODE_PLAY;
+    engine.isAutoplay = false;
     engine.resetPlayer();
+    engine.hasWon = false;
     this.engine = engine;
     this.goalX = engine.level.goalPos.col * CONFIG.TILE_SIZE;
     this.goalY = engine.level.goalPos.row * CONFIG.TILE_SIZE;
@@ -351,6 +366,46 @@ export class AsyncPathfinder {
     // Reset simulation flags
     audio.isSimulation = false;
     this.engine.isSimulation = false;
+
+    // Restore mode and autoplay
+    this.engine.mode = this.originalMode;
+    this.engine.isAutoplay = this.originalAutoplay;
+  }
+
+  getWinningPathPoints() {
+    if (!this.solution) return [];
+    const points = [];
+    
+    // Temporarily set simulation flags
+    const wasSimulation = audio.isSimulation;
+    audio.isSimulation = true;
+    this.engine.isSimulation = true;
+    const prevMode = this.engine.mode;
+    this.engine.mode = CONFIG.MODE_PLAY;
+    
+    const originalState = this.saveEngine();
+    this.restoreEngine(this.originalState);
+    
+    points.push({ x: this.engine.player.x, y: this.engine.player.y });
+    for (const act of this.solution) {
+      this.engine.keys.left = act.left;
+      this.engine.keys.right = act.right;
+      if (act.jump && this.engine.player.isGrounded) {
+        this.engine.player.vy = -CONFIG.JUMP_FORCE;
+        this.engine.player.isGrounded = false;
+      }
+      for (let f = 0; f < 5; f++) {
+        this.engine.update();
+      }
+      points.push({ x: this.engine.player.x, y: this.engine.player.y });
+    }
+    
+    this.restoreEngine(originalState);
+    audio.isSimulation = wasSimulation;
+    this.engine.isSimulation = wasSimulation;
+    this.engine.mode = prevMode;
+    
+    return points;
   }
 }
 
