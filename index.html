@@ -241,15 +241,58 @@
                 </button>
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="breakable" title="Breakable block">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
+                    <!-- Base background with pillowy gradient -->
                     <defs>
-                      <linearGradient id="brickGrad" x1="0" y1="1" x2="0" y2="0">
+                      <linearGradient id="mudBrickGrad" x1="0" y1="1" x2="0" y2="0">
                         <stop offset="0%" stop-color="#8c6239"/>
                         <stop offset="100%" stop-color="#ab7a4e"/>
                       </linearGradient>
+                      <linearGradient id="highlightGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#c69c6d" stop-opacity="0.8"/>
+                        <stop offset="100%" stop-color="#c69c6d" stop-opacity="0"/>
+                      </linearGradient>
                     </defs>
-                    <rect x="2" y="2" width="28" height="28" rx="4" fill="url(#brickGrad)" stroke="#5c3a21" stroke-width="2"/>
-                    <path d="M 6 6 L 14 14 L 10 20 L 18 26" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
-                    <path d="M 26 8 L 18 16 L 22 22 L 14 28" stroke="#3d200a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+                    
+                    <!-- Wobbly soft outer block background -->
+                    <path d="M 2.5 3 C 12 2, 20 2.5, 29.5 3 C 29.8 12, 29.5 20, 29.5 29 C 20 29.5, 12 29.2, 2.5 29 C 2 20, 2.3 12, 2.5 3 Z" fill="url(#mudBrickGrad)" />
+
+                    <!-- Top-Left brick highlights -->
+                    <path d="M 4 5 C 10 4, 14 4.5, 18 5 L 18 19 L 4 19 Z" fill="url(#highlightGrad)" opacity="0.4"/>
+                    
+                    <!-- Horizontal wobbly joint -->
+                    <path d="M 2.5 20 C 10 20.5, 20 19.5, 29.5 20" fill="none" stroke="#754b2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    
+                    <!-- Vertical internal wobbly joints -->
+                    <!-- Top split at x=20 -->
+                    <path d="M 20 3 C 20.2 8, 19.8 14, 20 20" fill="none" stroke="#754b2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Bottom split at x=10 -->
+                    <path d="M 10 20 C 9.8 23, 10.2 27, 10 29" fill="none" stroke="#754b2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    
+                    <!-- Detail pillowy shadows -->
+                    <!-- Top-Left brick shadow -->
+                    <path d="M 18.5 5 C 18.5 12, 18.5 17, 18.5 18.5 C 13 18.5, 9 18.5, 4 18.5" fill="none" stroke="#542e14" stroke-width="1.2" stroke-linecap="round"/>
+                    <!-- Top-Right brick shadow -->
+                    <path d="M 28 5 C 28 12, 28 17, 28 18.5 C 25 18.5, 23 18.5, 20 18.5" fill="none" stroke="#542e14" stroke-width="1.2" stroke-linecap="round"/>
+                    <!-- Bottom-Left brick shadow -->
+                    <path d="M 8.5 21.5 C 8.5 24, 8.5 26, 8.5 27.5 C 6 27.5, 4 27.5, 3 27.5" fill="none" stroke="#542e14" stroke-width="1.2" stroke-linecap="round"/>
+                    <!-- Bottom-Right brick shadow -->
+                    <path d="M 28 21.5 C 28 24, 28 26, 28 27.5 C 20 27.5, 15 27.5, 10 27.5" fill="none" stroke="#542e14" stroke-width="1.2" stroke-linecap="round"/>
+
+                    <!-- Exposed crack/crevice line on bottom-right brick for extra visual flavor -->
+                    <path d="M 16 23 L 13 25 L 15 27" fill="none" stroke="#542e14" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+
+                    <!-- Hand-drawn external outlines (wobbly outline) -->
+                    <path d="M 2.5 3 C 12 2, 20 2.5, 29.5 3 C 29.8 12, 29.5 20, 29.5 29 C 20 29.5, 12 29.2, 2.5 29 C 2 20, 2.3 12, 2.5 3" fill="none" stroke="#754b2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+                    <!-- Yellow straw flecks -->
+                    <!-- Straw 1 -->
+                    <line x1="6" y1="9" x2="9" y2="12" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
+                    <!-- Straw 2 -->
+                    <line x1="24" y1="12" x2="27" y2="10" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
+                    <!-- Straw 3 -->
+                    <line x1="14" y1="24" x2="17" y2="26" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
+                    <!-- Straw 4 -->
+                    <line x1="22" y1="6" x2="25" y2="7" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
                   </svg>
                 </button>
                 <button class="popup-item-btn soon" data-name="Moveable block"><i class="fa-solid fa-arrows-up-down-left-right"></i> Moveable block</button>
