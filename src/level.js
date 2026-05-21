@@ -5,7 +5,7 @@ export class Level {
     this.id = 'preset-1';
     this.name = 'Mushroom Forest';
     this.grid = [];
-    this.playerSpawn = { col: 5, row: 27 };
+    this.playerSpawn = { col: 5, row: 27, charId: 'ghibli' };
     this.goalPos = { col: 55, row: 19 };
     this.portal1 = null;
     this.portal2 = null;
@@ -21,7 +21,7 @@ export class Level {
     this.id = levelData.id;
     this.name = levelData.name;
     this.grid = JSON.parse(JSON.stringify(levelData.grid));
-    this.playerSpawn = { ...levelData.playerSpawn };
+    this.playerSpawn = { charId: 'ghibli', ...levelData.playerSpawn };
     this.goalPos = { ...levelData.goalPos };
     this.portal1 = levelData.portal1 ? { ...levelData.portal1 } : null;
     this.portal2 = levelData.portal2 ? { ...levelData.portal2 } : null;
@@ -188,11 +188,11 @@ export class Level {
     }
   }
 
-  setPlayerSpawn(col, row) {
+  setPlayerSpawn(col, row, charId = 'ghibli') {
     if (col >= 0 && col < CONFIG.GRID_COLS && row >= 0 && row < CONFIG.GRID_ROWS) {
-      if (this.playerSpawn.col !== col || this.playerSpawn.row !== row) {
+      if (this.playerSpawn.col !== col || this.playerSpawn.row !== row || this.playerSpawn.charId !== charId) {
         this.pushHistory();
-        this.playerSpawn = { col, row };
+        this.playerSpawn = { col, row, charId };
         if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
         if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
         this._removeEnemyInternal(col, row);

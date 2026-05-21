@@ -65,6 +65,8 @@ export function solveLevel(engine) {
     vy: engine.player.vy,
     isGrounded: engine.player.isGrounded,
     facing: engine.player.facing,
+    coyoteTimer: engine.player.coyoteTimer,
+    jumpBufferTimer: engine.player.jumpBufferTimer,
     isDead: engine.isDead,
     deathTimer: engine.deathTimer,
     portalCooldown: engine.portalCooldown,
@@ -82,6 +84,8 @@ export function solveLevel(engine) {
     engine.player.vy = s.vy;
     engine.player.isGrounded = s.isGrounded;
     engine.player.facing = s.facing;
+    engine.player.coyoteTimer = s.coyoteTimer;
+    engine.player.jumpBufferTimer = s.jumpBufferTimer;
     engine.isDead = s.isDead;
     engine.deathTimer = s.deathTimer;
     engine.portalCooldown = s.portalCooldown;
@@ -102,8 +106,8 @@ export function solveLevel(engine) {
   const visited = new Set();
 
   const getDiscretizedKey = (s) => {
-    // Round positions to nearest 5px and velocities to nearest 0.1 to allow state aggregation
-    const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 10)},${Math.round(s.vy * 10)},${s.isGrounded}`;
+    // Round positions to nearest 5px and velocities to nearest 0.5 to allow state aggregation
+    const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer || 0},${s.jumpBufferTimer || 0}`;
     
     // Include enemy positions rounded to nearest 10px to prevent pruning valid stomp/patrol paths
     const enemyPart = s.enemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
@@ -151,9 +155,8 @@ export function solveLevel(engine) {
 
       engine.keys.left = act.left;
       engine.keys.right = act.right;
-      if (act.jump && engine.player.isGrounded) {
-        engine.player.vy = -CONFIG.JUMP_FORCE;
-        engine.player.isGrounded = false;
+      if (act.jump) {
+        engine.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
       }
 
       // Step physics 5 frames for this action
@@ -236,6 +239,8 @@ export class AsyncPathfinder {
       vy: engine.player.vy,
       isGrounded: engine.player.isGrounded,
       facing: engine.player.facing,
+      coyoteTimer: engine.player.coyoteTimer,
+      jumpBufferTimer: engine.player.jumpBufferTimer,
       isDead: engine.isDead,
       deathTimer: engine.deathTimer,
       portalCooldown: engine.portalCooldown,
@@ -252,6 +257,8 @@ export class AsyncPathfinder {
       engine.player.vy = s.vy;
       engine.player.isGrounded = s.isGrounded;
       engine.player.facing = s.facing;
+      engine.player.coyoteTimer = s.coyoteTimer;
+      engine.player.jumpBufferTimer = s.jumpBufferTimer;
       engine.isDead = s.isDead;
       engine.deathTimer = s.deathTimer;
       engine.portalCooldown = s.portalCooldown;
@@ -273,7 +280,7 @@ export class AsyncPathfinder {
     ];
 
     this.getDiscretizedKey = (s) => {
-      const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 10)},${Math.round(s.vy * 10)},${s.isGrounded}`;
+      const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer || 0},${s.jumpBufferTimer || 0}`;
       const enemyPart = s.enemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
       return `${playerPart}|${enemyPart}`;
     };
@@ -323,9 +330,8 @@ export class AsyncPathfinder {
 
         this.engine.keys.left = act.left;
         this.engine.keys.right = act.right;
-        if (act.jump && this.engine.player.isGrounded) {
-          this.engine.player.vy = -CONFIG.JUMP_FORCE;
-          this.engine.player.isGrounded = false;
+        if (act.jump) {
+          this.engine.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
         }
 
         for (let f = 0; f < 5; f++) {
@@ -390,9 +396,8 @@ export class AsyncPathfinder {
     for (const act of this.solution) {
       this.engine.keys.left = act.left;
       this.engine.keys.right = act.right;
-      if (act.jump && this.engine.player.isGrounded) {
-        this.engine.player.vy = -CONFIG.JUMP_FORCE;
-        this.engine.player.isGrounded = false;
+      if (act.jump) {
+        this.engine.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
       }
       for (let f = 0; f < 5; f++) {
         this.engine.update();

@@ -92,6 +92,93 @@ function loadAndRemoveWhiteBg(src, previewSelector, callback) {
   img.src = src;
 }
 
+function updateCharacterIcons(engine, editor) {
+  if (!engine || !engine.player) return;
+
+  // Backup current player values
+  const backupGrounded = engine.player.isGrounded;
+  const backupVx = engine.player.vx;
+  const backupVy = engine.player.vy;
+  const backupBlink = engine.player.blinkTimer;
+  const backupFacing = engine.player.facing;
+  const backupScaleX = engine.player.scaleX;
+  const backupScaleY = engine.player.scaleY;
+  const backupTilt = engine.player.tiltAngle;
+
+  // Set to clean standing, eyes open state
+  engine.player.isGrounded = true;
+  engine.player.vx = 0;
+  engine.player.vy = 0;
+  engine.player.blinkTimer = 9999;
+  engine.player.facing = 'right';
+  engine.player.scaleX = 1;
+  engine.player.scaleY = 1;
+  engine.player.tiltAngle = 0;
+
+  // Create temporary canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = 40;
+  canvas.height = 40;
+  const ctx = canvas.getContext('2d');
+
+  // 1. Render Classic Box Player
+  ctx.clearRect(0, 0, 40, 40);
+  // Center character horizontally (20) and vertically (base at 36)
+  // Box is 28x28
+  const classicW = 28;
+  const classicH = 28;
+  const classicX = 20 - classicW / 2;
+  const classicY = 36 - classicH;
+  engine.drawClassicBox(ctx, classicX, classicY, classicW, classicH, 'right', 1.0, 1.0, 0, 1.0, false);
+  const classicDataUrl = canvas.toDataURL();
+
+  // 2. Render Forest Kid Ghibli Player
+  ctx.clearRect(0, 0, 40, 40);
+  // Forest kid is 28x32
+  const ghibliW = 28;
+  const ghibliH = 32;
+  const ghibliX = 20 - ghibliW / 2;
+  const ghibliY = 36 - ghibliH;
+  engine.drawForestKid(ctx, ghibliX, ghibliY, ghibliW, ghibliH, 'right', 1.0, 1.0, 0, 1.0, false);
+  const ghibliDataUrl = canvas.toDataURL();
+
+  // Restore engine player states
+  engine.player.isGrounded = backupGrounded;
+  engine.player.vx = backupVx;
+  engine.player.vy = backupVy;
+  engine.player.blinkTimer = backupBlink;
+  engine.player.facing = backupFacing;
+  engine.player.scaleX = backupScaleX;
+  engine.player.scaleY = backupScaleY;
+  engine.player.tiltAngle = backupTilt;
+
+  // Update popup button images
+  const classicImg = document.querySelector('button[data-tool="player_classic"] img');
+  if (classicImg) {
+    classicImg.src = classicDataUrl;
+  }
+  const ghibliImg = document.querySelector('button[data-tool="player_ghibli"] img');
+  if (ghibliImg) {
+    ghibliImg.src = ghibliDataUrl;
+  }
+
+  // Update action group button image if active or if displaying default icon
+  const groupImg = document.querySelector('#group-player .action-group-btn img');
+  if (groupImg && editor) {
+    if (editor.currentTool === 'player_classic') {
+      groupImg.src = classicDataUrl;
+      groupImg.dataset.characterIcon = 'player_classic';
+    } else if (editor.currentTool === 'player_ghibli') {
+      groupImg.src = ghibliDataUrl;
+      groupImg.dataset.characterIcon = 'player_ghibli';
+    } else if (!groupImg.dataset.characterIcon) {
+      // Default to showing ghibli character on the main group button since it's the game default player character
+      groupImg.src = ghibliDataUrl;
+      groupImg.dataset.characterIcon = 'player_ghibli';
+    }
+  }
+}
+
 // Global state for Menu & Editor
 let selectedLevel = null;
 
@@ -141,6 +228,7 @@ function renderLevelPreview(canvas, levelObj) {
     }
   }
 
+
   // Draw Goal
   if (levelObj.goalPos) {
     ctx.fillStyle = '#e8b76c';
@@ -149,8 +237,71 @@ function renderLevelPreview(canvas, levelObj) {
 
   // Draw Player Spawn
   if (levelObj.playerSpawn) {
-    ctx.fillStyle = '#d4a359';
-    ctx.fillRect(levelObj.playerSpawn.col * tileW, levelObj.playerSpawn.row * tileH, tileW * 1.2, tileH * 1.2);
+    if (window.engine) {
+      const charId = levelObj.playerSpawn.charId || 'ghibli';
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 40;
+      tempCanvas.height = 40;
+      const tempCtx = tempCanvas.getContext('2d');
+
+      // Backup current player values
+      const backupGrounded = window.engine.player.isGrounded;
+      const backupVx = window.engine.player.vx;
+      const backupVy = window.engine.player.vy;
+      const backupBlink = window.engine.player.blinkTimer;
+      const backupFacing = window.engine.player.facing;
+      const backupScaleX = window.engine.player.scaleX;
+      const backupScaleY = window.engine.player.scaleY;
+      const backupTilt = window.engine.player.tiltAngle;
+
+      // Set to clean standing, eyes open state
+      window.engine.player.isGrounded = true;
+      window.engine.player.vx = 0;
+      window.engine.player.vy = 0;
+      window.engine.player.blinkTimer = 9999;
+      window.engine.player.facing = 'right';
+      window.engine.player.scaleX = 1;
+      window.engine.player.scaleY = 1;
+      window.engine.player.tiltAngle = 0;
+
+      if (charId === 'classic') {
+        const classicW = 28;
+        const classicH = 28;
+        const classicX = 20 - classicW / 2;
+        const classicY = 36 - classicH;
+        window.engine.drawClassicBox(tempCtx, classicX, classicY, classicW, classicH, 'right', 1.0, 1.0, 0, 1.0, false);
+      } else {
+        const ghibliW = 28;
+        const ghibliH = 32;
+        const ghibliX = 20 - ghibliW / 2;
+        const ghibliY = 36 - ghibliH;
+        window.engine.drawForestKid(tempCtx, ghibliX, ghibliY, ghibliW, ghibliH, 'right', 1.0, 1.0, 0, 1.0, false);
+      }
+
+      // Restore engine player states
+      window.engine.player.isGrounded = backupGrounded;
+      window.engine.player.vx = backupVx;
+      window.engine.player.vy = backupVy;
+      window.engine.player.blinkTimer = backupBlink;
+      window.engine.player.facing = backupFacing;
+      window.engine.player.scaleX = backupScaleX;
+      window.engine.player.scaleY = backupScaleY;
+      window.engine.player.tiltAngle = backupTilt;
+
+      const pCol = levelObj.playerSpawn.col;
+      const pRow = levelObj.playerSpawn.row;
+
+      // Size of the character on the preview canvas
+      const charW = tileW * 1.5;
+      const charH = tileH * 1.8;
+      const charX = pCol * tileW + (tileW - charW) / 2;
+      const charY = pRow * tileH + tileH - charH;
+
+      ctx.drawImage(tempCanvas, 0, 0, 40, 40, charX, charY, charW, charH);
+    } else {
+      ctx.fillStyle = '#d4a359';
+      ctx.fillRect(levelObj.playerSpawn.col * tileW, levelObj.playerSpawn.row * tileH, tileW * 1.2, tileH * 1.2);
+    }
   }
 
   // Draw Portals
@@ -250,6 +401,9 @@ window.addEventListener('DOMContentLoaded', () => {
     winOverlay.classList.remove('hidden');
   });
   window.engine = engine;
+
+  // Initialize custom dynamic character icons
+  updateCharacterIcons(engine, editor);
 
   // Music Selection Setup
   const musicSelect = document.getElementById('music-select');
@@ -552,15 +706,14 @@ window.addEventListener('DOMContentLoaded', () => {
           groupBtn.classList.add('active');
           // If this is blocks, player, special, or barriers, dynamically update its icon to match the selected item
           if (parentGroup.id === 'group-blocks' || parentGroup.id === 'group-player' || parentGroup.id === 'group-special' || parentGroup.id === 'group-barriers') {
-            const innerImgOrSvg = btn.querySelector('.tool-icon-img, .tool-icon-svg');
+            const innerImgOrSvg = btn.querySelector('.tool-icon-img, .tool-icon-svg, .fa-solid');
             if (innerImgOrSvg) {
               const clone = innerImgOrSvg.cloneNode(true);
-              if (clone.classList.contains('tool-icon-img')) {
+              if (clone.classList.contains('tool-icon-img') || clone.classList.contains('tool-icon-svg')) {
                 clone.style.width = '40px';
                 clone.style.height = '40px';
-              } else if (clone.classList.contains('tool-icon-svg')) {
-                clone.style.width = '40px';
-                clone.style.height = '40px';
+              } else if (clone.classList.contains('fa-solid')) {
+                clone.style.fontSize = '32px';
               }
               groupBtn.innerHTML = '';
               groupBtn.appendChild(clone);
@@ -607,6 +760,7 @@ window.addEventListener('DOMContentLoaded', () => {
         editorView.classList.add(`theme-${theme}`);
       }
       engine.setTheme(theme);
+      updateCharacterIcons(engine, editor);
       actionGroups.forEach(g => g.classList.remove('open'));
     });
   });

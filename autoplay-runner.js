@@ -109,25 +109,101 @@ async function run() {
     console.log('Running pathfinder solver in the browser...');
     const solverResult = await page.evaluate(() => {
       const e = window.engine;
+      
+      // Helper for binary search insertion to maintain sorted order in A* open set
+      function insertSorted(array, item, compareFn) {
+        let low = 0;
+        let high = array.length;
+        while (low < high) {
+          const mid = (low + high) >>> 1;
+          if (compareFn(array[mid], item) < 0) {
+            low = mid + 1;
+          } else {
+            high = mid;
+          }
+        }
+        array.splice(low, 0, item);
+      }
+
       const CONFIG = {
         TILE_SIZE: 40,
         JUMP_FORCE: 11,
+        JUMP_BUFFER: 5
       };
       
+      // Reset player position so they start from the spawn point visually and simulation-wise
+      e.resetPlayer();
+      e.hasWon = false;
+      e.isDead = false;
+
       const goalX = e.level.goalPos.col * CONFIG.TILE_SIZE;
       const goalY = e.level.goalPos.row * CONFIG.TILE_SIZE;
       
-      const startState = {
+      // Temporarily initialize live enemies for the simulation if they aren't already initialized
+      const originalEnemies = e.liveEnemies;
+      e.liveEnemies = e.level.enemies ? e.level.enemies.map(en => ({
+        id: en.id,
+        x: en.col * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - 32) / 2,
+        y: en.row * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - 38),
+        width: 32,
+        height: 38,
+        vx: en.speed,
+        vy: 0,
+        isGrounded: false,
+        speed: en.speed,
+        patrolLeft: (en.col - en.patrolRange) * CONFIG.TILE_SIZE,
+        patrolRight: (en.col + en.patrolRange) * CONFIG.TILE_SIZE,
+        facing: 'right',
+        walkFrame: 0,
+        walkTimer: 0,
+      })) : [];
+
+      const saveEngine = () => ({
         x: e.player.x,
         y: e.player.y,
         vx: e.player.vx,
         vy: e.player.vy,
         isGrounded: e.player.isGrounded,
         facing: e.player.facing,
+        coyoteTimer: e.player.coyoteTimer,
+        jumpBufferTimer: e.player.jumpBufferTimer,
         isDead: e.isDead,
         deathTimer: e.deathTimer,
         portalCooldown: e.portalCooldown,
         hasWon: e.hasWon,
+        enemies: e.liveEnemies.map(en => ({ ...en })),
+        playGrid: e.playGrid ? JSON.parse(JSON.stringify(e.playGrid)) : null,
+        coinsCollected: e.coinsCollected
+      });
+      
+      const restoreEngine = (s) => {
+        e.player.x = s.x;
+        e.player.y = s.y;
+        e.player.vx = s.vx;
+        e.player.vy = s.vy;
+        e.player.isGrounded = s.isGrounded;
+        e.player.facing = s.facing;
+        e.player.coyoteTimer = s.coyoteTimer;
+        e.player.jumpBufferTimer = s.jumpBufferTimer;
+        e.isDead = s.isDead;
+        e.deathTimer = s.deathTimer;
+        e.portalCooldown = s.portalCooldown;
+        e.hasWon = s.hasWon;
+        e.liveEnemies = s.enemies.map(se => ({ ...se }));
+        e.playGrid = s.playGrid ? JSON.parse(JSON.stringify(s.playGrid)) : null;
+        e.coinsCollected = s.coinsCollected;
+      };
+      
+      const originalMode = e.mode;
+      const originalAutoplay = e.isAutoplay;
+      const originalIsSimulation = e.isSimulation;
+
+      e.mode = 'play';
+      e.isAutoplay = false;
+      e.isSimulation = true;
+
+      const startState = {
+        ...saveEngine(),
         path: []
       };
       
@@ -135,7 +211,9 @@ async function run() {
       const visited = new Set();
       
       const getDiscretizedKey = (s) => {
-        return `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 10)},${Math.round(s.vy * 10)}`;
+        const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer > 0 ? 1 : 0},${s.jumpBufferTimer > 0 ? 1 : 0}`;
+        const enemyPart = s.enemies.map(en => `${Math.round(en.x / 10)},${Math.round(en.y / 10)}`).join('|');
+        return `${playerPart}|${enemyPart}`;
       };
       
       const getHeuristic = (s) => {
@@ -156,43 +234,11 @@ async function run() {
       let iterations = 0;
       const maxIterations = 20000;
       
-      const saveEngine = () => ({
-        x: e.player.x,
-        y: e.player.y,
-        vx: e.player.vx,
-        vy: e.player.vy,
-        isGrounded: e.player.isGrounded,
-        facing: e.player.facing,
-        isDead: e.isDead,
-        deathTimer: e.deathTimer,
-        portalCooldown: e.portalCooldown,
-        hasWon: e.hasWon
-      });
-      
-      const restoreEngine = (s) => {
-        e.player.x = s.x;
-        e.player.y = s.y;
-        e.player.vx = s.vx;
-        e.player.vy = s.vy;
-        e.player.isGrounded = s.isGrounded;
-        e.player.facing = s.facing;
-        e.isDead = s.isDead;
-        e.deathTimer = s.deathTimer;
-        e.portalCooldown = s.portalCooldown;
-        e.hasWon = s.hasWon;
-      };
-      
       const originalState = saveEngine();
       let solution = null;
       
       while (openSet.length > 0 && iterations < maxIterations) {
         iterations++;
-        
-        openSet.sort((a, b) => {
-          const fA = a.path.length * 5 + getHeuristic(a);
-          const fB = b.path.length * 5 + getHeuristic(b);
-          return fA - fB;
-        });
         
         const curr = openSet.shift();
         
@@ -210,9 +256,8 @@ async function run() {
           
           e.keys.left = act.left;
           e.keys.right = act.right;
-          if (act.jump && e.player.isGrounded) {
-            e.player.vy = -CONFIG.JUMP_FORCE;
-            e.player.isGrounded = false;
+          if (act.jump) {
+            e.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
           }
           
           for (let f = 0; f < 5; f++) {
@@ -223,27 +268,26 @@ async function run() {
           if (e.isDead) continue;
           
           const nextState = {
-            x: e.player.x,
-            y: e.player.y,
-            vx: e.player.vx,
-            vy: e.player.vy,
-            isGrounded: e.player.isGrounded,
-            facing: e.player.facing,
-            isDead: e.isDead,
-            deathTimer: e.deathTimer,
-            portalCooldown: e.portalCooldown,
-            hasWon: e.hasWon,
+            ...saveEngine(),
             path: [...curr.path, act]
           };
           
           const nextKey = getDiscretizedKey(nextState);
           if (!visited.has(nextKey)) {
-            openSet.push(nextState);
+            insertSorted(openSet, nextState, (a, b) => {
+              const fA = a.path.length * 5 + getHeuristic(a);
+              const fB = b.path.length * 5 + getHeuristic(b);
+              return fA - fB;
+            });
           }
         }
       }
       
       restoreEngine(originalState);
+      e.liveEnemies = originalEnemies;
+      e.mode = originalMode;
+      e.isAutoplay = originalAutoplay;
+      e.isSimulation = originalIsSimulation;
       
       return {
         success: solution !== null,
@@ -271,33 +315,11 @@ async function run() {
       e.autoplayPath = solutionPath;
       e.autoplayIndex = 0;
       e.autoplayFrameCount = 0;
+      e.isAutoplay = true;
 
-      if (!e.originalUpdate) {
-        e.originalUpdate = e.update;
+      if (e.originalUpdate) {
+        e.update = e.originalUpdate;
       }
-
-      e.update = function() {
-        if (this.autoplayPath && this.autoplayIndex < this.autoplayPath.length) {
-          const act = this.autoplayPath[this.autoplayIndex];
-          this.keys.left = act.left;
-          this.keys.right = act.right;
-
-          if (act.jump && this.player.isGrounded) {
-            this.player.vy = -11; // JUMP_FORCE
-            this.player.isGrounded = false;
-          }
-
-          this.autoplayFrameCount++;
-          if (this.autoplayFrameCount >= 5) {
-            this.autoplayFrameCount = 0;
-            this.autoplayIndex++;
-          }
-        } else {
-          this.keys.left = false;
-          this.keys.right = false;
-        }
-        this.originalUpdate();
-      };
     }, solverResult.path);
 
     console.log('Starting playback and capturing screenshots...');

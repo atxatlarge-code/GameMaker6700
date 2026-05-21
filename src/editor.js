@@ -771,10 +771,20 @@ export class Editor {
         this.level.setPortal(col, row);
         audio.playTileSound();
         break;
-      case CONFIG.TOOL_PLAYER:
-        if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row) {
-          this.level.setPlayerSpawn(col, row);
-          audio.playTileSound();
+      case CONFIG.TOOL_PLAYER_CLASSIC:
+        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+          if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'classic') {
+            this.level.setPlayerSpawn(col, row, 'classic');
+            audio.playTileSound();
+          }
+        }
+        break;
+      case CONFIG.TOOL_PLAYER_GHIBLI:
+        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+          if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'ghibli') {
+            this.level.setPlayerSpawn(col, row, 'ghibli');
+            audio.playTileSound();
+          }
         }
         break;
       case CONFIG.TOOL_GOAL:
@@ -881,14 +891,66 @@ export class Editor {
           this.ctx.ellipse(cx, cy, CONFIG.TILE_SIZE * 0.4, CONFIG.TILE_SIZE * 0.45, 0, 0, Math.PI * 2);
           this.ctx.fill();
           break;
-        case CONFIG.TOOL_PLAYER:
-          if (this.assets.player) {
-            this.ctx.drawImage(this.assets.player, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          } else {
-            this.ctx.fillStyle = '#d4a359';
+        case CONFIG.TOOL_PLAYER_CLASSIC:
+        case CONFIG.TOOL_PLAYER_GHIBLI: {
+          const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
+          const isInvalid = tileVal !== 0 ||
+            this.level.enemies.some(e => e.col === this.hoverCol && e.row === this.hoverRow) ||
+            (this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||
+            (this.level.portal2 && this.level.portal2.col === this.hoverCol && this.level.portal2.row === this.hoverRow);
+            
+          if (isInvalid) {
+            this.ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+            this.ctx.globalAlpha = 0.25;
           }
+
+          if (this.currentTool === CONFIG.TOOL_PLAYER_CLASSIC) {
+            if (this.engine) {
+              const width = 28;
+              const height = 28;
+              const px = x + (CONFIG.TILE_SIZE - width) / 2;
+              const py = y + (CONFIG.TILE_SIZE - height);
+              this.engine.drawClassicBox(
+                this.ctx,
+                px,
+                py,
+                width,
+                height,
+                'right',
+                1,
+                1,
+                0,
+                isInvalid ? 0.25 : 0.55
+              );
+            } else {
+              this.ctx.fillStyle = '#3498db';
+              this.ctx.globalAlpha = isInvalid ? 0.25 : 0.55;
+              this.ctx.fillRect(x + (CONFIG.TILE_SIZE - 28) / 2, y + (CONFIG.TILE_SIZE - 28), 28, 28);
+            }
+          } else {
+            if (this.engine) {
+              const width = this.engine.player ? this.engine.player.width : 32;
+              const height = this.engine.player ? this.engine.player.height : 38;
+              const px = x + (CONFIG.TILE_SIZE - width) / 2;
+              const py = y + (CONFIG.TILE_SIZE - height);
+              this.engine.drawForestKid(
+                this.ctx,
+                px,
+                py,
+                width,
+                height,
+                'right',
+                1,
+                1,
+                0,
+                isInvalid ? 0.25 : 0.55
+              );
+            }
+          }
+          this.ctx.globalAlpha = 1;
           break;
+        }
         case CONFIG.TOOL_GOAL:
           if (this.assets.goal) {
             this.ctx.drawImage(this.assets.goal, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
