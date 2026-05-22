@@ -72,7 +72,9 @@ export function solveLevel(engine) {
     portalCooldown: engine.portalCooldown,
     hasWon: engine.hasWon,
     enemies: engine.liveEnemies.map(e => ({ ...e })),
-    playGrid: engine.playGrid ? JSON.parse(JSON.stringify(engine.playGrid)) : null,
+    // ⚡ Bolt: Use .map and .slice() for deep cloning the 2D grid instead of JSON stringify/parse
+    // Impact: Crucial for pathfinder as state cloning happens rapidly in a loop.
+    playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
     coinsCollected: engine.coinsCollected
   });
 
@@ -93,7 +95,8 @@ export function solveLevel(engine) {
 
     // Restore enemies to their exact stored positions and states
     engine.liveEnemies = s.enemies.map(se => ({ ...se }));
-    engine.playGrid = s.playGrid ? JSON.parse(JSON.stringify(s.playGrid)) : null;
+    // ⚡ Bolt: Use .map and .slice() for deep cloning the 2D grid instead of JSON stringify/parse
+    engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
     engine.coinsCollected = s.coinsCollected;
   };
 
@@ -246,7 +249,8 @@ export class AsyncPathfinder {
       portalCooldown: engine.portalCooldown,
       hasWon: engine.hasWon,
       enemies: engine.liveEnemies.map(e => ({ ...e })),
-      playGrid: engine.playGrid ? JSON.parse(JSON.stringify(engine.playGrid)) : null,
+      // ⚡ Bolt: Use .map and .slice() for deep cloning the 2D grid instead of JSON stringify/parse
+      playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
       coinsCollected: engine.coinsCollected
     });
 
@@ -264,7 +268,8 @@ export class AsyncPathfinder {
       engine.portalCooldown = s.portalCooldown;
       engine.hasWon = s.hasWon;
       engine.liveEnemies = s.enemies.map(se => ({ ...se }));
-      engine.playGrid = s.playGrid ? JSON.parse(JSON.stringify(s.playGrid)) : null;
+      // ⚡ Bolt: Use .map and .slice() for deep cloning the 2D grid instead of JSON stringify/parse
+      engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
       engine.coinsCollected = s.coinsCollected;
     };
 
