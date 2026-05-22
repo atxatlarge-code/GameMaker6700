@@ -1146,11 +1146,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const inputCommentAuthor = document.getElementById('input-comment-author');
     if (inputCommentAuthor) {
       if (currentPersona === 'creator') {
-        inputCommentAuthor.value = 'Game Creator';
+        inputCommentAuthor.value = 'Game Maker';
         inputCommentAuthor.disabled = true;
       } else {
         inputCommentAuthor.disabled = false;
-        if (!inputCommentAuthor.value || inputCommentAuthor.value === 'Game Creator') {
+        if (!inputCommentAuthor.value || inputCommentAuthor.value === 'Game Creator' || inputCommentAuthor.value === 'Game Maker') {
           inputCommentAuthor.value = localStorage.getItem('gm6700_last_handle') || '';
         }
       }
@@ -1159,10 +1159,10 @@ window.addEventListener('DOMContentLoaded', () => {
     chatMessagesContainer.innerHTML = '';
     thread.messages.forEach(msg => {
       const b = document.createElement('div');
-      b.className = `comment-line ${msg.senderRole}`;
-      const senderName = msg.senderRole === 'creator' ? 'Game Creator' : (msg.senderName || thread.playerName);
+      b.className = `comment-line ${msg.senderRole === 'creator' ? 'maker-comment' : 'player-comment'}`;
+      const senderName = msg.senderRole === 'creator' ? 'Game Maker' : (msg.senderName || thread.playerName);
       const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const badgeHtml = msg.senderRole === 'creator' ? '<span class="creator-badge">MOD</span>' : '';
+      const badgeHtml = msg.senderRole === 'creator' ? '<span class="creator-badge">MAKER</span>' : '';
       
       b.innerHTML = `
         <div class="comment-meta">
@@ -1176,7 +1176,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => {
       if (wasAtBottom || chatMessagesContainer.scrollTop === 0) {
-        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        chatMessagesContainer.scrollTo({
+          top: chatMessagesContainer.scrollHeight,
+          behavior: 'smooth'
+        });
       }
     }, 50);
   }
