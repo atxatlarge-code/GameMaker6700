@@ -104,8 +104,8 @@
                 </div>
               </div>
               <div class="scroll-buttons">
-                <button id="btn-scroll-up" class="scroll-btn"><i class="fa-solid fa-caret-up"></i></button>
-                <button id="btn-scroll-down" class="scroll-btn"><i class="fa-solid fa-caret-down"></i></button>
+                <button id="btn-scroll-up" class="scroll-btn" aria-label="Scroll up" title="Scroll up"><i class="fa-solid fa-caret-up"></i></button>
+                <button id="btn-scroll-down" class="scroll-btn" aria-label="Scroll down" title="Scroll down"><i class="fa-solid fa-caret-down"></i></button>
               </div>
             </div>
           </div>
@@ -559,7 +559,7 @@
     <div id="rename-overlay" class="overlay hidden">
       <div class="overlay-modal">
         <h2>Level Name</h2>
-        <input type="text" id="input-level-name" class="modal-input" maxlength="28" placeholder="Enter level name..." />
+        <input type="text" id="input-level-name" class="modal-input" aria-label="Enter level name" maxlength="28" placeholder="Enter level name..." />
         <div class="modal-buttons">
           <button id="btn-save-name" class="primary-btn"><i class="fa-solid fa-check"></i> Save</button>
           <button id="btn-cancel-name" class="secondary-btn"><i class="fa-solid fa-xmark"></i> Cancel</button>
@@ -621,8 +621,8 @@
                 <!-- Dynamically populated chat bubbles -->
               </div>
               <div class="chat-input-area">
-                <input type="text" id="input-comment-author" class="comment-author-input" placeholder="Nickname / Handle" maxlength="24" />
-                <input type="text" id="input-reply-text" class="chat-input" placeholder="Leave a comment..." />
+                <input type="text" id="input-comment-author" class="comment-author-input" aria-label="Comment author nickname" placeholder="Nickname / Handle" maxlength="24" />
+                <input type="text" id="input-reply-text" class="chat-input" aria-label="Comment text" placeholder="Leave a comment..." />
                 <button id="btn-send-reply" class="send-btn" title="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
               </div>
             </div>
