@@ -72,7 +72,8 @@ export function solveLevel(engine) {
     portalCooldown: engine.portalCooldown,
     hasWon: engine.hasWon,
     enemies: engine.liveEnemies.map(e => ({ ...e })),
-    playGrid: engine.playGrid ? JSON.parse(JSON.stringify(engine.playGrid)) : null,
+    // BOLT OPTIMIZATION: Faster deep clone for 2D arrays
+    playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
     coinsCollected: engine.coinsCollected
   });
 
@@ -93,7 +94,8 @@ export function solveLevel(engine) {
 
     // Restore enemies to their exact stored positions and states
     engine.liveEnemies = s.enemies.map(se => ({ ...se }));
-    engine.playGrid = s.playGrid ? JSON.parse(JSON.stringify(s.playGrid)) : null;
+    // BOLT OPTIMIZATION: Faster deep clone for 2D arrays
+    engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
     engine.coinsCollected = s.coinsCollected;
   };
 
@@ -246,7 +248,8 @@ export class AsyncPathfinder {
       portalCooldown: engine.portalCooldown,
       hasWon: engine.hasWon,
       enemies: engine.liveEnemies.map(e => ({ ...e })),
-      playGrid: engine.playGrid ? JSON.parse(JSON.stringify(engine.playGrid)) : null,
+      // BOLT OPTIMIZATION: Faster deep clone for 2D arrays
+      playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
       coinsCollected: engine.coinsCollected
     });
 
@@ -264,7 +267,8 @@ export class AsyncPathfinder {
       engine.portalCooldown = s.portalCooldown;
       engine.hasWon = s.hasWon;
       engine.liveEnemies = s.enemies.map(se => ({ ...se }));
-      engine.playGrid = s.playGrid ? JSON.parse(JSON.stringify(s.playGrid)) : null;
+      // BOLT OPTIMIZATION: Faster deep clone for 2D arrays
+      engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
       engine.coinsCollected = s.coinsCollected;
     };
 
