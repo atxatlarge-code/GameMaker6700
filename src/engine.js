@@ -174,7 +174,8 @@ export class Engine {
     this.screenShake = 0;
 
     if (this.mode === CONFIG.MODE_PLAY) {
-      this.playGrid = JSON.parse(JSON.stringify(this.level.grid));
+      // ⚡ Bolt: Optimize 2D array deep cloning to prevent performance bottlenecks
+      this.playGrid = this.level.grid.map(row => row.slice());
       this.coinsCollected = 0;
       this.totalCoins = 0;
       for (let r = 0; r < CONFIG.GRID_ROWS; r++) {
