@@ -24,6 +24,14 @@
   padding: 0;
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 body {
   background-color: var(--bg-color);
   color: var(--text-main);
