@@ -20,7 +20,8 @@ export class Level {
   load(levelData) {
     this.id = levelData.id;
     this.name = levelData.name;
-    this.grid = JSON.parse(JSON.stringify(levelData.grid));
+    // ⚡ Bolt: optimized grid cloning
+    this.grid = levelData.grid.map(row => row.slice());
     this.playerSpawn = { charId: 'ghibli', ...levelData.playerSpawn };
     this.goalPos = { ...levelData.goalPos };
     this.portal1 = levelData.portal1 ? { ...levelData.portal1 } : null;
@@ -35,7 +36,8 @@ export class Level {
     return {
       id: this.id,
       name: this.name,
-      grid: JSON.parse(JSON.stringify(this.grid)),
+      // ⚡ Bolt: optimized grid cloning
+      grid: this.grid.map(row => row.slice()),
       playerSpawn: { ...this.playerSpawn },
       goalPos: { ...this.goalPos },
       portal1: this.portal1 ? { ...this.portal1 } : null,
@@ -47,7 +49,8 @@ export class Level {
 
   pushHistory() {
     this.history.push({
-      grid: JSON.parse(JSON.stringify(this.grid)),
+      // ⚡ Bolt: optimized grid cloning
+      grid: this.grid.map(row => row.slice()),
       playerSpawn: { ...this.playerSpawn },
       goalPos: { ...this.goalPos },
       portal1: this.portal1 ? { ...this.portal1 } : null,
