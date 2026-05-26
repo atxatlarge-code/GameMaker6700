@@ -352,7 +352,8 @@ export class LevelManager {
     const duplicate = {
       id: 'custom-' + Date.now(),
       name: source.name + ' Copy',
-      grid: JSON.parse(JSON.stringify(source.grid)),
+      // Optimization: Faster 2D array deep clone than JSON.parse/stringify
+      grid: source.grid.map(row => row.slice()),
       playerSpawn: { ...source.playerSpawn },
       goalPos: { ...source.goalPos },
       isPreset: false,
