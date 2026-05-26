@@ -104,8 +104,8 @@
                 </div>
               </div>
               <div class="scroll-buttons">
-                <button id="btn-scroll-up" class="scroll-btn"><i class="fa-solid fa-caret-up"></i></button>
-                <button id="btn-scroll-down" class="scroll-btn"><i class="fa-solid fa-caret-down"></i></button>
+                <button id="btn-scroll-up" class="scroll-btn" aria-label="Scroll up"><i class="fa-solid fa-caret-up"></i></button>
+                <button id="btn-scroll-down" class="scroll-btn" aria-label="Scroll down"><i class="fa-solid fa-caret-down"></i></button>
               </div>
             </div>
           </div>
@@ -559,7 +559,7 @@
     <div id="rename-overlay" class="overlay hidden">
       <div class="overlay-modal">
         <h2>Level Name</h2>
-        <input type="text" id="input-level-name" class="modal-input" maxlength="28" placeholder="Enter level name..." />
+        <input type="text" id="input-level-name" class="modal-input" maxlength="28" placeholder="Enter level name..." aria-label="Level name" />
         <div class="modal-buttons">
           <button id="btn-save-name" class="primary-btn"><i class="fa-solid fa-check"></i> Save</button>
           <button id="btn-cancel-name" class="secondary-btn"><i class="fa-solid fa-xmark"></i> Cancel</button>
@@ -621,8 +621,8 @@
                 <!-- Dynamically populated chat bubbles -->
               </div>
               <div class="chat-input-area">
-                <input type="text" id="input-comment-author" class="comment-author-input" placeholder="Nickname / Handle" maxlength="24" />
-                <input type="text" id="input-reply-text" class="chat-input" placeholder="Leave a comment..." />
+                <input type="text" id="input-comment-author" class="comment-author-input" placeholder="Nickname / Handle" maxlength="24" aria-label="Your nickname" />
+                <input type="text" id="input-reply-text" class="chat-input" placeholder="Leave a comment..." aria-label="Your comment" />
                 <button id="btn-send-reply" class="send-btn" title="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
               </div>
             </div>
@@ -632,21 +632,21 @@
               <h3>Start a Conversation</h3>
               <p>Found a bug, have a question, or want to share feedback? Leave a message for the game creator!</p>
               <div class="form-group">
-                <label>Your Nickname / Handle</label>
+                <label for="input-player-name">Your Nickname / Handle</label>
                 <input type="text" id="input-player-name" class="modal-input form-input" placeholder="e.g. MarioFan99" maxlength="24" />
               </div>
               <div class="form-group">
-                <label>Game Level</label>
+                <label for="select-thread-level">Game Level</label>
                 <select id="select-thread-level" class="modal-select form-input">
                   <!-- Dynamically populated levels -->
                 </select>
               </div>
               <div class="form-group">
-                <label>Subject / Topic</label>
+                <label for="input-thread-title">Subject / Topic</label>
                 <input type="text" id="input-thread-title" class="modal-input form-input" placeholder="e.g. High jump trampoline bug" maxlength="60" />
               </div>
               <div class="form-group">
-                <label>Message</label>
+                <label for="input-thread-msg">Message</label>
                 <textarea id="input-thread-msg" class="modal-textarea form-input" placeholder="Explain your feedback or question..." rows="4"></textarea>
               </div>
               <div class="modal-buttons form-actions">
@@ -666,11 +666,11 @@
         <p>Connect your game to Supabase so you can receive player messages instantly across the internet!</p>
         
         <div class="form-group text-left">
-          <label>Supabase REST URL</label>
+          <label for="input-supabase-url">Supabase REST URL</label>
           <input type="text" id="input-supabase-url" class="modal-input form-input" placeholder="https://your-project.supabase.co" />
         </div>
         <div class="form-group text-left">
-          <label>Supabase Anon Key / API Key</label>
+          <label for="input-supabase-key">Supabase Anon Key / API Key</label>
           <input type="password" id="input-supabase-key" class="modal-input form-input" placeholder="eyJhbGciOiJIUzI1NiIsIn..." />
         </div>
 
