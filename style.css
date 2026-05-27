@@ -18,6 +18,11 @@
   --font-retro: 'VT323', monospace;
 }
 
+*:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
