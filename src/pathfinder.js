@@ -103,6 +103,7 @@ export function solveLevel(engine) {
     ...saveEngine(),
     path: []
   };
+  startState.fScore = getHeuristic(startState);
 
   const openSet = [startState];
   const visited = new Set();
@@ -170,18 +171,16 @@ export function solveLevel(engine) {
       // If this action leads to death, discard it
       if (engine.isDead) continue;
 
+      // ⚡ Bolt: Cache fScore on state to prevent recomputing heuristic in sort loop
       const nextState = {
         ...saveEngine(),
         path: [...curr.path, act]
       };
+      nextState.fScore = nextState.path.length * 5 + getHeuristic(nextState);
 
       const nextKey = getDiscretizedKey(nextState);
       if (!visited.has(nextKey)) {
-        insertSorted(openSet, nextState, (a, b) => {
-          const fA = a.path.length * 5 + getHeuristic(a);
-          const fB = b.path.length * 5 + getHeuristic(b);
-          return fA - fB;
-        });
+        insertSorted(openSet, nextState, (a, b) => a.fScore - b.fScore);
       }
     }
   }
@@ -299,6 +298,7 @@ export class AsyncPathfinder {
       ...this.saveEngine(),
       path: []
     };
+    startState.fScore = this.getHeuristic(startState);
 
     this.openSet = [startState];
     this.visited = new Set();
@@ -345,18 +345,16 @@ export class AsyncPathfinder {
 
         if (this.engine.isDead) continue;
 
+        // ⚡ Bolt: Cache fScore on state to prevent recomputing heuristic in sort loop
         const nextState = {
           ...this.saveEngine(),
           path: [...curr.path, act]
         };
+        nextState.fScore = nextState.path.length * 5 + this.getHeuristic(nextState);
 
         const nextKey = this.getDiscretizedKey(nextState);
         if (!this.visited.has(nextKey)) {
-          insertSorted(this.openSet, nextState, (a, b) => {
-            const fA = a.path.length * 5 + this.getHeuristic(a);
-            const fB = b.path.length * 5 + this.getHeuristic(b);
-            return fA - fB;
-          });
+          insertSorted(this.openSet, nextState, (a, b) => a.fScore - b.fScore);
         }
       }
     }
