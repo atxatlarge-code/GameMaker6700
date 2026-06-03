@@ -172,7 +172,8 @@ async function run() {
         portalCooldown: e.portalCooldown,
         hasWon: e.hasWon,
         enemies: e.liveEnemies.map(en => ({ ...en })),
-        playGrid: e.playGrid ? JSON.parse(JSON.stringify(e.playGrid)) : null,
+        // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
+        playGrid: e.playGrid ? e.playGrid.map(row => row.slice()) : null,
         coinsCollected: e.coinsCollected
       });
       
@@ -190,7 +191,8 @@ async function run() {
         e.portalCooldown = s.portalCooldown;
         e.hasWon = s.hasWon;
         e.liveEnemies = s.enemies.map(se => ({ ...se }));
-        e.playGrid = s.playGrid ? JSON.parse(JSON.stringify(s.playGrid)) : null;
+        // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
+        e.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
         e.coinsCollected = s.coinsCollected;
       };
       
