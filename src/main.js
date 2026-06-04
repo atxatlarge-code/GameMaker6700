@@ -629,6 +629,14 @@ window.addEventListener('DOMContentLoaded', () => {
     renameOverlay.classList.add('hidden');
   });
 
+  inputLevelName.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      btnSaveName.click();
+    } else if (e.key === 'Escape') {
+      btnCancelName.click();
+    }
+  });
+
   // Toast Alert Helper
   const toastContainer = document.getElementById('toast-container');
   const toastMessage = document.getElementById('toast-message');

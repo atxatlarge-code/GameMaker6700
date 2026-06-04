@@ -1,3 +1,6 @@
 ## 2024-05-25 - Missing Global Focus Styles for Keyboard Accessibility
 **Learning:** The application's design system lacked a global focus state for interactive elements (`:focus-visible`), which made keyboard navigation impossible as users couldn't see which element had focus.
 **Action:** Added a reusable global `*:focus-visible` rule in `style.css` using the primary theme color (`var(--primary)`) with a solid outline and offset. This establishes a baseline accessibility standard for all current and future interactive components in the app.
+## 2024-05-25 - Missing Keyboard Modals and ARIA Labels
+**Learning:** The application's modals (like level rename) lacked keyboard support for basic confirmation actions like 'Enter' to submit and 'Escape' to cancel. In addition, critical icon-only buttons in the console interface were missing `aria-label` attributes, relying only on `title` which is insufficient for many screen readers.
+**Action:** Implemented `keydown` event listeners for modal inputs to correctly capture and route 'Enter' and 'Escape' keys to their respective action buttons. Updated core icon-only buttons (`#btn-messages-menu`, `#btn-mobile-arcade`, `#btn-share-level`, `#btn-dup-level`, `#btn-del-level`, `#btn-toggle-music`, `#btn-rename-level`) in `index.html` with explicit `aria-label` attributes matching their intended purpose.
