@@ -206,7 +206,8 @@ async function run() {
 
       const startState = {
         ...saveEngine(),
-        path: []
+        pathNode: null,
+        pathLength: 0
       };
       
       const openSet = [startState];
@@ -245,7 +246,13 @@ async function run() {
         const curr = openSet.shift();
         
         if (curr.hasWon) {
-          solution = curr.path;
+          const path = [];
+          let node = curr.pathNode;
+          while (node) {
+            path.push(node.act);
+            node = node.parent;
+          }
+          solution = path.reverse();
           break;
         }
         
@@ -271,14 +278,15 @@ async function run() {
           
           const nextState = {
             ...saveEngine(),
-            path: [...curr.path, act]
+            pathNode: { act, parent: curr.pathNode },
+            pathLength: curr.pathLength + 1
           };
           
           const nextKey = getDiscretizedKey(nextState);
           if (!visited.has(nextKey)) {
             insertSorted(openSet, nextState, (a, b) => {
-              const fA = a.path.length * 5 + getHeuristic(a);
-              const fB = b.path.length * 5 + getHeuristic(b);
+              const fA = a.pathLength * 5 + getHeuristic(a);
+              const fB = b.pathLength * 5 + getHeuristic(b);
               return fA - fB;
             });
           }

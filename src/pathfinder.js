@@ -101,7 +101,8 @@ export function solveLevel(engine) {
 
   const startState = {
     ...saveEngine(),
-    path: []
+    pathNode: null,
+    pathLength: 0
   };
   startState.fScore = getHeuristic(startState);
 
@@ -145,7 +146,13 @@ export function solveLevel(engine) {
     const curr = openSet.shift();
 
     if (curr.hasWon) {
-      solution = curr.path;
+      const path = [];
+      let node = curr.pathNode;
+      while (node) {
+        path.push(node.act);
+        node = node.parent;
+      }
+      solution = path.reverse();
       break;
     }
 
@@ -174,9 +181,10 @@ export function solveLevel(engine) {
       // ⚡ Bolt: Cache fScore on state to prevent recomputing heuristic in sort loop
       const nextState = {
         ...saveEngine(),
-        path: [...curr.path, act]
+        pathNode: { act, parent: curr.pathNode },
+        pathLength: curr.pathLength + 1
       };
-      nextState.fScore = nextState.path.length * 5 + getHeuristic(nextState);
+      nextState.fScore = nextState.pathLength * 5 + getHeuristic(nextState);
 
       const nextKey = getDiscretizedKey(nextState);
       if (!visited.has(nextKey)) {
@@ -296,7 +304,8 @@ export class AsyncPathfinder {
 
     const startState = {
       ...this.saveEngine(),
-      path: []
+      pathNode: null,
+      pathLength: 0
     };
     startState.fScore = this.getHeuristic(startState);
 
@@ -320,7 +329,13 @@ export class AsyncPathfinder {
       this.exploredPoints.push({ x: curr.x, y: curr.y });
 
       if (curr.hasWon) {
-        this.solution = curr.path;
+        const path = [];
+        let node = curr.pathNode;
+        while (node) {
+          path.push(node.act);
+          node = node.parent;
+        }
+        this.solution = path.reverse();
         this.cleanup();
         return { done: true, success: true, solution: this.solution, iterations: this.iterations, exploredPoints: this.exploredPoints };
       }
@@ -348,9 +363,10 @@ export class AsyncPathfinder {
         // ⚡ Bolt: Cache fScore on state to prevent recomputing heuristic in sort loop
         const nextState = {
           ...this.saveEngine(),
-          path: [...curr.path, act]
+          pathNode: { act, parent: curr.pathNode },
+          pathLength: curr.pathLength + 1
         };
-        nextState.fScore = nextState.path.length * 5 + this.getHeuristic(nextState);
+        nextState.fScore = nextState.pathLength * 5 + this.getHeuristic(nextState);
 
         const nextKey = this.getDiscretizedKey(nextState);
         if (!this.visited.has(nextKey)) {
