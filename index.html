@@ -25,14 +25,14 @@
           <div class="console-header">
             <span class="jerry-lawson-text">GAME MAKER 6700</span>
             <div class="console-actions">
-              <button id="btn-messages-menu" class="console-btn red-btn" title="Player Messages & Feedback">
+              <button id="btn-messages-menu" class="console-btn red-btn" aria-label="Player Messages & Feedback" title="Player Messages & Feedback">
                 <i class="fa-solid fa-envelope"></i>
                 <span id="badge-menu" class="mail-badge hidden"></span>
               </button>
-              <button id="btn-mobile-arcade" class="console-btn red-btn" title="Play on Mobile Arcade"><i class="fa-solid fa-mobile-screen-button"></i></button>
-              <button id="btn-share-level" class="console-btn red-btn" title="Share Level"><i class="fa-solid fa-share-nodes"></i></button>
-              <button id="btn-dup-level" class="console-btn red-btn" title="Duplicate Level"><i class="fa-solid fa-copy"></i></button>
-              <button id="btn-del-level" class="console-btn red-btn danger" title="Delete Level"><i class="fa-solid fa-trash"></i></button>
+              <button id="btn-mobile-arcade" class="console-btn red-btn" aria-label="Play on Mobile Arcade" title="Play on Mobile Arcade"><i class="fa-solid fa-mobile-screen-button"></i></button>
+              <button id="btn-share-level" class="console-btn red-btn" aria-label="Share Level" title="Share Level"><i class="fa-solid fa-share-nodes"></i></button>
+              <button id="btn-dup-level" class="console-btn red-btn" aria-label="Duplicate Level" title="Duplicate Level"><i class="fa-solid fa-copy"></i></button>
+              <button id="btn-del-level" class="console-btn red-btn danger" aria-label="Delete Level" title="Delete Level"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>
           
@@ -120,16 +120,16 @@
           <div class="mode-toggle">
             <button id="btn-edit-mode" class="mode-btn active"><i class="fa-solid fa-pen-ruler"></i> Edit</button>
             <button id="btn-play-mode" class="mode-btn play"><i class="fa-solid fa-play"></i> Play</button>
-            <button id="btn-solve-mode" class="mode-btn solve" title="Solve level with AI pathfinder"><i class="fa-solid fa-robot"></i> Solve</button>
+            <button id="btn-solve-mode" class="mode-btn solve" aria-label="Solve level with AI pathfinder" title="Solve level with AI pathfinder"><i class="fa-solid fa-robot"></i> Solve</button>
           </div>
           <div class="current-level-badge">
             <span id="current-level-name">Mushroom Forest</span>
-            <button id="btn-rename-level" class="rename-badge-btn" title="Rename Level"><i class="fa-solid fa-pen"></i></button>
+            <button id="btn-rename-level" class="rename-badge-btn" aria-label="Rename Level" title="Rename Level"><i class="fa-solid fa-pen"></i></button>
           </div>
         </div>
         <div class="header-controls">
           <div class="music-selector" title="Select Background Music">
-            <button id="btn-toggle-music" class="music-toggle-btn" title="Play/Pause Music"><i class="fa-solid fa-circle-play"></i></button>
+            <button id="btn-toggle-music" class="music-toggle-btn" aria-label="Play/Pause Music" title="Play/Pause Music"><i class="fa-solid fa-circle-play"></i></button>
             <select id="music-select" class="music-dropdown">
               <option value="none">🔇 Off</option>
               <option value="mario">🍄 Plumber's Anthem</option>
@@ -140,10 +140,10 @@
               <option value="ladygaga">👑 Bad Romance</option>
             </select>
           </div>
-          <button id="btn-mobile-editor" class="nav-menu-btn" title="Play on Mobile Arcade">
+          <button id="btn-mobile-editor" class="nav-menu-btn" aria-label="Play on Mobile Arcade" title="Play on Mobile Arcade">
             <i class="fa-solid fa-mobile-screen-button"></i> Mobile
           </button>
-          <button id="btn-messages-editor" class="nav-menu-btn" title="Open Mailbox">
+          <button id="btn-messages-editor" class="nav-menu-btn" aria-label="Open Mailbox" title="Open Mailbox">
             <i class="fa-solid fa-envelope"></i> Chat
             <span id="badge-editor" class="mail-badge hidden"></span>
           </button>
@@ -156,10 +156,10 @@
         <div id="editor-toolbar" style="display: none;"></div>
         <div class="canvas-container">
           <div id="pan-controls" class="pan-controls">
-            <button class="pan-btn pan-up" data-dir="up" title="Pan Up"><i class="fa-solid fa-caret-up"></i></button>
-            <button class="pan-btn pan-down" data-dir="down" title="Pan Down"><i class="fa-solid fa-caret-down"></i></button>
-            <button class="pan-btn pan-left" data-dir="left" title="Pan Left"><i class="fa-solid fa-caret-left"></i></button>
-            <button class="pan-btn pan-right" data-dir="right" title="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
+            <button class="pan-btn pan-up" data-dir="up" aria-label="Pan Up" title="Pan Up"><i class="fa-solid fa-caret-up"></i></button>
+            <button class="pan-btn pan-down" data-dir="down" aria-label="Pan Down" title="Pan Down"><i class="fa-solid fa-caret-down"></i></button>
+            <button class="pan-btn pan-left" data-dir="left" aria-label="Pan Left" title="Pan Left"><i class="fa-solid fa-caret-left"></i></button>
+            <button class="pan-btn pan-right" data-dir="right" aria-label="Pan Right" title="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
           </div>
           <div id="win-overlay" class="overlay hidden">
             <div class="overlay-modal win-modal">
@@ -252,14 +252,14 @@
             
             <!-- Group 1: Player objects -->
             <div class="action-group" id="group-player">
-              <button class="action-group-btn" title="Player objects">
+              <button class="action-group-btn" aria-label="Player objects" title="Player objects">
                 <img id="img-group-player" src="assets/player.png" class="tool-icon-img" alt="Player">
               </button>
               <div class="group-popup" id="popup-player">
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_classic" title="Classic Box Player">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_classic" aria-label="Classic Box Player" title="Classic Box Player">
                   <img src="assets/player_classic.png" class="tool-icon-img" alt="Classic Box Player" style="border-radius: 4px;">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ghibli" title="Forest Kid (Ghibli)">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ghibli" aria-label="Forest Kid (Ghibli)" title="Forest Kid (Ghibli)">
                   <img src="assets/player_ghibli.png" class="tool-icon-img" alt="Forest Kid (Ghibli)" style="border-radius: 4px;">
                 </button>
                 <button class="popup-item-btn soon" data-name="Top down player"><i class="fa-solid fa-user-astronaut"></i> Top down player</button>
@@ -272,14 +272,14 @@
 
             <!-- Group 2: Blocks -->
             <div class="action-group" id="group-blocks">
-              <button class="action-group-btn active" title="Blocks">
+              <button class="action-group-btn active" aria-label="Blocks" title="Blocks">
                 <img id="img-group-blocks" src="assets/ground.png" class="tool-icon-img" alt="Blocks">
               </button>
               <div class="group-popup" id="popup-blocks">
-                <button class="tool-btn popup-item-btn icon-only-btn active" data-tool="wall" title="Solid block">
+                <button class="tool-btn popup-item-btn icon-only-btn active" data-tool="wall" aria-label="Solid block" title="Solid block">
                   <img id="img-tool-wall" src="assets/ground.png" class="tool-icon-img" alt="Solid block">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="fire" title="Fire">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="fire" aria-label="Fire" title="Fire">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <defs>
                       <linearGradient id="fireGrad" x1="0" y1="1" x2="0" y2="0">
@@ -291,10 +291,10 @@
                     <path d="M 4 32 C 4 22, 6 12, 10 6 C 12 14, 13 18, 16 12 C 19 18, 20 22, 22 8 C 26 15, 28 22, 28 32 Z" fill="url(#fireGrad)"/>
                   </svg>
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="spikes" title="Spikes">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="spikes" aria-label="Spikes" title="Spikes">
                   <img id="img-tool-spikes" src="assets/spikes.png" class="tool-icon-img" alt="Spikes">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="breakable" title="Breakable block">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="breakable" aria-label="Breakable block" title="Breakable block">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <!-- Base background with pillowy gradient -->
                     <defs>
@@ -350,7 +350,7 @@
                     <line x1="22" y1="6" x2="25" y2="7" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
                   </svg>
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="earth" title="Grass Earth block">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="earth" aria-label="Grass Earth block" title="Grass Earth block">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <defs>
                       <linearGradient id="earthBlockGrad" x1="0" y1="1" x2="0" y2="0">
@@ -377,18 +377,18 @@
 
             <!-- Group 3: Special -->
             <div class="action-group" id="group-special">
-              <button class="action-group-btn" title="Special">
+              <button class="action-group-btn" aria-label="Special" title="Special">
                 <img id="img-group-special" src="assets/goal.png" class="tool-icon-img" alt="Special">
               </button>
               <div class="group-popup" id="popup-special">
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="goal" title="Goal flag">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="goal" aria-label="Goal flag" title="Goal flag">
                   <img id="img-tool-goal" src="assets/goal.png" class="tool-icon-img" alt="Goal flag">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="trampoline" title="Powerup">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="trampoline" aria-label="Powerup" title="Powerup">
                   <img id="img-tool-trampoline" src="assets/trampoline.png" class="tool-icon-img" alt="Powerup">
                 </button>
                 <button class="popup-item-btn soon" data-name="Save flag"><i class="fa-solid fa-flag"></i> Save flag</button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="coin" title="Coin">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="coin" aria-label="Coin" title="Coin">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <defs>
                       <radialGradient id="coinGrad" cx="50%" cy="50%" r="50%">
@@ -407,12 +407,12 @@
 
             <!-- Group 4: Enemies -->
             <div class="action-group" id="group-enemies">
-              <button class="action-group-btn" title="Enemies">
+              <button class="action-group-btn" aria-label="Enemies" title="Enemies">
                 <i class="fa-solid fa-ghost"></i>
                 <span>Enemies</span>
               </button>
               <div class="group-popup" id="popup-enemies">
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="enemy" title="Soot Sprite enemy">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="enemy" aria-label="Soot Sprite enemy" title="Soot Sprite enemy">
                   <svg viewBox="0 0 40 44" class="tool-icon-svg" style="width:36px;height:40px;">
                     <!-- Fluffy bumps -->
                     <circle cx="20" cy="8"  r="5.5" fill="#221c25"/>
@@ -450,7 +450,7 @@
 
             <!-- Group 5: Barriers -->
             <div class="action-group" id="group-barriers">
-              <button class="action-group-btn" title="Barriers">
+              <button class="action-group-btn" aria-label="Barriers" title="Barriers">
                 <svg id="img-group-barriers" viewBox="0 0 32 32" class="tool-icon-svg">
                   <defs>
                     <radialGradient id="portalCyanGroup" cx="50%" cy="50%" r="50%">
@@ -471,7 +471,7 @@
                 </svg>
               </button>
               <div class="group-popup" id="popup-barriers">
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="portal" title="Portal">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="portal" aria-label="Portal" title="Portal">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <defs>
                       <radialGradient id="portalCyanItem" cx="50%" cy="50%" r="50%">
@@ -498,7 +498,7 @@
 
             <!-- Group 6: Switches -->
             <div class="action-group" id="group-switches">
-              <button class="action-group-btn" title="Switches">
+              <button class="action-group-btn" aria-label="Switches" title="Switches">
                 <i class="fa-solid fa-toggle-on"></i>
                 <span>Switches</span>
               </button>
@@ -512,7 +512,7 @@
 
             <!-- Group 7: Erase -->
             <div class="action-group" id="group-erase">
-              <button class="tool-btn action-group-btn erase-action" data-tool="erase" title="Erase">
+              <button class="tool-btn action-group-btn erase-action" data-tool="erase" aria-label="Erase" title="Erase">
                 <i class="fa-solid fa-eraser"></i>
                 <span>Erase</span>
               </button>
@@ -520,7 +520,7 @@
 
             <!-- Group 8: Change style -->
             <div class="action-group" id="group-style">
-              <button class="action-group-btn style-action" title="Change style">
+              <button class="action-group-btn style-action" aria-label="Change style" title="Change style">
                 <i class="fa-solid fa-palette"></i>
                 <span>Style</span>
               </button>
@@ -535,7 +535,7 @@
 
             <!-- Group 9: Undo -->
             <div class="action-group" id="group-undo">
-              <button id="btn-undo-action" class="action-group-btn undo-action" title="Undo Last Change">
+              <button id="btn-undo-action" class="action-group-btn undo-action" aria-label="Undo Last Change" title="Undo Last Change">
                 <i class="fa-solid fa-rotate-left"></i>
                 <span>Undo</span>
               </button>
@@ -581,8 +581,8 @@
             <button id="persona-creator" class="persona-pill"><i class="fa-solid fa-wand-magic-sparkles"></i> Creator</button>
           </div>
           <div class="modal-right-actions">
-            <button id="btn-cloud-settings" class="icon-btn-subtle" title="Cloud Database Settings" style="display: none;"><i class="fa-solid fa-cloud"></i></button>
-            <button id="btn-close-messages" class="icon-btn-subtle close-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            <button id="btn-cloud-settings" class="icon-btn-subtle" aria-label="Cloud Database Settings" title="Cloud Database Settings" style="display: none;"><i class="fa-solid fa-cloud"></i></button>
+            <button id="btn-close-messages" class="icon-btn-subtle close-btn" aria-label="Close" title="Close"><i class="fa-solid fa-xmark"></i></button>
           </div>
         </div>
         
@@ -615,7 +615,7 @@
                   <h3 id="chat-title">How do I reach the high doorway?</h3>
                   <span id="chat-author-sub">by Chihiro101</span>
                 </div>
-                <button id="btn-resolve-thread" class="secondary-btn mini-btn creator-only" title="Mark Resolved"><i class="fa-solid fa-check"></i> Resolve</button>
+                <button id="btn-resolve-thread" class="secondary-btn mini-btn creator-only" aria-label="Mark Resolved" title="Mark Resolved"><i class="fa-solid fa-check"></i> Resolve</button>
               </div>
               <div id="chat-messages-container" class="chat-messages-history">
                 <!-- Dynamically populated chat bubbles -->
@@ -623,7 +623,7 @@
               <div class="chat-input-area">
                 <input type="text" id="input-comment-author" class="comment-author-input" aria-label="Comment author nickname" placeholder="Nickname / Handle" maxlength="24" />
                 <input type="text" id="input-reply-text" class="chat-input" aria-label="Comment text" placeholder="Leave a comment..." />
-                <button id="btn-send-reply" class="send-btn" title="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
+                <button id="btn-send-reply" class="send-btn" aria-label="Send Comment" title="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
               </div>
             </div>
 
