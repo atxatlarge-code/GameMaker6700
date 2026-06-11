@@ -25,14 +25,14 @@
           <div class="console-header">
             <span class="jerry-lawson-text">GAME MAKER 6700</span>
             <div class="console-actions">
-              <button id="btn-messages-menu" class="console-btn red-btn" title="Player Messages & Feedback">
+              <button id="btn-messages-menu" class="console-btn red-btn" title="Player Messages & Feedback" aria-label="Player Messages & Feedback">
                 <i class="fa-solid fa-envelope"></i>
                 <span id="badge-menu" class="mail-badge hidden"></span>
               </button>
-              <button id="btn-mobile-arcade" class="console-btn red-btn" title="Play on Mobile Arcade"><i class="fa-solid fa-mobile-screen-button"></i></button>
-              <button id="btn-share-level" class="console-btn red-btn" title="Share Level"><i class="fa-solid fa-share-nodes"></i></button>
-              <button id="btn-dup-level" class="console-btn red-btn" title="Duplicate Level"><i class="fa-solid fa-copy"></i></button>
-              <button id="btn-del-level" class="console-btn red-btn danger" title="Delete Level"><i class="fa-solid fa-trash"></i></button>
+              <button id="btn-mobile-arcade" class="console-btn red-btn" title="Play on Mobile Arcade" aria-label="Play on Mobile Arcade"><i class="fa-solid fa-mobile-screen-button"></i></button>
+              <button id="btn-share-level" class="console-btn red-btn" title="Share Level" aria-label="Share Level"><i class="fa-solid fa-share-nodes"></i></button>
+              <button id="btn-dup-level" class="console-btn red-btn" title="Duplicate Level" aria-label="Duplicate Level"><i class="fa-solid fa-copy"></i></button>
+              <button id="btn-del-level" class="console-btn red-btn danger" title="Delete Level" aria-label="Delete Level"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>
           
@@ -124,12 +124,12 @@
           </div>
           <div class="current-level-badge">
             <span id="current-level-name">Mushroom Forest</span>
-            <button id="btn-rename-level" class="rename-badge-btn" title="Rename Level"><i class="fa-solid fa-pen"></i></button>
+            <button id="btn-rename-level" class="rename-badge-btn" title="Rename Level" aria-label="Rename Level"><i class="fa-solid fa-pen"></i></button>
           </div>
         </div>
         <div class="header-controls">
           <div class="music-selector" title="Select Background Music">
-            <button id="btn-toggle-music" class="music-toggle-btn" title="Play/Pause Music"><i class="fa-solid fa-circle-play"></i></button>
+            <button id="btn-toggle-music" class="music-toggle-btn" title="Play/Pause Music" aria-label="Play/Pause Music"><i class="fa-solid fa-circle-play"></i></button>
             <select id="music-select" class="music-dropdown">
               <option value="none">🔇 Off</option>
               <option value="mario">🍄 Plumber's Anthem</option>
@@ -156,10 +156,10 @@
         <div id="editor-toolbar" style="display: none;"></div>
         <div class="canvas-container">
           <div id="pan-controls" class="pan-controls">
-            <button class="pan-btn pan-up" data-dir="up" title="Pan Up"><i class="fa-solid fa-caret-up"></i></button>
-            <button class="pan-btn pan-down" data-dir="down" title="Pan Down"><i class="fa-solid fa-caret-down"></i></button>
-            <button class="pan-btn pan-left" data-dir="left" title="Pan Left"><i class="fa-solid fa-caret-left"></i></button>
-            <button class="pan-btn pan-right" data-dir="right" title="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
+            <button class="pan-btn pan-up" data-dir="up" title="Pan Up" aria-label="Pan Up"><i class="fa-solid fa-caret-up"></i></button>
+            <button class="pan-btn pan-down" data-dir="down" title="Pan Down" aria-label="Pan Down"><i class="fa-solid fa-caret-down"></i></button>
+            <button class="pan-btn pan-left" data-dir="left" title="Pan Left" aria-label="Pan Left"><i class="fa-solid fa-caret-left"></i></button>
+            <button class="pan-btn pan-right" data-dir="right" title="Pan Right" aria-label="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
           </div>
           <div id="win-overlay" class="overlay hidden">
             <div class="overlay-modal win-modal">
@@ -581,8 +581,8 @@
             <button id="persona-creator" class="persona-pill"><i class="fa-solid fa-wand-magic-sparkles"></i> Creator</button>
           </div>
           <div class="modal-right-actions">
-            <button id="btn-cloud-settings" class="icon-btn-subtle" title="Cloud Database Settings" style="display: none;"><i class="fa-solid fa-cloud"></i></button>
-            <button id="btn-close-messages" class="icon-btn-subtle close-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            <button id="btn-cloud-settings" class="icon-btn-subtle" title="Cloud Database Settings" aria-label="Cloud Database Settings" style="display: none;"><i class="fa-solid fa-cloud"></i></button>
+            <button id="btn-close-messages" class="icon-btn-subtle close-btn" title="Close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
           </div>
         </div>
         
@@ -623,7 +623,7 @@
               <div class="chat-input-area">
                 <input type="text" id="input-comment-author" class="comment-author-input" aria-label="Comment author nickname" placeholder="Nickname / Handle" maxlength="24" />
                 <input type="text" id="input-reply-text" class="chat-input" aria-label="Comment text" placeholder="Leave a comment..." />
-                <button id="btn-send-reply" class="send-btn" title="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
+                <button id="btn-send-reply" class="send-btn" title="Send Comment" aria-label="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
               </div>
             </div>
 
