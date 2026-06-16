@@ -1,19 +1,55 @@
 import { CONFIG } from './config.js';
 import { audio } from './audio.js';
 
-// Helper for binary search insertion to maintain sorted order in A* open set
-function insertSorted(array, item, compareFn) {
-  let low = 0;
-  let high = array.length;
-  while (low < high) {
-    const mid = (low + high) >>> 1;
-    if (compareFn(array[mid], item) < 0) {
-      low = mid + 1;
-    } else {
-      high = mid;
+class PriorityQueue {
+  constructor(compareFn) {
+    this.data = [];
+    this.compareFn = compareFn;
+  }
+  push(item) {
+    this.data.push(item);
+    this._bubbleUp(this.data.length - 1);
+  }
+  shift() {
+    if (this.data.length === 0) return undefined;
+    if (this.data.length === 1) return this.data.pop();
+    const top = this.data[0];
+    this.data[0] = this.data.pop();
+    this._sinkDown(0);
+    return top;
+  }
+  _bubbleUp(index) {
+    while (index > 0) {
+      const parentIndex = (index - 1) >>> 1;
+      if (this.compareFn(this.data[index], this.data[parentIndex]) >= 0) break;
+      const tmp = this.data[index];
+      this.data[index] = this.data[parentIndex];
+      this.data[parentIndex] = tmp;
+      index = parentIndex;
     }
   }
-  array.splice(low, 0, item);
+  _sinkDown(index) {
+    const length = this.data.length;
+    while (true) {
+      const leftIndex = (index << 1) + 1;
+      const rightIndex = leftIndex + 1;
+      let smallest = index;
+      if (leftIndex < length && this.compareFn(this.data[leftIndex], this.data[smallest]) < 0) {
+        smallest = leftIndex;
+      }
+      if (rightIndex < length && this.compareFn(this.data[rightIndex], this.data[smallest]) < 0) {
+        smallest = rightIndex;
+      }
+      if (smallest === index) break;
+      const tmp = this.data[index];
+      this.data[index] = this.data[smallest];
+      this.data[smallest] = tmp;
+      index = smallest;
+    }
+  }
+  get length() {
+    return this.data.length;
+  }
 }
 
 /**
@@ -105,7 +141,8 @@ export function solveLevel(engine) {
   };
   startState.fScore = getHeuristic(startState);
 
-  const openSet = [startState];
+  const openSet = new PriorityQueue((a, b) => a.fScore - b.fScore);
+  openSet.push(startState);
   const visited = new Set();
 
   const getDiscretizedKey = (s) => {
@@ -180,7 +217,7 @@ export function solveLevel(engine) {
 
       const nextKey = getDiscretizedKey(nextState);
       if (!visited.has(nextKey)) {
-        insertSorted(openSet, nextState, (a, b) => a.fScore - b.fScore);
+        openSet.push(nextState);
       }
     }
   }
@@ -300,7 +337,8 @@ export class AsyncPathfinder {
     };
     startState.fScore = this.getHeuristic(startState);
 
-    this.openSet = [startState];
+    this.openSet = new PriorityQueue((a, b) => a.fScore - b.fScore);
+    this.openSet.push(startState);
     this.visited = new Set();
     this.exploredPoints = [];
     this.iterations = 0;
@@ -354,7 +392,7 @@ export class AsyncPathfinder {
 
         const nextKey = this.getDiscretizedKey(nextState);
         if (!this.visited.has(nextKey)) {
-          insertSorted(this.openSet, nextState, (a, b) => a.fScore - b.fScore);
+          this.openSet.push(nextState);
         }
       }
     }
