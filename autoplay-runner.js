@@ -40,6 +40,8 @@ async function run() {
   
   try {
     console.log(`Navigating to http://localhost:${PORT}...`);
+    page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+    page.on('pageerror', err => console.log('BROWSER ERROR:', err.toString()));
     await page.goto(`http://localhost:${PORT}`, { waitUntil: 'networkidle2' });
 
     // Check if custom_levels.json exists locally and inject it into localStorage

@@ -74,7 +74,8 @@ export function solveLevel(engine) {
     enemies: engine.liveEnemies.map(e => ({ ...e })),
     // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
     playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
-    coinsCollected: engine.coinsCollected
+    coinsCollected: engine.coinsCollected,
+      stalactites: engine.stalactites ? engine.stalactites.map(s => ({ ...s })) : []
   });
 
   // Helper to restore the exact state of the engine
@@ -97,6 +98,7 @@ export function solveLevel(engine) {
     // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
     engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
     engine.coinsCollected = s.coinsCollected;
+      engine.stalactites = s.stalactites ? s.stalactites.map(st => ({ ...st })) : [];
   };
 
   const startState = {
@@ -249,7 +251,8 @@ export class AsyncPathfinder {
       enemies: engine.liveEnemies.map(e => ({ ...e })),
       // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
       playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
-      coinsCollected: engine.coinsCollected
+      coinsCollected: engine.coinsCollected,
+      stalactites: engine.stalactites ? engine.stalactites.map(s => ({ ...s })) : []
     });
 
     this.restoreEngine = (s) => {
@@ -269,6 +272,7 @@ export class AsyncPathfinder {
       // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
       engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
       engine.coinsCollected = s.coinsCollected;
+      engine.stalactites = s.stalactites ? s.stalactites.map(st => ({ ...st })) : [];
     };
 
     this.originalState = this.saveEngine();

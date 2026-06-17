@@ -68,6 +68,7 @@ export const CONFIG = {
   TOOL_WATER: 'water',
   TOOL_SLIME: 'slime',
   TOOL_BOOMERANG: 'boomerang',
+  TOOL_PORTAL_MIRROR: 'portal_mirror',
 
   // Enemy defaults
   ENEMY_SPEED: 1.8,

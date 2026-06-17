@@ -180,6 +180,8 @@ export class Engine {
     this.crumblingBlocks = [];
     this.ghostTimer = 0;
     this.boomerangs = [];
+    this.stalactites = [];
+    this.shadowClone = null;
     this.player.jumpStretchTimer = 0;
     this.isDead = false;
     this.deathTimer = 0;
@@ -785,6 +787,76 @@ if (this.player.jumpBufferTimer > 0) {
 
     // Update boomerangs
     this.updateBoomerangs();
+
+    // Stalactite activation
+    if (!this.isDead && !this.hasWon) {
+      const pCol = Math.floor((this.player.x + this.player.width/2) / CONFIG.TILE_SIZE);
+      const pRow = Math.floor((this.player.y + this.player.height/2) / CONFIG.TILE_SIZE);
+      for (let r = pRow; r >= 0; r--) {
+        if (this.getTile(pCol, r) === 35) {
+          // Check line of sight (no solid blocks between player and stalactite)
+          let clear = true;
+          for (let checkR = r + 1; checkR < pRow; checkR++) {
+            const tile = this.getTile(pCol, checkR);
+            if (tile === 1 || tile === 6 || tile === 7 || tile === 16 || tile === 18) {
+              clear = false;
+              break;
+            }
+          }
+          if (clear) {
+            // Activate stalactite
+            this.setTile(pCol, r, 0);
+            this.stalactites.push({
+              x: pCol * CONFIG.TILE_SIZE,
+              y: r * CONFIG.TILE_SIZE,
+              width: CONFIG.TILE_SIZE,
+              height: CONFIG.TILE_SIZE,
+              vy: 0,
+              state: 'shaking',
+              timer: 30
+            });
+          }
+        }
+      }
+    }
+
+    // Update stalactites
+    for (let i = this.stalactites.length - 1; i >= 0; i--) {
+      const st = this.stalactites[i];
+      if (st.state === 'shaking') {
+        st.timer--;
+        if (st.timer <= 0) {
+          st.state = 'falling';
+          if (!this.isSimulation && window.audio && window.audio.playTileSound) window.audio.playTileSound();
+        }
+      } else if (st.state === 'falling') {
+        st.vy += 0.5; // Gravity
+        st.y += st.vy;
+        
+        // Collision with player
+        if (!this.isDead && !this.hasWon &&
+            this.player.x < st.x + st.width - 4 &&
+            this.player.x + this.player.width > st.x + 4 &&
+            this.player.y < st.y + st.height - 4 &&
+            this.player.y + this.player.height > st.y + 4) {
+          this.killPlayer();
+        }
+        
+        // Collision with ground
+        const bottomRow = Math.floor((st.y + st.height) / CONFIG.TILE_SIZE);
+        const col = Math.floor((st.x + st.width/2) / CONFIG.TILE_SIZE);
+        const tile = this.getTile(col, bottomRow);
+        if (tile === 1 || tile === 6 || tile === 7 || tile === 18) {
+          // Shatter
+          this.stalactites.splice(i, 1);
+          if (!this.isSimulation && window.audio && window.audio.playTileSound) window.audio.playTileSound();
+        } else if (st.y > CONFIG.GRID_ROWS * CONFIG.TILE_SIZE) {
+          this.stalactites.splice(i, 1);
+        }
+      }
+    }
+
+    this.updateShadowClone();
 
     // Update crumbling blocks
     for (let i = this.crumblingBlocks.length - 1; i >= 0; i--) {
@@ -1393,7 +1465,7 @@ if (this.player.jumpBufferTimer > 0) {
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const tileVal = this.getTile(c, r);
-        if (tileVal === 19 || tileVal === 5 || tileVal === 9) {
+        if (tileVal === 19 || tileVal === 5 || tileVal === 9 || tileVal === 34) {
 
           if (tileVal === 19 && this.portalCooldown <= 0) {
             this.level.gravityDir = (this.level.gravityDir || 1) * -1;
@@ -1403,28 +1475,40 @@ if (this.player.jumpBufferTimer > 0) {
           }
 
           if (tileVal === 19) continue;
+
+          if (tileVal === 34 && !this.shadowClone) {
+            this.shadowClone = {
+              x: c * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.width)/2,
+              y: r * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.height),
+              vx: 0, vy: 0, width: this.player.width, height: this.player.height,
+              isGrounded: false, facing: 'right'
+            };
+            if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+          }
+
           if (tileVal === 5 || tileVal === 9) {
-          this.setTile(c, r, 0);
-          
-          if (tileVal === 5) {
-            this.coinsCollected++;
-          } else if (tileVal === 9) {
-            this.hasKey = true;
-          }
-          
-          if (this.isSimulation) continue;
+            this.setTile(c, r, 0);
+            
+            if (tileVal === 5) {
+              this.coinsCollected++;
+            } else if (tileVal === 9) {
+              this.hasKey = true;
+            }
+            
+            if (this.isSimulation) continue;
 
-          if (tileVal === 5) {
-            audio.playCoinSound();
-            const hudVal = document.getElementById('hud-coins-collected');
-            if (hudVal) hudVal.textContent = this.coinsCollected.toString();
-          } else {
-            if (audio.playCoinSound) audio.playCoinSound();
-          }
+            if (tileVal === 5) {
+              audio.playCoinSound();
+              const hudVal = document.getElementById('hud-coins-collected');
+              if (hudVal) hudVal.textContent = this.coinsCollected.toString();
+            } else {
+              if (audio.playCoinSound) audio.playCoinSound();
+            }
 
-          const coinCenterX = c * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
-          const coinCenterY = r * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
-          this.spawnCoinParticles(coinCenterX, coinCenterY);
+            const coinCenterX = c * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+            const coinCenterY = r * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+            this.spawnCoinParticles(coinCenterX, coinCenterY);
+          }
         }
       }
     }
@@ -1541,6 +1625,90 @@ if (this.player.jumpBufferTimer > 0) {
       timer: 20,
       rotation: 0
     });
+  }
+
+  
+  updateShadowClone() {
+    if (!this.shadowClone) return;
+    
+    // Symmetrical input
+    const cloneKeys = {
+      left: this.keys.right,
+      right: this.keys.left,
+      up: this.keys.up
+    };
+
+    const clone = this.shadowClone;
+    
+    // Gravity direction
+    const gDir = this.level.gravityDir || 1;
+    
+    // Apply gravity
+    if (clone.vy * gDir < CONFIG.MAX_FALL_SPEED) {
+      clone.vy += CONFIG.GRAVITY * gDir;
+    }
+
+    // Horizontal movement
+    let targetVx = 0;
+    if (cloneKeys.left) targetVx = -CONFIG.MOVE_SPEED;
+    if (cloneKeys.right) targetVx = -targetVx + CONFIG.MOVE_SPEED; // Wait, right is +MOVE_SPEED
+    if (cloneKeys.left && !cloneKeys.right) targetVx = -CONFIG.MOVE_SPEED;
+    else if (cloneKeys.right && !cloneKeys.left) targetVx = CONFIG.MOVE_SPEED;
+    
+    clone.vx += (targetVx - clone.vx) * CONFIG.ACCELERATION;
+    
+    if (cloneKeys.left) clone.facing = 'left';
+    if (cloneKeys.right) clone.facing = 'right';
+
+    // Jump
+    if (cloneKeys.up && clone.isGrounded) {
+      clone.vy = -CONFIG.JUMP_FORCE * gDir;
+      clone.isGrounded = false;
+      if (!this.isSimulation && audio.playJumpSound) audio.playJumpSound();
+    }
+
+    // Move X
+    clone.x += clone.vx;
+    
+    // Resolve X collisions
+    const minColX = Math.floor(clone.x / CONFIG.TILE_SIZE);
+    const maxColX = Math.floor((clone.x + clone.width - 0.01) / CONFIG.TILE_SIZE);
+    const minRowX = Math.floor(clone.y / CONFIG.TILE_SIZE);
+    const maxRowX = Math.floor((clone.y + clone.height - 0.01) / CONFIG.TILE_SIZE);
+    
+    for (let r = minRowX; r <= maxRowX; r++) {
+      for (let c = minColX; c <= maxColX; c++) {
+        if (this.isSolid(c, r)) {
+          if (clone.vx > 0) clone.x = c * CONFIG.TILE_SIZE - clone.width;
+          else if (clone.vx < 0) clone.x = (c + 1) * CONFIG.TILE_SIZE;
+          clone.vx = 0;
+        }
+      }
+    }
+
+    // Move Y
+    clone.y += clone.vy;
+    clone.isGrounded = false;
+    
+    // Resolve Y collisions
+    const minColY = Math.floor(clone.x / CONFIG.TILE_SIZE);
+    const maxColY = Math.floor((clone.x + clone.width - 0.01) / CONFIG.TILE_SIZE);
+    const minRowY = Math.floor(clone.y / CONFIG.TILE_SIZE);
+    const maxRowY = Math.floor((clone.y + clone.height - 0.01) / CONFIG.TILE_SIZE);
+    
+    for (let r = minRowY; r <= maxRowY; r++) {
+      for (let c = minColY; c <= maxColY; c++) {
+        if (this.isSolid(c, r)) {
+          if (clone.vy > 0) {
+            clone.y = r * CONFIG.TILE_SIZE - clone.height;
+            clone.isGrounded = true;
+          } else if (clone.vy < 0) {
+            clone.y = (r + 1) * CONFIG.TILE_SIZE;
+          }
+          clone.vy = 0;
+        }
+      }
+    }
   }
 
   updateBoomerangs() {
