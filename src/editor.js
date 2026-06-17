@@ -788,8 +788,25 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_BLOCK_GHOST:
+        if (this.level.getTile(col, row) !== 15) {
+          this.level.setTile(col, row, 15);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_SPRING_BOOTS:
+        if (this.level.getTile(col, row) !== 16) {
+          this.level.setTile(col, row, 16);
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_ENEMY:
         if (this.level.addEnemy(col, row, CONFIG.ENEMY_SPEED, CONFIG.ENEMY_PATROL_RANGE)) {
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_LAZER:
+        if (this.level.addEnemy(col, row, 0, 0, 'lazer')) {
           audio.playTileSound();
         }
         break;
@@ -806,6 +823,12 @@ export class Editor {
       case CONFIG.TOOL_PORTAL:
         this.level.setPortal(col, row);
         audio.playTileSound();
+        break;
+      case CONFIG.TOOL_PORTAL_SIZE:
+        if (this.level.getTile(col, row) !== 14) {
+          this.level.setTile(col, row, 14);
+          audio.playTileSound();
+        }
         break;
       case CONFIG.TOOL_PLAYER_CLASSIC:
         if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
@@ -835,6 +858,22 @@ export class Editor {
         if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
           if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'topdown') {
             this.level.setPlayerSpawn(col, row, 'topdown');
+            audio.playTileSound();
+          }
+        }
+        break;
+      case CONFIG.TOOL_PLAYER_PADDLE_H:
+        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+          if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'paddle_h') {
+            this.level.setPlayerSpawn(col, row, 'paddle_h');
+            audio.playTileSound();
+          }
+        }
+        break;
+      case CONFIG.TOOL_PLAYER_PADDLE_V:
+        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+          if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'paddle_v') {
+            this.level.setPlayerSpawn(col, row, 'paddle_v');
             audio.playTileSound();
           }
         }
@@ -955,6 +994,42 @@ export class Editor {
           this.ctx.lineWidth = 2;
           this.ctx.strokeRect(x+2, y+2, CONFIG.TILE_SIZE-4, CONFIG.TILE_SIZE-4);
           break;
+        case CONFIG.TOOL_BLOCK_GHOST:
+          this.ctx.globalAlpha = 0.5;
+          this.ctx.strokeStyle = '#ffffff';
+          this.ctx.lineWidth = 2;
+          this.ctx.setLineDash([4, 4]);
+          this.ctx.strokeRect(x+2, y+2, CONFIG.TILE_SIZE-4, CONFIG.TILE_SIZE-4);
+          this.ctx.setLineDash([]);
+          this.ctx.globalAlpha = 1.0;
+          break;
+        case CONFIG.TOOL_SPRING_BOOTS:
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          this.ctx.fillStyle = '#4ade80';
+          this.ctx.beginPath();
+          this.ctx.moveTo(-5, 5);
+          this.ctx.lineTo(5, 5);
+          this.ctx.lineTo(8, -10);
+          this.ctx.lineTo(0, -15);
+          this.ctx.lineTo(-8, -10);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#22c55e';
+          this.ctx.lineWidth = 2;
+          this.ctx.stroke();
+          // Spring
+          this.ctx.beginPath();
+          this.ctx.moveTo(-5, 5);
+          this.ctx.lineTo(-5, 9);
+          this.ctx.lineTo(5, 7);
+          this.ctx.lineTo(-5, 11);
+          this.ctx.lineTo(5, 9);
+          this.ctx.lineTo(5, 13);
+          this.ctx.strokeStyle = '#a3a3a3';
+          this.ctx.stroke();
+          this.ctx.restore();
+          break;
         case CONFIG.TOOL_KEY:
           this.ctx.fillStyle = '#ffeb3b';
           this.ctx.fillRect(x + 10, y + 15, 20, 10);
@@ -990,10 +1065,25 @@ export class Editor {
           this.ctx.ellipse(cx, cy, CONFIG.TILE_SIZE * 0.4, CONFIG.TILE_SIZE * 0.45, 0, 0, Math.PI * 2);
           this.ctx.fill();
           break;
+        case CONFIG.TOOL_PORTAL_SIZE:
+          const cxS = x + CONFIG.TILE_SIZE / 2;
+          const cyS = y + CONFIG.TILE_SIZE / 2;
+          this.ctx.fillStyle = '#8bc34a';
+          this.ctx.beginPath();
+          this.ctx.ellipse(cxS, cyS, CONFIG.TILE_SIZE * 0.4, CONFIG.TILE_SIZE * 0.45, 0, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#cddc39';
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.arc(cxS, cyS, CONFIG.TILE_SIZE * 0.2, 0, Math.PI * 1.5);
+          this.ctx.stroke();
+          break;
         case CONFIG.TOOL_PLAYER_CLASSIC:
         case CONFIG.TOOL_PLAYER_GHIBLI:
         case CONFIG.TOOL_PLAYER_BALL:
-        case CONFIG.TOOL_PLAYER_TOPDOWN: {
+        case CONFIG.TOOL_PLAYER_TOPDOWN:
+        case CONFIG.TOOL_PLAYER_PADDLE_H:
+        case CONFIG.TOOL_PLAYER_PADDLE_V: {
           const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
           const isInvalid = tileVal !== 0 ||
             this.level.enemies.some(e => e.col === this.hoverCol && e.row === this.hoverRow) ||
@@ -1064,6 +1154,14 @@ export class Editor {
             this.ctx.fillStyle = '#9c27b0';
             this.ctx.globalAlpha = isInvalid ? 0.25 : 0.55;
             this.ctx.fillRect(x + (CONFIG.TILE_SIZE - 28) / 2, y + (CONFIG.TILE_SIZE - 28), 28, 28);
+          } else if (this.currentTool === CONFIG.TOOL_PLAYER_PADDLE_H) {
+            this.ctx.fillStyle = '#009688';
+            this.ctx.globalAlpha = isInvalid ? 0.25 : 0.55;
+            this.ctx.fillRect(x - 20, y + 10, 80, 20);
+          } else if (this.currentTool === CONFIG.TOOL_PLAYER_PADDLE_V) {
+            this.ctx.fillStyle = '#009688';
+            this.ctx.globalAlpha = isInvalid ? 0.25 : 0.55;
+            this.ctx.fillRect(x + 10, y - 20, 20, 80);
           }
           this.ctx.globalAlpha = 1;
           break;
@@ -1123,6 +1221,22 @@ export class Editor {
           this.ctx.fill();
           break;
         }
+        case CONFIG.TOOL_LAZER: {
+          const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
+          const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 5 || tileVal === 6 || tileVal === 7);
+          if (isInvalid) {
+            this.ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          }
+          this.ctx.globalAlpha = isInvalid ? 0.3 : 0.8;
+          
+          this.ctx.fillStyle = '#111';
+          this.ctx.fillRect(x + 10, y + 10, 20, 20);
+          this.ctx.fillStyle = '#e91e63';
+          this.ctx.fillRect(x + 15, y + 15, 10, 10);
+          this.ctx.globalAlpha = 1;
+          break;
+        }
         case CONFIG.TOOL_ERASE:
           this.ctx.fillStyle = 'rgba(184, 84, 80, 0.6)';
           this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
@@ -1132,7 +1246,7 @@ export class Editor {
 
       // Border highlight around hovered tile
       let isValid = true;
-      if (this.currentTool === CONFIG.TOOL_ENEMY || this.currentTool === CONFIG.TOOL_ENEMY_CHASER) {
+      if (this.currentTool === CONFIG.TOOL_ENEMY || this.currentTool === CONFIG.TOOL_ENEMY_CHASER || this.currentTool === CONFIG.TOOL_LAZER) {
         const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
         const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6 || tileVal === 7) ||
           (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||

@@ -144,6 +144,12 @@ export class Engine {
     } else if (this.player.charId === 'ball') {
       this.player.width = 24;
       this.player.height = 24;
+    } else if (this.player.charId === 'paddle_h') {
+      this.player.width = 80;
+      this.player.height = 20;
+    } else if (this.player.charId === 'paddle_v') {
+      this.player.width = 20;
+      this.player.height = 80;
     } else {
       this.player.width = 32;
       this.player.height = 38;
@@ -359,6 +365,41 @@ export class Engine {
     if (!this.level.switchState) this.level.switchState = 'red';
     if (this.switchCooldown > 0) this.switchCooldown--;
 
+    if (this.ghostTimer === undefined) {
+      this.ghostTimer = 0;
+      this.ghostIsSolid = true;
+    }
+    this.ghostTimer++;
+    if (this.ghostTimer >= 150) {
+      this.ghostIsSolid = !this.ghostIsSolid;
+      this.ghostTimer = 0;
+      if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+    }
+
+    if (this.player.sizeCooldown > 0) {
+      this.player.sizeCooldown--;
+    }
+
+    if (this.mode === CONFIG.MODE_PLAY) {
+      const pCol = Math.floor((this.player.x + this.player.width / 2) / CONFIG.TILE_SIZE);
+      const pRow = Math.floor((this.player.y + this.player.height / 2) / CONFIG.TILE_SIZE);
+      if (this.getTile(pCol, pRow) === 14 && this.player.sizeCooldown === 0) {
+        this.player.isMini = !this.player.isMini;
+        this.player.sizeCooldown = 60;
+        if (this.player.isMini) {
+          this.player.width = Math.max(10, this.player.baseWidth * 0.5);
+          this.player.height = Math.max(10, this.player.baseHeight * 0.5);
+          this.player.y += this.player.baseHeight - this.player.height;
+        } else {
+          this.player.width = this.player.baseWidth;
+          this.player.height = this.player.baseHeight;
+          this.player.y -= this.player.height - this.player.baseHeight * 0.5;
+        }
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+      }
+    }
+
     // Autoplay action override
     if (this.isAutoplay) {
       if (this.autoplayPath && this.autoplayIndex < this.autoplayPath.length) {
@@ -369,6 +410,19 @@ export class Engine {
 
         if (this.autoplayFrameCount === 0 && act.jump) {
           this.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
+          if (this.isAutoplay) {
+            // Cinematic burst
+            for (let i = 0; i < 8; i++) {
+              this.dustParticles.push({
+                x: this.player.x + this.player.width / 2 + (Math.random() - 0.5) * 15,
+                y: this.player.y + this.player.height,
+                vx: (Math.random() - 0.5) * 4,
+                vy: Math.random() * -3,
+                size: Math.random() * 5 + 3,
+                life: 1.0
+              });
+            }
+          }
         }
 
         this.autoplayFrameCount++;
@@ -471,9 +525,14 @@ export class Engine {
       this.screenShake = Math.max(0, this.screenShake - 0.5);
     }
 
-    if (this.player.charId === 'topdown') {
-      const targetVx = this.keys.left ? -CONFIG.MOVE_SPEED : (this.keys.right ? CONFIG.MOVE_SPEED : 0);
-      const targetVy = this.keys.up ? -CONFIG.MOVE_SPEED : (this.keys.down ? CONFIG.MOVE_SPEED : 0);
+    if (this.player.charId === 'topdown' || this.player.charId === 'paddle_h' || this.player.charId === 'paddle_v') {
+      const isV = this.player.charId === 'paddle_v';
+      const isH = this.player.charId === 'paddle_h';
+      const canMoveX = !isV;
+      const canMoveY = !isH;
+
+      const targetVx = (canMoveX && this.keys.left) ? -CONFIG.MOVE_SPEED : ((canMoveX && this.keys.right) ? CONFIG.MOVE_SPEED : 0);
+      const targetVy = (canMoveY && this.keys.up) ? -CONFIG.MOVE_SPEED : ((canMoveY && this.keys.down) ? CONFIG.MOVE_SPEED : 0);
       
       if (this.keys.left) this.player.facing = 'left';
       if (this.keys.right) this.player.facing = 'right';
@@ -512,7 +571,8 @@ export class Engine {
 
       // Jump check (coyote time and jump buffering)
       if (this.player.jumpBufferTimer > 0 && (this.player.isGrounded || this.player.coyoteTimer > 0)) {
-        this.player.vy = -CONFIG.JUMP_FORCE;
+        const jumpForce = this.player.hasSpringBoots ? CONFIG.JUMP_FORCE * 1.5 : CONFIG.JUMP_FORCE;
+        this.player.vy = -jumpForce;
         this.player.isGrounded = false;
         this.player.coyoteTimer = 0;
         this.player.jumpBufferTimer = 0;
@@ -1185,7 +1245,7 @@ export class Engine {
     for (const enemy of this.liveEnemies) {
 
       // ── Gravity ────────────────────────────────────────────────────────────
-      if (enemy.type !== 'thwomp' || enemy.state === 'falling') {
+      if ((enemy.type !== 'thwomp' && enemy.type !== 'lazer') || enemy.state === 'falling') {
         enemy.vy += (enemy.type === 'thwomp') ? CONFIG.GRAVITY * 1.5 : CONFIG.GRAVITY;
         if (enemy.vy > 15) enemy.vy = 15; // terminal velocity
       } else {
@@ -1249,6 +1309,74 @@ export class Engine {
             eBoxV.bottom = enemy.y + enemy.height;
           }
         }
+      }
+
+      // ── Lazer AI ─────────────────────────────────────────────────────────
+      if (enemy.type === 'lazer') {
+        if (!enemy.state) {
+          enemy.state = 'idle';
+          enemy.timer = 0;
+        }
+        enemy.timer++;
+        
+        if (enemy.state === 'idle' && enemy.timer > 120) {
+          enemy.state = 'warn';
+          enemy.timer = 0;
+        } else if (enemy.state === 'warn' && enemy.timer > 40) {
+          enemy.state = 'fire';
+          enemy.timer = 0;
+          if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+          this.cameraShake = 5;
+        } else if (enemy.state === 'fire' && enemy.timer > 30) {
+          enemy.state = 'idle';
+          enemy.timer = 0;
+        }
+
+        if (enemy.state === 'warn' || enemy.state === 'fire') {
+          // Pre-calculate beam bounds
+          enemy.beams = { up: 0, down: 0, left: 0, right: 0 };
+          const eCol = Math.floor(enemy.x / CONFIG.TILE_SIZE);
+          const eRow = Math.floor(enemy.y / CONFIG.TILE_SIZE);
+          const isSolid = (c, r) => {
+            const t = this.getTile(c, r);
+            return t === 1 || t === 2 || t === 7 || t === 10 || t === 11 ||
+                   (t === 12 && this.level.switchState === 'red') || 
+                   (t === 13 && this.level.switchState === 'blue');
+          };
+
+          for (let r = eRow - 1; r >= 0; r--) { if (isSolid(eCol, r)) break; enemy.beams.up++; }
+          for (let r = eRow + 1; r < CONFIG.GRID_ROWS; r++) { if (isSolid(eCol, r)) break; enemy.beams.down++; }
+          for (let c = eCol - 1; c >= 0; c--) { if (isSolid(c, eRow)) break; enemy.beams.left++; }
+          for (let c = eCol + 1; c < CONFIG.GRID_COLS; c++) { if (isSolid(c, eRow)) break; enemy.beams.right++; }
+
+          if (enemy.state === 'fire' && !this.isDead) {
+            const pxBox = {
+              left: this.player.x + 4, right: this.player.x + this.player.width - 4,
+              top: this.player.y + 4, bottom: this.player.y + this.player.height - 4
+            };
+            
+            const bX = enemy.x + 10;
+            const bY = enemy.y + 10;
+            const bW = 20;
+            const bH = 20;
+
+            const checkHit = (rL, rR, rT, rB) => {
+               if (pxBox.left < rR && pxBox.right > rL && pxBox.top < rB && pxBox.bottom > rT) {
+                 this.killPlayer();
+               }
+            };
+
+            // Up beam
+            checkHit(bX, bX + bW, enemy.y - enemy.beams.up * CONFIG.TILE_SIZE, enemy.y);
+            // Down beam
+            checkHit(bX, bX + bW, enemy.y + CONFIG.TILE_SIZE, enemy.y + (enemy.beams.down + 1) * CONFIG.TILE_SIZE);
+            // Left beam
+            checkHit(enemy.x - enemy.beams.left * CONFIG.TILE_SIZE, enemy.x, bY, bY + bH);
+            // Right beam
+            checkHit(enemy.x + CONFIG.TILE_SIZE, enemy.x + (enemy.beams.right + 1) * CONFIG.TILE_SIZE, bY, bY + bH);
+          }
+        }
+        continue;
       }
 
       // ── Thwomp AI ─────────────────────────────────────────────────────────
@@ -1502,6 +1630,10 @@ export class Engine {
           tiles.push({ col: c, row: r, type: 12 });
         } else if (tileVal === 13 && this.level.switchState === 'blue') {
           tiles.push({ col: c, row: r, type: 13 });
+        } else if (tileVal === 15 && this.ghostIsSolid) {
+          tiles.push({ col: c, row: r, type: 15 });
+        } else if (tileVal === 16) {
+          tiles.push({ col: c, row: r, type: 16 });
         }
       }
     }
@@ -1534,6 +1666,13 @@ export class Engine {
           this.spawnJumpDust();
           continue;
         }
+      }
+      if (tile.type === 16) {
+        this.level.setTile(tile.col, tile.row, 0);
+        this.player.hasSpringBoots = true;
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        continue;
       }
       if (tile.type === 10) {
         if (this.player.vx > 0) {
@@ -1919,6 +2058,75 @@ export class Engine {
             this.ctx.lineWidth = 2;
             this.ctx.strokeRect(x+2, y+2, CONFIG.TILE_SIZE-4, CONFIG.TILE_SIZE-4);
           }
+        } else if (tileVal === 14) {
+          // Size Portal
+          const cxS = x + CONFIG.TILE_SIZE / 2;
+          const cyS = y + CONFIG.TILE_SIZE / 2;
+          this.ctx.fillStyle = '#8bc34a';
+          this.ctx.beginPath();
+          this.ctx.ellipse(cxS, cyS, CONFIG.TILE_SIZE * 0.4, CONFIG.TILE_SIZE * 0.45, 0, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#cddc39';
+          this.ctx.lineWidth = 2;
+          const rotation = (Date.now() * 0.002) % (Math.PI * 2);
+          this.ctx.save();
+          this.ctx.translate(cxS, cyS);
+          this.ctx.rotate(rotation);
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, CONFIG.TILE_SIZE * 0.2, 0, Math.PI * 1.5);
+          this.ctx.stroke();
+          this.ctx.restore();
+        } else if (tileVal === 15) {
+          // Ghost Block
+          this.ctx.save();
+          if (!this.ghostIsSolid) {
+            this.ctx.globalAlpha = 0.25;
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.lineWidth = 2;
+            this.ctx.setLineDash([4, 4]);
+            this.ctx.strokeRect(x+2, y+2, CONFIG.TILE_SIZE-4, CONFIG.TILE_SIZE-4);
+          } else {
+            this.ctx.fillStyle = '#e5e7eb';
+            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+            this.ctx.fillStyle = '#9ca3af';
+            this.ctx.beginPath();
+            this.ctx.arc(x + 10, y + 10, 3, 0, Math.PI * 2);
+            this.ctx.arc(x + 22, y + 10, 3, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.beginPath();
+            this.ctx.arc(x + 16, y + 20, 4, 0, Math.PI, true);
+            this.ctx.stroke();
+          }
+          this.ctx.restore();
+        } else if (tileVal === 16) {
+          // Spring Boots
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          const floatOffset = Math.sin(Date.now() * 0.005 + x) * 4;
+          this.ctx.translate(0, floatOffset);
+          this.ctx.fillStyle = '#4ade80';
+          this.ctx.beginPath();
+          this.ctx.moveTo(-5, 5);
+          this.ctx.lineTo(5, 5);
+          this.ctx.lineTo(8, -10);
+          this.ctx.lineTo(0, -15);
+          this.ctx.lineTo(-8, -10);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#22c55e';
+          this.ctx.lineWidth = 2;
+          this.ctx.stroke();
+          // Spring
+          this.ctx.beginPath();
+          this.ctx.moveTo(-5, 5);
+          this.ctx.lineTo(-5, 9);
+          this.ctx.lineTo(5, 7);
+          this.ctx.lineTo(-5, 11);
+          this.ctx.lineTo(5, 9);
+          this.ctx.lineTo(5, 13);
+          this.ctx.strokeStyle = '#a3a3a3';
+          this.ctx.stroke();
+          this.ctx.restore();
         }
       }
     }
@@ -2105,6 +2313,9 @@ export class Engine {
       } else if (renderCharId === 'topdown') {
         this.ctx.fillStyle = '#9c27b0';
         this.ctx.fillRect(px, py, this.player.width, this.player.height);
+      } else if (renderCharId === 'paddle_h' || renderCharId === 'paddle_v') {
+        this.ctx.fillStyle = '#009688';
+        this.ctx.fillRect(px, py, this.player.width, this.player.height);
       } else {
         // Draw our custom Ghibli Forest Kid!
         this.drawForestKid(
@@ -2275,12 +2486,62 @@ export class Engine {
       ctx.restore();
     };
 
+    const drawLazer = (ctx, cx, cy, width, height, state, beams) => {
+      ctx.save();
+      const x = cx - width / 2;
+      const y = cy - height / 2;
+      
+      // Draw beams
+      if (state === 'warn' || state === 'fire') {
+        const bX = x + 10;
+        const bY = y + 10;
+        const bW = 20;
+        const bH = 20;
+        ctx.fillStyle = state === 'warn' ? 'rgba(233, 30, 99, 0.3)' : 'rgba(233, 30, 99, 0.9)';
+        if (state === 'fire') {
+          ctx.shadowColor = '#e91e63';
+          ctx.shadowBlur = 10;
+        }
+        
+        if (beams) {
+          // up
+          ctx.fillRect(bX, y - beams.up * CONFIG.TILE_SIZE, bW, beams.up * CONFIG.TILE_SIZE);
+          // down
+          ctx.fillRect(bX, y + CONFIG.TILE_SIZE, bW, beams.down * CONFIG.TILE_SIZE);
+          // left
+          ctx.fillRect(x - beams.left * CONFIG.TILE_SIZE, bY, beams.left * CONFIG.TILE_SIZE, bH);
+          // right
+          ctx.fillRect(x + CONFIG.TILE_SIZE, bY, beams.right * CONFIG.TILE_SIZE, bH);
+        }
+        ctx.shadowBlur = 0;
+      }
+
+      ctx.fillStyle = '#111';
+      ctx.fillRect(x + 10, y + 10, 20, 20);
+      
+      if (state === 'fire') {
+         ctx.fillStyle = '#fff';
+      } else if (state === 'warn') {
+         // Blink
+         ctx.fillStyle = Math.floor(Date.now() / 100) % 2 === 0 ? '#e91e63' : '#111';
+      } else {
+         ctx.fillStyle = '#e91e63';
+      }
+      ctx.fillRect(x + 15, y + 15, 10, 10);
+
+      ctx.restore();
+    };
+
     if (this.mode === CONFIG.MODE_PLAY) {
       for (const enemy of this.liveEnemies) {
         if (enemy.type === 'thwomp') {
           const cx = enemy.x + enemy.width / 2;
           const cy = enemy.y + enemy.height / 2;
           drawThwomp(this.ctx, cx, cy, enemy.width, enemy.height, enemy.state);
+        } else if (enemy.type === 'lazer') {
+          const cx = enemy.x + enemy.width / 2;
+          const cy = enemy.y + enemy.height / 2;
+          drawLazer(this.ctx, cx, cy, enemy.width, enemy.height, enemy.state, enemy.beams);
         } else {
           // Centre of the sprite
           const cx = enemy.x + enemy.width / 2;
@@ -2297,6 +2558,12 @@ export class Engine {
           const cy = e.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
           this.ctx.globalAlpha = 0.6;
           drawThwomp(this.ctx, cx, cy, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE, 'idle');
+          this.ctx.globalAlpha = 1.0;
+        } else if (e.type === 'lazer') {
+          const cx = e.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+          const cy = e.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+          this.ctx.globalAlpha = 0.6;
+          drawLazer(this.ctx, cx, cy, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE, 'idle');
           this.ctx.globalAlpha = 1.0;
         } else {
           const cx = e.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
