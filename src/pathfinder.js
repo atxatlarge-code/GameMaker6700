@@ -84,17 +84,17 @@ export function solveLevel(engine) {
     engine.player.y = s.y;
     engine.player.vx = s.vx;
     engine.player.vy = s.vy;
-    engine.player.isGrounded = s.isGrounded;
+    engine.player.isGrounded = s.player.isGrounded;
     engine.player.facing = s.facing;
-    engine.player.coyoteTimer = s.coyoteTimer;
-    engine.player.jumpBufferTimer = s.jumpBufferTimer;
+    engine.player.coyoteTimer = s.player.coyoteTimer;
+    engine.player.jumpBufferTimer = s.player.jumpBufferTimer;
     engine.isDead = s.isDead;
     engine.deathTimer = s.deathTimer;
     engine.portalCooldown = s.portalCooldown;
     engine.hasWon = s.hasWon;
 
     // Restore enemies to their exact stored positions and states
-    engine.liveEnemies = s.enemies.map(se => ({ ...se }));
+    engine.liveEnemies = s.liveEnemies.map(se => ({ ...se }));
     // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
     engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
     engine.coinsCollected = s.coinsCollected;
@@ -112,10 +112,10 @@ export function solveLevel(engine) {
 
   const getDiscretizedKey = (s) => {
     // Round positions to nearest 5px and velocities to nearest 0.5 to allow state aggregation
-    const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer || 0},${s.jumpBufferTimer || 0}`;
+    const playerPart = `${Math.round(s.player.x / 5)},${Math.round(s.player.y / 5)},${Math.round(s.player.vx * 2)},${Math.round(s.player.vy * 2)},${s.player.isGrounded ? 1 : 0},${s.player.coyoteTimer || 0},${s.player.jumpBufferTimer || 0}`;
     
     // Include enemy positions rounded to nearest 10px to prevent pruning valid stomp/patrol paths
-    const enemyPart = s.enemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
+    const enemyPart = s.liveEnemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
     
     return `${playerPart}|${enemyPart}`;
   };
@@ -235,45 +235,9 @@ export class AsyncPathfinder {
       walkTimer: 0,
     }));
 
-    this.saveEngine = () => ({
-      x: engine.player.x,
-      y: engine.player.y,
-      vx: engine.player.vx,
-      vy: engine.player.vy,
-      isGrounded: engine.player.isGrounded,
-      facing: engine.player.facing,
-      coyoteTimer: engine.player.coyoteTimer,
-      jumpBufferTimer: engine.player.jumpBufferTimer,
-      isDead: engine.isDead,
-      deathTimer: engine.deathTimer,
-      portalCooldown: engine.portalCooldown,
-      hasWon: engine.hasWon,
-      enemies: engine.liveEnemies.map(e => ({ ...e })),
-      // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
-      playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
-      coinsCollected: engine.coinsCollected,
-      stalactites: engine.stalactites ? engine.stalactites.map(s => ({ ...s })) : []
-    });
+    this.saveEngine = () => engine.saveState();
 
-    this.restoreEngine = (s) => {
-      engine.player.x = s.x;
-      engine.player.y = s.y;
-      engine.player.vx = s.vx;
-      engine.player.vy = s.vy;
-      engine.player.isGrounded = s.isGrounded;
-      engine.player.facing = s.facing;
-      engine.player.coyoteTimer = s.coyoteTimer;
-      engine.player.jumpBufferTimer = s.jumpBufferTimer;
-      engine.isDead = s.isDead;
-      engine.deathTimer = s.deathTimer;
-      engine.portalCooldown = s.portalCooldown;
-      engine.hasWon = s.hasWon;
-      engine.liveEnemies = s.enemies.map(se => ({ ...se }));
-      // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
-      engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
-      engine.coinsCollected = s.coinsCollected;
-      engine.stalactites = s.stalactites ? s.stalactites.map(st => ({ ...st })) : [];
-    };
+    this.restoreEngine = (s) => engine.restoreState(s);
 
     this.originalState = this.saveEngine();
 
@@ -287,14 +251,14 @@ export class AsyncPathfinder {
     ];
 
     this.getDiscretizedKey = (s) => {
-      const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer || 0},${s.jumpBufferTimer || 0}`;
-      const enemyPart = s.enemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
+      const playerPart = `${Math.round(s.player.x / 5)},${Math.round(s.player.y / 5)},${Math.round(s.player.vx * 2)},${Math.round(s.player.vy * 2)},${s.player.isGrounded ? 1 : 0},${s.player.coyoteTimer || 0},${s.player.jumpBufferTimer || 0}`;
+      const enemyPart = s.liveEnemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
       return `${playerPart}|${enemyPart}`;
     };
 
     this.getHeuristic = (s) => {
-      const dx = this.goalX - s.x;
-      const dy = this.goalY - s.y;
+      const dx = this.goalX - s.player.x;
+      const dy = this.goalY - s.player.y;
       return Math.sqrt(dx * dx + dy * dy);
     };
 
@@ -321,7 +285,7 @@ export class AsyncPathfinder {
 
 
       const curr = this.openSet.shift();
-      this.exploredPoints.push({ x: curr.x, y: curr.y });
+      this.exploredPoints.push({ x: curr.player.x, y: curr.player.y });
 
       if (curr.hasWon) {
         this.solution = curr.path;

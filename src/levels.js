@@ -344,6 +344,58 @@ function createAbyssalDepthsGrid() {
   return grid;
 }
 
+// Preset 12: Windy Ascents
+function createWindyAscentsGrid() {
+  const grid = createBlankGrid();
+  
+  // Floor with spikes to penalize falling
+  for (let c = 5; c < 50; c++) {
+    grid[27][c] = 4; // Spikes
+  }
+  
+  // Starting safe zone
+  grid[27][3] = 1; grid[27][4] = 1;
+  grid[26][4] = 1;
+  
+  // Wind Up column 1
+  for (let r = 15; r <= 26; r++) {
+    grid[r][6] = 36; // Wind Up
+    grid[r][7] = 36;
+  }
+  
+  // Wind Right across
+  for (let c = 8; c <= 20; c++) {
+    grid[15][c] = 39; // Wind Right
+    grid[16][c] = 39;
+  }
+  
+  // Wind Down
+  for (let r = 17; r <= 22; r++) {
+    grid[r][19] = 37; // Wind Down
+    grid[r][20] = 37;
+  }
+  
+  // Platform to catch player
+  grid[24][19] = 1; grid[24][20] = 1; grid[24][21] = 1;
+  
+  // Wind Right
+  for (let c = 22; c <= 35; c++) {
+    grid[23][c] = 39;
+    grid[22][c] = 39;
+  }
+  
+  // Wind Up to Goal
+  for (let r = 5; r <= 22; r++) {
+    grid[r][34] = 36;
+    grid[r][35] = 36;
+  }
+  
+  // Goal platform
+  grid[5][38] = 1; grid[5][39] = 1; grid[5][40] = 1;
+  
+  return grid;
+}
+
 const PRESETS = [
   {
     id: 'preset-1',
@@ -446,6 +498,14 @@ const PRESETS = [
     playerSpawn: { col: 6, row: 10 },
     goalPos: { col: 25, row: 9 },
     isDark: true,
+    isPreset: true,
+  },
+  {
+    id: 'preset-12',
+    name: 'Windy Ascents',
+    grid: createWindyAscentsGrid(),
+    playerSpawn: { col: 3, row: 26 },
+    goalPos: { col: 39, row: 4 },
     isPreset: true,
   }
 ];

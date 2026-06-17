@@ -236,7 +236,7 @@ async function run() {
       ];
       
       let iterations = 0;
-      const maxIterations = 20000;
+      const maxIterations = 200000;
       
       const originalState = saveEngine();
       let solution = null;
@@ -260,6 +260,7 @@ async function run() {
           
           e.keys.left = act.left;
           e.keys.right = act.right;
+          e.keys.up = act.jump;
           if (act.jump) {
             e.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
           }

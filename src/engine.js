@@ -2,6 +2,70 @@ import { CONFIG } from './config.js';
 import { audio } from './audio.js';
 
 export class Engine {
+
+  saveState() {
+    return {
+      player: {
+        x: this.player.x,
+        y: this.player.y,
+        vx: this.player.vx,
+        vy: this.player.vy,
+        isGrounded: this.player.isGrounded,
+        facing: this.player.facing,
+        coyoteTimer: this.player.coyoteTimer,
+        jumpBufferTimer: this.player.jumpBufferTimer,
+        wallDirection: this.player.wallDirection,
+        isWallSliding: this.player.isWallSliding
+      },
+      isDead: this.isDead,
+      deathTimer: this.deathTimer,
+      portalCooldown: this.portalCooldown,
+      hasWon: this.hasWon,
+      liveEnemies: this.liveEnemies ? this.liveEnemies.map(e => ({ ...e })) : [],
+      playGrid: this.playGrid ? this.playGrid.map(row => row.slice()) : null,
+      coinsCollected: this.coinsCollected,
+      stalactites: this.stalactites ? this.stalactites.map(s => ({ ...s })) : [],
+      boomerangs: this.boomerangs ? this.boomerangs.map(b => ({ ...b })) : [],
+      livePlatforms: this.livePlatforms ? this.livePlatforms.map(p => ({ ...p })) : [],
+      crumblingTiles: this.crumblingTiles ? new Map(Array.from(this.crumblingTiles.entries()).map(([k, v]) => [k, { ...v }])) : new Map(),
+      shadowClone: this.shadowClone ? { ...this.shadowClone } : null,
+      gravityDir: this.level ? this.level.gravityDir : 1,
+      tickCount: this.tickCount,
+      ghostTimer: this.ghostTimer,
+      ghostIsSolid: this.ghostIsSolid
+    };
+  }
+
+  restoreState(s) {
+    this.player.x = s.player.x;
+    this.player.y = s.player.y;
+    this.player.vx = s.player.vx;
+    this.player.vy = s.player.vy;
+    this.player.isGrounded = s.player.isGrounded;
+    this.player.facing = s.player.facing;
+    this.player.coyoteTimer = s.player.coyoteTimer;
+    this.player.jumpBufferTimer = s.player.jumpBufferTimer;
+    this.player.wallDirection = s.player.wallDirection;
+    this.player.isWallSliding = s.player.isWallSliding;
+    
+    this.isDead = s.isDead;
+    this.deathTimer = s.deathTimer;
+    this.portalCooldown = s.portalCooldown;
+    this.hasWon = s.hasWon;
+    this.liveEnemies = s.liveEnemies ? s.liveEnemies.map(e => ({ ...e })) : [];
+    this.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
+    this.coinsCollected = s.coinsCollected;
+    this.stalactites = s.stalactites ? s.stalactites.map(st => ({ ...st })) : [];
+    this.boomerangs = s.boomerangs ? s.boomerangs.map(b => ({ ...b })) : [];
+    this.livePlatforms = s.livePlatforms ? s.livePlatforms.map(p => ({ ...p })) : [];
+    this.crumblingTiles = s.crumblingTiles ? new Map(Array.from(s.crumblingTiles.entries()).map(([k, v]) => [k, { ...v }])) : new Map();
+    this.shadowClone = s.shadowClone ? { ...s.shadowClone } : null;
+    if (this.level) this.level.gravityDir = s.gravityDir;
+    this.tickCount = s.tickCount;
+    this.ghostTimer = s.ghostTimer;
+    this.ghostIsSolid = s.ghostIsSolid;
+  }
+
   constructor(canvas, level, editor, assets, onWin) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
@@ -234,6 +298,13 @@ export class Engine {
       facing: 'right',
       walkFrame: 0,
       walkTimer: 0,
+      type: e.type || 'basic',
+      wormState: 'hidden', // 'hidden', 'popping_up', 'up', 'popping_down'
+      wormTimer: 0,
+      batState: 'sleeping', // 'sleeping', 'swooping', 'returning'
+      batTimer: 0,
+      mimicState: 'disguised', // 'disguised', 'revealing', 'chasing'
+      mimicTimer: 0
     }));
 
     this.livePlatforms = this.level.platforms.map(p => ({
@@ -675,7 +746,7 @@ if (this.player.jumpBufferTimer > 0) {
       }
 
       // Variable Jump Height (cut upward velocity when jump key is released early)
-      if (!this.isSimulation && !this.keys.up && this.player.vy < -2.0) {
+      if (!this.keys.up && this.player.vy < -2.0) {
         this.player.vy *= 0.6; // reduce rise speed smoothly
       }
 
@@ -688,6 +759,25 @@ if (this.player.jumpBufferTimer > 0) {
       } else {
         this.player.vy += CONFIG.GRAVITY;
         if (this.player.vy > 12) this.player.vy = 12; // Terminal velocity
+      }
+      
+      // Wind Zones (36=Up, 37=Down, 38=Left, 39=Right)
+      const centerTile = this.getTile(pColGravity, pRowGravity);
+      if (centerTile === 36) { // Wind Up
+        this.player.vy -= CONFIG.WIND_FORCE;
+        if (this.player.vy < -CONFIG.MOVE_SPEED * 1.5) this.player.vy = -CONFIG.MOVE_SPEED * 1.5;
+        if (Math.random() < 0.1 && !this.isSimulation) this.spawnDust(this.player.x + this.player.width/2 + (Math.random()-0.5)*10, this.player.y + this.player.height, 0, -2, 'rgba(255,255,255,0.6)', 3, 20);
+      } else if (centerTile === 37) { // Wind Down
+        this.player.vy += CONFIG.WIND_FORCE;
+        if (Math.random() < 0.1 && !this.isSimulation) this.spawnDust(this.player.x + this.player.width/2 + (Math.random()-0.5)*10, this.player.y, 0, 2, 'rgba(255,255,255,0.6)', 3, 20);
+      } else if (centerTile === 38) { // Wind Left
+        this.player.vx -= CONFIG.WIND_FORCE;
+        if (this.player.vx < -CONFIG.MOVE_SPEED * 1.5) this.player.vx = -CONFIG.MOVE_SPEED * 1.5;
+        if (Math.random() < 0.1 && !this.isSimulation) this.spawnDust(this.player.x + this.player.width, this.player.y + this.player.height/2 + (Math.random()-0.5)*10, -2, 0, 'rgba(255,255,255,0.6)', 3, 20);
+      } else if (centerTile === 39) { // Wind Right
+        this.player.vx += CONFIG.WIND_FORCE;
+        if (this.player.vx > CONFIG.MOVE_SPEED * 1.5) this.player.vx = CONFIG.MOVE_SPEED * 1.5;
+        if (Math.random() < 0.1 && !this.isSimulation) this.spawnDust(this.player.x, this.player.y + this.player.height/2 + (Math.random()-0.5)*10, 2, 0, 'rgba(255,255,255,0.6)', 3, 20);
       }
     }
 
@@ -1795,7 +1885,7 @@ if (this.player.jumpBufferTimer > 0) {
     for (const enemy of this.liveEnemies) {
 
       // ── Gravity ────────────────────────────────────────────────────────────
-      if ((enemy.type !== 'thwomp' && enemy.type !== 'lazer') || enemy.state === 'falling') {
+      if ((enemy.type !== 'thwomp' && enemy.type !== 'lazer' && enemy.type !== 'worm' && enemy.type !== 'bat') || enemy.state === 'falling') {
         enemy.vy += (enemy.type === 'thwomp') ? CONFIG.GRAVITY * 1.5 : CONFIG.GRAVITY;
         if (enemy.vy > 15) enemy.vy = 15; // terminal velocity
       } else {
@@ -1953,7 +2043,180 @@ if (this.player.jumpBufferTimer > 0) {
             }
           }
         }
+        }
         continue; // skip horizontal movement entirely
+      }
+
+      // ── Worm AI ───────────────────────────────────────────────────────────
+      if (enemy.type === 'worm') {
+        if (!enemy.startY) enemy.startY = enemy.y;
+        const pxC = this.player.x + this.player.width / 2;
+        const exC = enemy.x + enemy.width / 2;
+        const dist = Math.abs(pxC - exC);
+
+        if (enemy.wormState === 'hidden') {
+          // If player is near (within 3 tiles), pop up
+          if (dist < CONFIG.TILE_SIZE * 3) {
+            enemy.wormState = 'popping_up';
+            if (!this.isSimulation && audio.playTileSound) audio.playTileSound(); // Maybe a dirt sound
+          }
+        } else if (enemy.wormState === 'popping_up') {
+          enemy.y -= 2;
+          if (enemy.y <= enemy.startY - 38) { // Pop out fully
+            enemy.y = enemy.startY - 38;
+            enemy.wormState = 'up';
+            enemy.wormTimer = 0;
+          }
+        } else if (enemy.wormState === 'up') {
+          enemy.wormTimer++;
+          if (enemy.wormTimer > 60) { // Stay up for 1 second
+            enemy.wormState = 'popping_down';
+          }
+        } else if (enemy.wormState === 'popping_down') {
+          enemy.y += 2;
+          if (enemy.y >= enemy.startY) {
+            enemy.y = enemy.startY;
+            enemy.wormState = 'hidden';
+          }
+        }
+        
+        // Only hit the player if it's popping up or up
+        if (enemy.wormState === 'popping_up' || enemy.wormState === 'up') {
+          const eBox = {
+            left: enemy.x + 4, right: enemy.x + enemy.width - 4,
+            top: enemy.y + 4, bottom: enemy.y + enemy.height - 4
+          };
+          const pBox = {
+            left: this.player.x, right: this.player.x + this.player.width,
+            top: this.player.y, bottom: this.player.y + this.player.height
+          };
+          if (!this.isDead && pBox.left < eBox.right && pBox.right > eBox.left &&
+              pBox.top < eBox.bottom && pBox.bottom > eBox.top) {
+            this.killPlayer();
+          }
+        }
+        
+        continue; // skip horizontal movement entirely
+      }
+
+      // ── Bat AI ────────────────────────────────────────────────────────────
+      if (enemy.type === 'bat') {
+        if (!enemy.startY) enemy.startY = enemy.y;
+        if (!enemy.startX) enemy.startX = enemy.x;
+        
+        const pxC = this.player.x + this.player.width / 2;
+        const exC = enemy.x + enemy.width / 2;
+        const distX = Math.abs(pxC - exC);
+
+        if (enemy.batState === 'sleeping') {
+          if (distX < CONFIG.TILE_SIZE * 3 && this.player.y > enemy.y) {
+            enemy.batState = 'swooping';
+            // Aim at the player's current position plus some lead
+            enemy.targetX = this.player.x + (this.player.vx * 10);
+            enemy.targetY = this.player.y + 20; // Aim slightly below center
+            
+            const dx = enemy.targetX - enemy.x;
+            const dy = enemy.targetY - enemy.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const speed = 7;
+            enemy.vx = (dx / dist) * speed;
+            enemy.vy = (dy / dist) * speed;
+            if (!this.isSimulation && audio.playTileSound) audio.playTileSound(); // Swoop sound
+          }
+        } else if (enemy.batState === 'swooping') {
+          enemy.x += enemy.vx;
+          enemy.y += enemy.vy;
+          // Check if it reached or passed target Y
+          if (enemy.y >= enemy.targetY || enemy.vy <= 0) {
+            enemy.batState = 'returning';
+          }
+          // Floor collision check
+          const botRow = Math.floor((enemy.y + enemy.height) / CONFIG.TILE_SIZE);
+          const colC = Math.floor((enemy.x + enemy.width/2) / CONFIG.TILE_SIZE);
+          if (botRow < CONFIG.GRID_ROWS && botRow >= 0 && colC >= 0 && colC < CONFIG.GRID_COLS) {
+            const tv = this.getTile(colC, botRow);
+            if (tv === 1 || tv === 2 || tv === 7 || tv === 10 || tv === 11) {
+              enemy.batState = 'returning';
+              enemy.y = botRow * CONFIG.TILE_SIZE - enemy.height;
+            }
+          }
+        } else if (enemy.batState === 'returning') {
+          const dx = enemy.startX - enemy.x;
+          const dy = enemy.startY - enemy.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < 4) {
+            enemy.x = enemy.startX;
+            enemy.y = enemy.startY;
+            enemy.batState = 'sleeping';
+            enemy.vx = 0;
+            enemy.vy = 0;
+          } else {
+            const speed = 3;
+            enemy.x += (dx / dist) * speed;
+            enemy.y += (dy / dist) * speed;
+          }
+        }
+        
+        // Bat hit box
+        const eBox = { left: enemy.x + 4, right: enemy.x + enemy.width - 4, top: enemy.y + 4, bottom: enemy.y + enemy.height - 4 };
+        const pBox = { left: this.player.x, right: this.player.x + this.player.width, top: this.player.y, bottom: this.player.y + this.player.height };
+        if (!this.isDead && pBox.left < eBox.right && pBox.right > eBox.left && pBox.top < eBox.bottom && pBox.bottom > eBox.top) {
+          this.killPlayer();
+        }
+        
+        // Advance animation
+        if (!enemy.batTimer) enemy.batTimer = 0;
+        enemy.batTimer++;
+        if (enemy.batTimer > (enemy.batState === 'sleeping' ? 15 : 4)) {
+          enemy.batTimer = 0;
+          enemy.walkFrame = (enemy.walkFrame + 1) % 4; // Flap animation
+        }
+
+        continue;
+      }
+
+      // ── Mimic Block AI ────────────────────────────────────────────────────────────
+      if (enemy.type === 'mimic') {
+        const pxC = this.player.x + this.player.width / 2;
+        const exC = enemy.x + enemy.width / 2;
+        const pYc = this.player.y + this.player.height / 2;
+        const eYc = enemy.y + enemy.height / 2;
+        const dist = Math.sqrt((pxC-exC)*(pxC-exC) + (pYc-eYc)*(pYc-eYc));
+
+        if (enemy.mimicState === 'disguised') {
+          enemy.vx = 0;
+          if (dist < CONFIG.TILE_SIZE * 3) {
+            enemy.mimicState = 'revealing';
+            enemy.mimicTimer = 0;
+            if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+          }
+        } else if (enemy.mimicState === 'revealing') {
+          enemy.vx = 0;
+          enemy.mimicTimer++;
+          if (enemy.mimicTimer > 30) {
+            enemy.mimicState = 'chasing';
+          }
+        } else if (enemy.mimicState === 'chasing') {
+          // Acts like a chaser
+          if (this.player.x + this.player.width/2 < enemy.x + enemy.width/2) {
+            enemy.vx = -enemy.speed * 1.5; // Fast!
+            enemy.facing = 'left';
+          } else {
+            enemy.vx = enemy.speed * 1.5;
+            enemy.facing = 'right';
+          }
+        }
+        
+        // Mimic hit box (always deadly)
+        const eBox = { left: enemy.x + 4, right: enemy.x + enemy.width - 4, top: enemy.y + 4, bottom: enemy.y + enemy.height - 4 };
+        const pBox = { left: this.player.x, right: this.player.x + this.player.width, top: this.player.y, bottom: this.player.y + this.player.height };
+        if (!this.isDead && pBox.left < eBox.right && pBox.right > eBox.left && pBox.top < eBox.bottom && pBox.bottom > eBox.top) {
+          this.killPlayer();
+        }
+        
+        if (enemy.mimicState === 'disguised' || enemy.mimicState === 'revealing') {
+          continue; // skip horizontal movement
+        }
       }
 
       // ── Horizontal patrol (only when on the ground) ────────────────────────
@@ -2174,7 +2437,7 @@ if (this.player.jumpBufferTimer > 0) {
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const tileVal = this.getTile(c, r);
-        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7 || tileVal === 8 || tileVal === 10 || tileVal === 11 || tileVal === 17 || tileVal === 19 || tileVal === 20 || tileVal === 22) {
+        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7 || tileVal === 8 || tileVal === 10 || tileVal === 11 || tileVal === 17 || tileVal === 19 || tileVal === 20 || tileVal === 22 || tileVal === 40) {
           tiles.push({ col: c, row: r, type: tileVal });
         } else if (tileVal === 12 && this.level.switchState === 'red') {
           tiles.push({ col: c, row: r, type: 12 });
@@ -2371,8 +2634,8 @@ if (this.player.jumpBufferTimer > 0) {
           playerBox.top = this.player.y;
           playerBox.bottom = this.player.y + this.player.height;
 
-          if (tile.type === 2) {
-            this.player.vy = -CONFIG.TRAMPOLINE_BOUNCE_FORCE;
+          if (tile.type === 2 || tile.type === 40) {
+            this.player.vy = tile.type === 40 ? -22 : -CONFIG.TRAMPOLINE_BOUNCE_FORCE;
             this.player.isGrounded = false;
             this.player.jumpStretchTimer = 14;
             this.player.landSquishTimer = 0;
@@ -2487,6 +2750,34 @@ if (this.player.jumpBufferTimer > 0) {
             this.ctx.fillStyle = '#cc635e';
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           }
+          this.ctx.restore();
+        } else if (tileVal === 40) {
+          this.ctx.save();
+          const anim = this.bounceAnims.get(`${c},${r}`);
+          if (anim) {
+            const progress = anim.timer / 15;
+            const scaleY = 1 - 0.4 * progress * Math.sin((1 - progress) * Math.PI * 3);
+            const scaleX = 1 + 0.3 * progress * Math.sin((1 - progress) * Math.PI * 3);
+            this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE);
+            this.ctx.scale(scaleX, scaleY);
+            this.ctx.translate(-(x + CONFIG.TILE_SIZE / 2), -(y + CONFIG.TILE_SIZE));
+          }
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE);
+          // Stem
+          this.ctx.fillStyle = '#fef08a';
+          this.ctx.fillRect(-6, -14, 12, 14);
+          // Cap
+          this.ctx.fillStyle = '#ef4444';
+          this.ctx.beginPath();
+          this.ctx.ellipse(0, -16, 16, 10, 0, Math.PI, 0);
+          this.ctx.fill();
+          // Spots
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.beginPath();
+          this.ctx.arc(-8, -20, 3, 0, Math.PI*2);
+          this.ctx.arc(0, -22, 4, 0, Math.PI*2);
+          this.ctx.arc(8, -18, 2.5, 0, Math.PI*2);
+          this.ctx.fill();
           this.ctx.restore();
         } else if (tileVal === 3) {
           // Render Fire
@@ -2878,6 +3169,37 @@ if (this.player.jumpBufferTimer > 0) {
           this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 8);
           this.ctx.fillStyle = '#8b5a2b';
           this.ctx.fillRect(x, y + 8, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE - 8);
+        } else if (tileVal >= 36 && tileVal <= 39) {
+          // Wind Tunnels
+          this.ctx.fillStyle = 'rgba(148, 163, 184, 0.2)'; // Faint background tint
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          
+          this.ctx.strokeStyle = 'rgba(203, 213, 225, 0.6)';
+          this.ctx.lineWidth = 2;
+          this.ctx.lineCap = 'round';
+          
+          const timeOffset = now * 0.05;
+          this.ctx.save();
+          this.ctx.beginPath();
+          // Draw 3 flowing lines per tile
+          for (let i = 0; i < 3; i++) {
+            let lineStart = (timeOffset + i * 15) % CONFIG.TILE_SIZE;
+            if (tileVal === 36) { // Up
+              this.ctx.moveTo(x + 10 + i * 10, y + CONFIG.TILE_SIZE - lineStart);
+              this.ctx.lineTo(x + 10 + i * 10, y + Math.max(0, CONFIG.TILE_SIZE - lineStart - 10));
+            } else if (tileVal === 37) { // Down
+              this.ctx.moveTo(x + 10 + i * 10, y + lineStart);
+              this.ctx.lineTo(x + 10 + i * 10, y + Math.min(CONFIG.TILE_SIZE, lineStart + 10));
+            } else if (tileVal === 38) { // Left
+              this.ctx.moveTo(x + CONFIG.TILE_SIZE - lineStart, y + 10 + i * 10);
+              this.ctx.lineTo(x + Math.max(0, CONFIG.TILE_SIZE - lineStart - 10), y + 10 + i * 10);
+            } else if (tileVal === 39) { // Right
+              this.ctx.moveTo(x + lineStart, y + 10 + i * 10);
+              this.ctx.lineTo(x + Math.min(CONFIG.TILE_SIZE, lineStart + 10), y + 10 + i * 10);
+            }
+          }
+          this.ctx.stroke();
+          this.ctx.restore();
         }
       }
     }
@@ -3308,6 +3630,160 @@ if (this.player.jumpBufferTimer > 0) {
           const cx = enemy.x + enemy.width / 2;
           const cy = enemy.y + enemy.height / 2;
           drawLazer(this.ctx, cx, cy, enemy.width, enemy.height, enemy.state, enemy.beams);
+        } else if (enemy.type === 'worm') {
+          const cx = enemy.x + enemy.width / 2;
+          const cy = enemy.y + enemy.height / 2;
+          
+          this.ctx.save();
+          // Mound
+          this.ctx.fillStyle = '#92400e';
+          this.ctx.beginPath();
+          this.ctx.ellipse(enemy.x + enemy.width/2, enemy.startY + enemy.height, enemy.width*0.7, enemy.height*0.25, 0, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          if (enemy.wormState !== 'hidden') {
+             // Clip below the mound (allow drawing above it)
+             this.ctx.beginPath();
+             this.ctx.rect(enemy.x - enemy.width, enemy.startY - 1000, enemy.width * 3, 1000 + enemy.height);
+             this.ctx.clip();
+             
+             // Draw Worm Body
+             this.ctx.fillStyle = '#f59e0b';
+             this.ctx.beginPath();
+             // A cylinder like body
+             this.ctx.roundRect(enemy.x, enemy.y, enemy.width, enemy.height * 1.5, 10);
+             this.ctx.fill();
+             // Ribs
+             this.ctx.strokeStyle = '#d97706';
+             this.ctx.lineWidth = 2;
+             for (let r = 10; r < enemy.height; r += 8) {
+               this.ctx.beginPath();
+               this.ctx.moveTo(enemy.x, enemy.y + r);
+               this.ctx.lineTo(enemy.x + enemy.width, enemy.y + r);
+               this.ctx.stroke();
+             }
+             // Eyes
+             this.ctx.fillStyle = '#111';
+             this.ctx.beginPath();
+             this.ctx.arc(enemy.x + enemy.width*0.3, enemy.y + 10, 3, 0, Math.PI*2);
+             this.ctx.arc(enemy.x + enemy.width*0.7, enemy.y + 10, 3, 0, Math.PI*2);
+             this.ctx.fill();
+             // Mouth
+             if (enemy.wormState === 'up') {
+                this.ctx.fillStyle = '#7f1d1d';
+                this.ctx.beginPath();
+                this.ctx.arc(enemy.x + enemy.width/2, enemy.y + 25, 6, 0, Math.PI, false);
+                this.ctx.fill();
+             }
+          }
+          }
+          this.ctx.restore();
+        } else if (enemy.type === 'bat') {
+          this.ctx.save();
+          const cx = enemy.x + enemy.width / 2;
+          const cy = enemy.y + enemy.height / 2;
+          this.ctx.translate(cx, cy);
+          
+          this.ctx.fillStyle = '#52525b'; // zinc-600
+          
+          if (enemy.batState === 'sleeping') {
+            // Hanging bat (wrapped)
+            this.ctx.beginPath();
+            this.ctx.ellipse(0, 0, enemy.width * 0.4, enemy.height * 0.4, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            // Wrapped wings
+            this.ctx.fillStyle = '#3f3f46';
+            this.ctx.beginPath();
+            this.ctx.moveTo(-enemy.width*0.3, -enemy.height*0.2);
+            this.ctx.lineTo(0, enemy.height*0.4);
+            this.ctx.lineTo(enemy.width*0.3, -enemy.height*0.2);
+            this.ctx.fill();
+            // Hanging feet
+            this.ctx.strokeStyle = '#18181b';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(-4, -enemy.height*0.4);
+            this.ctx.lineTo(-4, -enemy.height*0.5);
+            this.ctx.moveTo(4, -enemy.height*0.4);
+            this.ctx.lineTo(4, -enemy.height*0.5);
+            this.ctx.stroke();
+          } else {
+            // Flying bat
+            this.ctx.beginPath();
+            this.ctx.ellipse(0, 0, enemy.width * 0.3, enemy.height * 0.3, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Wings flap
+            const wingY = enemy.walkFrame % 2 === 0 ? -10 : 10;
+            this.ctx.beginPath();
+            this.ctx.moveTo(-enemy.width*0.2, 0);
+            this.ctx.lineTo(-enemy.width, wingY);
+            this.ctx.lineTo(-enemy.width*0.5, 5);
+            this.ctx.fill();
+            this.ctx.beginPath();
+            this.ctx.moveTo(enemy.width*0.2, 0);
+            this.ctx.lineTo(enemy.width, wingY);
+            this.ctx.lineTo(enemy.width*0.5, 5);
+            this.ctx.fill();
+
+            // Eyes
+            this.ctx.fillStyle = '#ef4444';
+            this.ctx.beginPath();
+            this.ctx.arc(-4, -2, 2, 0, Math.PI * 2);
+            this.ctx.arc(4, -2, 2, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+          }
+          this.ctx.restore();
+        } else if (enemy.type === 'mimic') {
+          if (enemy.mimicState === 'disguised') {
+            // Draw a coin block
+            this.ctx.fillStyle = '#e8b76c';
+            this.ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+            this.ctx.fillStyle = '#d4a359';
+            this.ctx.beginPath();
+            this.ctx.arc(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.width * 0.3, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            this.ctx.fillStyle = '#fde047';
+            this.ctx.font = 'bold 16px monospace';
+            const tm = this.ctx.measureText('?');
+            this.ctx.fillText('?', enemy.x + enemy.width/2 - tm.width/2, enemy.y + enemy.height/2 + 5);
+          } else {
+            // Draw an angry block
+            // Shake effect if revealing
+            let sx = enemy.x;
+            let sy = enemy.y;
+            if (enemy.mimicState === 'revealing') {
+               sx += (Math.random() - 0.5) * 4;
+               sy += (Math.random() - 0.5) * 4;
+            }
+            this.ctx.fillStyle = '#ca8a04'; // Darker gold/brown
+            this.ctx.fillRect(sx, sy, enemy.width, enemy.height);
+            this.ctx.fillStyle = '#713f12';
+            this.ctx.beginPath();
+            this.ctx.arc(sx + enemy.width / 2, sy + enemy.height / 2, enemy.width * 0.3, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Angry eyes
+            this.ctx.fillStyle = '#ef4444';
+            this.ctx.beginPath();
+            this.ctx.arc(sx + enemy.width*0.3, sy + enemy.height*0.4, 4, 0, Math.PI*2);
+            this.ctx.arc(sx + enemy.width*0.7, sy + enemy.height*0.4, 4, 0, Math.PI*2);
+            this.ctx.fill();
+            
+            // Teeth
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillRect(sx + enemy.width*0.2, sy + enemy.height*0.7, enemy.width*0.6, 6);
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 1;
+            for (let i=1; i<4; i++) {
+              this.ctx.beginPath();
+              this.ctx.moveTo(sx + enemy.width*0.2 + i*(enemy.width*0.6/4), sy + enemy.height*0.7);
+              this.ctx.lineTo(sx + enemy.width*0.2 + i*(enemy.width*0.6/4), sy + enemy.height*0.7 + 6);
+              this.ctx.stroke();
+            }
+          }
         } else {
           // Centre of the sprite
           const cx = enemy.x + enemy.width / 2;

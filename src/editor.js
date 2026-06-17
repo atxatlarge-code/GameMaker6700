@@ -883,6 +883,48 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_PORTAL_MIRROR:
+        if (this.level.getTile(col, row) !== 34) {
+          this.level.setTile(col, row, 34);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_STALACTITE:
+        if (this.level.getTile(col, row) !== 35) {
+          this.level.setTile(col, row, 35);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_WIND_UP:
+        if (this.level.getTile(col, row) !== 36) {
+          this.level.setTile(col, row, 36);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_WIND_DOWN:
+        if (this.level.getTile(col, row) !== 37) {
+          this.level.setTile(col, row, 37);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_WIND_LEFT:
+        if (this.level.getTile(col, row) !== 38) {
+          this.level.setTile(col, row, 38);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_WIND_RIGHT:
+        if (this.level.getTile(col, row) !== 39) {
+          this.level.setTile(col, row, 39);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_BOUNCY_MUSHROOM:
+        if (this.level.getTile(col, row) !== 40) {
+          this.level.setTile(col, row, 40);
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_BLOCK_CRUMBLE:
         if (this.level.getTile(col, row) !== 22) {
           this.level.setTile(col, row, 22);
@@ -921,6 +963,22 @@ export class Editor {
         break;
       case CONFIG.TOOL_ENEMY_TELEPORT:
         if (this.level.addEnemy(col, row, 0, 0, 'teleport')) {
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_ENEMY_WORM:
+        // A worm enemy, speed and patrol aren't really used since it's stationary, but pass default
+        if (this.level.addEnemy(col, row, 0, 0, 'worm')) {
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_ENEMY_BAT:
+        if (this.level.addEnemy(col, row, 0, 0, 'bat')) {
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_ENEMY_MIMIC:
+        if (this.level.addEnemy(col, row, 0, 0, 'mimic')) {
           audio.playTileSound();
         }
         break;
@@ -1134,6 +1192,26 @@ export class Editor {
           this.ctx.stroke();
           this.ctx.restore();
           break;
+        case CONFIG.TOOL_BOUNCY_MUSHROOM:
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE);
+          // Stem
+          this.ctx.fillStyle = '#fef08a';
+          this.ctx.fillRect(-6, -14, 12, 14);
+          // Cap
+          this.ctx.fillStyle = '#ef4444';
+          this.ctx.beginPath();
+          this.ctx.ellipse(0, -16, 16, 10, 0, Math.PI, 0);
+          this.ctx.fill();
+          // Spots
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.beginPath();
+          this.ctx.arc(-8, -20, 3, 0, Math.PI*2);
+          this.ctx.arc(0, -22, 4, 0, Math.PI*2);
+          this.ctx.arc(8, -18, 2.5, 0, Math.PI*2);
+          this.ctx.fill();
+          this.ctx.restore();
+          break;
         case CONFIG.TOOL_DOUBLE_JUMP:
           this.ctx.save();
           this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
@@ -1201,6 +1279,18 @@ export class Editor {
           this.ctx.fillStyle = '#64748b'; // Straps
           this.ctx.fillRect(x + 4, y + 8, 4, 12);
           this.ctx.fillRect(x + 24, y + 8, 4, 12);
+          break;
+        case CONFIG.TOOL_WIND_UP:
+          this.drawWindPreview(x, y, 0, -1);
+          break;
+        case CONFIG.TOOL_WIND_DOWN:
+          this.drawWindPreview(x, y, 0, 1);
+          break;
+        case CONFIG.TOOL_WIND_LEFT:
+          this.drawWindPreview(x, y, -1, 0);
+          break;
+        case CONFIG.TOOL_WIND_RIGHT:
+          this.drawWindPreview(x, y, 1, 0);
           break;
         case CONFIG.TOOL_WATER:
           this.ctx.fillStyle = 'rgba(59, 130, 246, 0.4)'; // Transparent blue
@@ -1471,13 +1561,24 @@ export class Editor {
           break;
         case CONFIG.TOOL_ENEMY:
         case CONFIG.TOOL_ENEMY_CHASER:
+        case CONFIG.TOOL_ENEMY_WORM:
+        case CONFIG.TOOL_ENEMY_BAT:
+        case CONFIG.TOOL_ENEMY_MIMIC:
         case CONFIG.TOOL_ENEMY_TELEPORT: {
           const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
-          const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 5 || tileVal === 6 || tileVal === 7) ||
+          let isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 5 || tileVal === 6 || tileVal === 7) ||
             (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
             (this.level.goalPos && this.level.goalPos.col === this.hoverCol && this.level.goalPos.row === this.hoverRow) ||
             ((this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||
              (this.level.portal2 && this.level.portal2.col === this.hoverCol && this.level.portal2.row === this.hoverRow));
+
+          if (this.currentTool === CONFIG.TOOL_ENEMY_BAT) {
+             const ceilingVal = this.level.getTile(this.hoverCol, this.hoverRow - 1);
+             // Must have a solid block above it
+             if (ceilingVal !== 1 && ceilingVal !== 2 && ceilingVal !== 7) {
+                isInvalid = true;
+             }
+          }
 
           if (isInvalid) {
             // Draw soft red warning square underneath
@@ -1497,6 +1598,9 @@ export class Editor {
             let color = 'rgba(30,23,32,0.8)';
             if (this.currentTool === CONFIG.TOOL_ENEMY_CHASER) color = 'rgba(150, 40, 40, 0.8)';
             if (this.currentTool === CONFIG.TOOL_ENEMY_TELEPORT) color = 'rgba(100, 40, 160, 0.8)';
+            if (this.currentTool === CONFIG.TOOL_ENEMY_WORM) color = 'rgba(217, 119, 6, 0.8)';
+            if (this.currentTool === CONFIG.TOOL_ENEMY_BAT) color = 'rgba(113, 113, 122, 0.8)';
+            if (this.currentTool === CONFIG.TOOL_ENEMY_MIMIC) color = 'rgba(234, 179, 8, 0.8)';
             this.ctx.fillStyle = color;
             this.ctx.beginPath();
             this.ctx.arc(cx2 + Math.cos(a) * r2 * 0.88, cy2 + Math.sin(a) * r2 * 0.88, r2 * 0.25, 0, Math.PI * 2);
@@ -1506,6 +1610,9 @@ export class Editor {
           let bodyColor = 'rgba(30,23,32,0.85)';
           if (this.currentTool === CONFIG.TOOL_ENEMY_CHASER) bodyColor = 'rgba(180, 50, 50, 0.85)';
           if (this.currentTool === CONFIG.TOOL_ENEMY_TELEPORT) bodyColor = 'rgba(130, 50, 190, 0.85)';
+          if (this.currentTool === CONFIG.TOOL_ENEMY_WORM) bodyColor = 'rgba(245, 158, 11, 0.85)';
+          if (this.currentTool === CONFIG.TOOL_ENEMY_BAT) bodyColor = 'rgba(82, 82, 91, 0.85)';
+          if (this.currentTool === CONFIG.TOOL_ENEMY_MIMIC) bodyColor = 'rgba(202, 138, 4, 0.85)';
           this.ctx.fillStyle = bodyColor;
           this.ctx.beginPath();
           this.ctx.arc(cx2, cy2, r2, 0, Math.PI * 2);
@@ -1548,18 +1655,39 @@ export class Editor {
 
       // Border highlight around hovered tile
       let isValid = true;
-      if (this.currentTool === CONFIG.TOOL_ENEMY || this.currentTool === CONFIG.TOOL_ENEMY_CHASER || this.currentTool === CONFIG.TOOL_LAZER) {
+      if (this.currentTool === CONFIG.TOOL_ENEMY || this.currentTool === CONFIG.TOOL_ENEMY_CHASER || this.currentTool === CONFIG.TOOL_ENEMY_WORM || this.currentTool === CONFIG.TOOL_ENEMY_BAT || this.currentTool === CONFIG.TOOL_ENEMY_MIMIC || this.currentTool === CONFIG.TOOL_LAZER) {
         const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
-        const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6 || tileVal === 7) ||
+        let isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6 || tileVal === 7) ||
           (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
           (this.level.goalPos && this.level.goalPos.col === this.hoverCol && this.level.goalPos.row === this.hoverRow) ||
           ((this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||
            (this.level.portal2 && this.level.portal2.col === this.hoverCol && this.level.portal2.row === this.hoverRow));
+        if (this.currentTool === CONFIG.TOOL_ENEMY_BAT) {
+           const ceilingVal = this.level.getTile(this.hoverCol, this.hoverRow - 1);
+           if (ceilingVal !== 1 && ceilingVal !== 2 && ceilingVal !== 7) isInvalid = true;
+        }
         if (isInvalid) isValid = false;
       }
       this.ctx.strokeStyle = isValid ? '#d4a359' : '#ef4444';
       this.ctx.lineWidth = 2;
       this.ctx.strokeRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
     }
+  }
+
+  drawWindPreview(x, y, dx, dy) {
+    this.ctx.fillStyle = 'rgba(148, 163, 184, 0.4)';
+    this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+    this.ctx.strokeStyle = '#cbd5e1';
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    const cx = x + CONFIG.TILE_SIZE / 2;
+    const cy = y + CONFIG.TILE_SIZE / 2;
+    this.ctx.moveTo(cx - dx * 8, cy - dy * 8);
+    this.ctx.lineTo(cx + dx * 8, cy + dy * 8);
+    // Arrow head
+    this.ctx.lineTo(cx + dx * 8 - dx * 4 - dy * 4, cy + dy * 8 - dy * 4 + dx * 4);
+    this.ctx.moveTo(cx + dx * 8, cy + dy * 8);
+    this.ctx.lineTo(cx + dx * 8 - dx * 4 + dy * 4, cy + dy * 8 - dy * 4 - dx * 4);
+    this.ctx.stroke();
   }
 }

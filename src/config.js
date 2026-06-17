@@ -39,6 +39,10 @@ export const CONFIG = {
   TOOL_ENEMY: 'enemy',
   TOOL_COIN: 'coin',
   TOOL_BREAKABLE: 'breakable',
+  // Wind
+  WIND_FORCE: 0.35,
+
+  // Tool Selection Constants
   TOOL_EARTH: 'earth',
   TOOL_KEY: 'key',
   TOOL_LOCK: 'lock',
@@ -64,11 +68,20 @@ export const CONFIG = {
   TOOL_BUMPER: 'bumper',
   TOOL_GRAVITY_SWITCH: 'gravity_switch',
   TOOL_JETPACK: 'jetpack',
+  TOOL_BOUNCY_MUSHROOM: 'bouncy_mushroom',
   TOOL_ENEMY_TELEPORT: 'enemy_teleport',
   TOOL_WATER: 'water',
   TOOL_SLIME: 'slime',
   TOOL_BOOMERANG: 'boomerang',
   TOOL_PORTAL_MIRROR: 'portal_mirror',
+  TOOL_STALACTITE: 'stalactite',
+  TOOL_WIND_UP: 'wind_up',
+  TOOL_WIND_DOWN: 'wind_down',
+  TOOL_WIND_LEFT: 'wind_left',
+  TOOL_WIND_RIGHT: 'wind_right',
+  TOOL_ENEMY_WORM: 'enemy_worm',
+  TOOL_ENEMY_BAT: 'enemy_bat',
+  TOOL_ENEMY_MIMIC: 'enemy_mimic',
 
   // Enemy defaults
   ENEMY_SPEED: 1.8,
