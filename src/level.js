@@ -10,7 +10,8 @@ export class Level {
     this.portal1 = null;
     this.portal2 = null;
     this._nextPortal = 1;
-    this.enemies = []; // [{ id, col, row, speed, patrolRange }]
+    this.enemies = []; // [{ id, col, row, speed, patrolRange, type }]
+    this.platforms = []; // [{ id, col, row, distance, axis }]
     this.isPreset = true;
     this.onModify = null;
     this.history = [];
@@ -28,6 +29,7 @@ export class Level {
     this.portal2 = levelData.portal2 ? { ...levelData.portal2 } : null;
     this._nextPortal = 1;
     this.enemies = levelData.enemies ? levelData.enemies.map(e => ({ ...e })) : [];
+    this.platforms = levelData.platforms ? levelData.platforms.map(p => ({ ...p })) : [];
     this.isPreset = levelData.isPreset || false;
     this.history = [];
   }
@@ -43,6 +45,7 @@ export class Level {
       portal1: this.portal1 ? { ...this.portal1 } : null,
       portal2: this.portal2 ? { ...this.portal2 } : null,
       enemies: this.enemies.map(e => ({ ...e })),
+      platforms: this.platforms.map(p => ({ ...p })),
       isPreset: this.isPreset,
     };
   }
@@ -57,6 +60,7 @@ export class Level {
       portal2: this.portal2 ? { ...this.portal2 } : null,
       _nextPortal: this._nextPortal,
       enemies: this.enemies.map(e => ({ ...e })),
+      platforms: this.platforms.map(p => ({ ...p })),
     });
     if (this.history.length > 30) {
       this.history.shift();
@@ -73,6 +77,7 @@ export class Level {
       this.portal2 = state.portal2;
       this._nextPortal = state._nextPortal;
       this.enemies = state.enemies ? state.enemies.map(e => ({ ...e })) : [];
+      this.platforms = state.platforms ? state.platforms.map(p => ({ ...p })) : [];
       if (this.onModify) this.onModify();
       return true;
     }
@@ -83,6 +88,13 @@ export class Level {
     const idx = this.enemies.findIndex(e => e.col === col && e.row === row);
     if (idx !== -1) {
       this.enemies.splice(idx, 1);
+    }
+  }
+
+  _removePlatformInternal(col, row) {
+    const idx = this.platforms.findIndex(p => p.col === col && p.row === row);
+    if (idx !== -1) {
+      this.platforms.splice(idx, 1);
     }
   }
 
@@ -120,6 +132,21 @@ export class Level {
       speed,
       patrolRange,
       type,
+    });
+    if (this.onModify) this.onModify();
+    return true;
+  }
+
+  addPlatform(col, row, distance = 4, axis = 'x') {
+    if (this.platforms.some(p => p.col === col && p.row === row)) return false;
+
+    this.pushHistory();
+    this.platforms.push({
+      id: `platform-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      col,
+      row,
+      distance,
+      axis
     });
     if (this.onModify) this.onModify();
     return true;
@@ -185,6 +212,7 @@ export class Level {
           if (value === 1 || value === 3 || value === 4 || value === 6 || value === 7) {
             this._removeEnemyInternal(col, row);
           }
+          this._removePlatformInternal(col, row);
         }
         this.grid[row][col] = value;
         if (this.onModify) this.onModify();

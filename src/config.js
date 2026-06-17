@@ -50,6 +50,17 @@ export const CONFIG = {
   TOOL_LAZER: 'lazer',
   TOOL_BLOCK_GHOST: 'block_ghost',
   TOOL_SPRING_BOOTS: 'spring_boots',
+  TOOL_BLOCK_ICE: 'block_ice',
+  TOOL_PORTAL_GRAVITY: 'portal_gravity',
+  TOOL_CONVEYOR_LEFT: 'conveyor_left',
+  TOOL_CONVEYOR_RIGHT: 'conveyor_right',
+  TOOL_TRIPWIRE: 'tripwire',
+  TOOL_BLOCK_CRUMBLE: 'block_crumble',
+  TOOL_MOVING_PLATFORM: 'moving_platform',
+  TOOL_DOUBLE_JUMP: 'double_jump',
+  TOOL_CHECKPOINT: 'checkpoint',
+  TOOL_FAKE_WALL: 'fake_wall',
+  TOOL_SPEED_BOOST: 'speed_boost',
 
   // Enemy defaults
   ENEMY_SPEED: 1.8,

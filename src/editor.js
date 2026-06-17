@@ -350,17 +350,12 @@ export class Editor {
   }
 
   renderEarthBlock(x, y, alpha = 1, col = null, row = null, engine = null) {
-    this.ctx.save();
-    this.ctx.globalAlpha = alpha;
-    this.ctx.translate(x, y);
-
-    const colors = this.getBreakableColors();
-    const size = CONFIG.TILE_SIZE;
+    if (!this.earthCache) this.earthCache = new Map();
 
     const c = col !== null ? col : 0;
     const r = row !== null ? row : 0;
+    const theme = engine ? engine.theme : this.theme;
 
-    // A neighbor is solid if it is a Wall (1), Breakable (6), or Earth (7)
     const isSolid = (colNum, rowNum) => {
       if (engine) {
         const t = engine.getTile(colNum, rowNum);
@@ -374,247 +369,245 @@ export class Editor {
     const hasTop = row !== null && isSolid(c, r - 1);
     const hasBottom = row !== null && isSolid(c, r + 1);
 
-    // Helper to get a stable, wobbly offset along grid coordinates
-    const getWobble = (seed) => {
-      const val = Math.sin(seed) * 10000;
-      return val - Math.floor(val);
-    };
+    const cacheKey = `${c}_${r}_${theme}_${hasLeft ? 1 : 0}${hasRight ? 1 : 0}${hasTop ? 1 : 0}${hasBottom ? 1 : 0}`;
 
-    // 1. Fill base mud block background using the wobbly outline
-    this.ctx.beginPath();
-    this.ctx.moveTo(0, 0);
+    let cachedCanvas = this.earthCache.get(cacheKey);
 
-    // Top edge path
-    if (hasTop) {
-      this.ctx.lineTo(size, 0);
-    } else {
-      const w = (getWobble(c * 17 + r * 31) - 0.5) * 5;
-      this.ctx.quadraticCurveTo(size / 2, w, size, 0);
-    }
+    if (!cachedCanvas) {
+      cachedCanvas = document.createElement('canvas');
+      const pad = 12;
+      cachedCanvas.width = CONFIG.TILE_SIZE + pad * 2;
+      cachedCanvas.height = CONFIG.TILE_SIZE + pad * 2;
+      const offCtx = cachedCanvas.getContext('2d');
+      offCtx.translate(pad, pad);
 
-    // Right edge path
-    if (hasRight) {
-      this.ctx.lineTo(size, size);
-    } else {
-      const w = (getWobble(c * 19 + r * 29) - 0.5) * 5;
-      this.ctx.quadraticCurveTo(size + w, size / 2, size, size);
-    }
+      const colors = this.getBreakableColors();
+      const size = CONFIG.TILE_SIZE;
 
-    // Bottom edge path
-    if (hasBottom) {
-      this.ctx.lineTo(0, size);
-    } else {
-      const w = (getWobble(c * 23 + r * 37) - 0.5) * 5;
-      this.ctx.quadraticCurveTo(size / 2, size + w, 0, size);
-    }
+      const getWobble = (seed) => {
+        const val = Math.sin(seed) * 10000;
+        return val - Math.floor(val);
+      };
 
-    // Left edge path
-    if (hasLeft) {
-      this.ctx.lineTo(0, 0);
-    } else {
-      const w = (getWobble(c * 13 + r * 41) - 0.5) * 5;
-      this.ctx.quadraticCurveTo(w, size / 2, 0, 0);
-    }
-    this.ctx.closePath();
+      offCtx.beginPath();
+      offCtx.moveTo(0, 0);
 
-    // Create earthy linear gradient
-    const grad = this.ctx.createLinearGradient(0, 0, 0, size);
-    grad.addColorStop(0, colors.primary);
-    grad.addColorStop(1, colors.dark);
-    this.ctx.fillStyle = grad;
-    this.ctx.fill();
-
-    // 2. Draw wobbly horizontal earth layers (no vertical joints all the way through)
-    const seed = c * 71 + r * 93;
-    let rngVal = seed + 42;
-    const nextRandom = () => {
-      rngVal = Math.sin(rngVal) * 10000;
-      return rngVal - Math.floor(rngVal);
-    };
-
-    const hasStrata1 = nextRandom() > 0.15; // 85% chance for upper strata
-    const hasStrata2 = nextRandom() > 0.25; // 75% chance for lower strata
-
-    this.ctx.strokeStyle = colors.border;
-    this.ctx.lineWidth = 1.8;
-
-    if (hasStrata1) {
-      const y1 = size * (0.28 + nextRandom() * 0.14);
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, y1 + (getWobble(seed) - 0.5) * 4);
-      for (let lx = 0; lx <= size; lx += 8) {
-        const wy = y1 + (getWobble(seed + lx) - 0.5) * 3;
-        this.ctx.lineTo(lx, wy);
-      }
-      this.ctx.stroke();
-    }
-
-    if (hasStrata2) {
-      const y2 = size * (0.62 + nextRandom() * 0.16);
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, y2 + (getWobble(seed + 10) - 0.5) * 4);
-      for (let lx = 0; lx <= size; lx += 8) {
-        const wy = y2 + (getWobble(seed + 10 + lx) - 0.5) * 3;
-        this.ctx.lineTo(lx, wy);
-      }
-      this.ctx.stroke();
-    }
-
-    // 3. Draw organic, highly varied pebble/stone details (randomly distributed per block)
-    const numDetails = Math.floor(nextRandom() * 4); // 0 to 3 details
-    for (let i = 0; i < numDetails; i++) {
-      const minX = hasLeft ? 2 : 6;
-      const maxX = hasRight ? size - 2 : size - 6;
-      const minY = hasTop ? 2 : 12;
-      const maxY = hasBottom ? size - 2 : size - 8;
-
-      if (maxX <= minX || maxY <= minY) continue;
-
-      const px = minX + nextRandom() * (maxX - minX);
-      const py = minY + nextRandom() * (maxY - minY);
-      const detailType = Math.floor(nextRandom() * 3); // 0: round pebble, 1: line/crack, 2: dot cluster
-
-      this.ctx.fillStyle = colors.detail;
-      this.ctx.strokeStyle = colors.detail;
-
-      if (detailType === 0) {
-        // Round pebble
-        const pr = 1.2 + nextRandom() * 2.2;
-        this.ctx.beginPath();
-        this.ctx.arc(px, py, pr, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Highlight
-        if (pr > 1.8) {
-          this.ctx.fillStyle = colors.light;
-          this.ctx.beginPath();
-          this.ctx.arc(px - pr * 0.3, py - pr * 0.3, pr * 0.3, 0, Math.PI * 2);
-          this.ctx.fill();
-        }
-      } else if (detailType === 1) {
-        // Horizontal/slanted strata speck
-        const length = 3 + nextRandom() * 5;
-        const angle = (nextRandom() - 0.5) * 0.4;
-        this.ctx.lineWidth = 1.0 + nextRandom() * 0.8;
-        this.ctx.beginPath();
-        this.ctx.moveTo(px - length / 2, py - (length / 2) * Math.sin(angle));
-        this.ctx.lineTo(px + length / 2, py + (length / 2) * Math.sin(angle));
-        this.ctx.stroke();
+      if (hasTop) {
+        offCtx.lineTo(size, 0);
       } else {
-        // Small cluster (2 to 3 tiny specks)
-        const numDots = 2 + Math.floor(nextRandom() * 2);
-        for (let d = 0; d < numDots; d++) {
-          const dx = px + (nextRandom() - 0.5) * 5;
-          const dy = py + (nextRandom() - 0.5) * 5;
-          if (dx >= minX && dx <= maxX && dy >= minY && dy <= maxY) {
-            this.ctx.beginPath();
-            this.ctx.arc(dx, dy, 0.8 + nextRandom() * 0.8, 0, Math.PI * 2);
-            this.ctx.fill();
+        const w = (getWobble(c * 17 + r * 31) - 0.5) * 5;
+        offCtx.quadraticCurveTo(size / 2, w, size, 0);
+      }
+
+      if (hasRight) {
+        offCtx.lineTo(size, size);
+      } else {
+        const w = (getWobble(c * 19 + r * 29) - 0.5) * 5;
+        offCtx.quadraticCurveTo(size + w, size / 2, size, size);
+      }
+
+      if (hasBottom) {
+        offCtx.lineTo(0, size);
+      } else {
+        const w = (getWobble(c * 23 + r * 37) - 0.5) * 5;
+        offCtx.quadraticCurveTo(size / 2, size + w, 0, size);
+      }
+
+      if (hasLeft) {
+        offCtx.lineTo(0, 0);
+      } else {
+        const w = (getWobble(c * 13 + r * 41) - 0.5) * 5;
+        offCtx.quadraticCurveTo(w, size / 2, 0, 0);
+      }
+      offCtx.closePath();
+
+      const grad = offCtx.createLinearGradient(0, 0, 0, size);
+      grad.addColorStop(0, colors.primary);
+      grad.addColorStop(1, colors.dark);
+      offCtx.fillStyle = grad;
+      offCtx.fill();
+
+      const seed = c * 71 + r * 93;
+      let rngVal = seed + 42;
+      const nextRandom = () => {
+        rngVal = Math.sin(rngVal) * 10000;
+        return rngVal - Math.floor(rngVal);
+      };
+
+      const hasStrata1 = nextRandom() > 0.15;
+      const hasStrata2 = nextRandom() > 0.25;
+
+      offCtx.strokeStyle = colors.border;
+      offCtx.lineWidth = 1.8;
+
+      if (hasStrata1) {
+        const y1 = size * (0.28 + nextRandom() * 0.14);
+        offCtx.beginPath();
+        offCtx.moveTo(0, y1 + (getWobble(seed) - 0.5) * 4);
+        for (let lx = 0; lx <= size; lx += 8) {
+          const wy = y1 + (getWobble(seed + lx) - 0.5) * 3;
+          offCtx.lineTo(lx, wy);
+        }
+        offCtx.stroke();
+      }
+
+      if (hasStrata2) {
+        const y2 = size * (0.62 + nextRandom() * 0.16);
+        offCtx.beginPath();
+        offCtx.moveTo(0, y2 + (getWobble(seed + 10) - 0.5) * 4);
+        for (let lx = 0; lx <= size; lx += 8) {
+          const wy = y2 + (getWobble(seed + 10 + lx) - 0.5) * 3;
+          offCtx.lineTo(lx, wy);
+        }
+        offCtx.stroke();
+      }
+
+      const numDetails = Math.floor(nextRandom() * 4);
+      for (let i = 0; i < numDetails; i++) {
+        const minX = hasLeft ? 2 : 6;
+        const maxX = hasRight ? size - 2 : size - 6;
+        const minY = hasTop ? 2 : 12;
+        const maxY = hasBottom ? size - 2 : size - 8;
+
+        if (maxX <= minX || maxY <= minY) continue;
+
+        const px = minX + nextRandom() * (maxX - minX);
+        const py = minY + nextRandom() * (maxY - minY);
+        const detailType = Math.floor(nextRandom() * 3);
+
+        offCtx.fillStyle = colors.detail;
+        offCtx.strokeStyle = colors.detail;
+
+        if (detailType === 0) {
+          const pr = 1.2 + nextRandom() * 2.2;
+          offCtx.beginPath();
+          offCtx.arc(px, py, pr, 0, Math.PI * 2);
+          offCtx.fill();
+
+          if (pr > 1.8) {
+            offCtx.fillStyle = colors.light;
+            offCtx.beginPath();
+            offCtx.arc(px - pr * 0.3, py - pr * 0.3, pr * 0.3, 0, Math.PI * 2);
+            offCtx.fill();
+          }
+        } else if (detailType === 1) {
+          const length = 3 + nextRandom() * 5;
+          const angle = (nextRandom() - 0.5) * 0.4;
+          offCtx.lineWidth = 1.0 + nextRandom() * 0.8;
+          offCtx.beginPath();
+          offCtx.moveTo(px - length / 2, py - (length / 2) * Math.sin(angle));
+          offCtx.lineTo(px + length / 2, py + (length / 2) * Math.sin(angle));
+          offCtx.stroke();
+        } else {
+          const numDots = 2 + Math.floor(nextRandom() * 2);
+          for (let d = 0; d < numDots; d++) {
+            const dx = px + (nextRandom() - 0.5) * 5;
+            const dy = py + (nextRandom() - 0.5) * 5;
+            if (dx >= minX && dx <= maxX && dy >= minY && dy <= maxY) {
+              offCtx.beginPath();
+              offCtx.arc(dx, dy, 0.8 + nextRandom() * 0.8, 0, Math.PI * 2);
+              offCtx.fill();
+            }
           }
         }
       }
-    }
 
-    // 4. Draw grass/moss top/side paths on exposed edges
-    let mossColor = '#689f38'; // default forest green
-    if (this.theme === 'spooky') mossColor = '#00ffcc';
-    else if (this.theme === 'butterflies') mossColor = '#9b2247';
-    else if (this.theme === 'icecream') mossColor = '#e07a5f';
-    else if (this.theme === '16bit') mossColor = '#829c36';
+      let mossColor = '#689f38';
+      if (theme === 'spooky') mossColor = '#00ffcc';
+      else if (theme === 'butterflies') mossColor = '#9b2247';
+      else if (theme === 'icecream') mossColor = '#e07a5f';
+      else if (theme === '16bit') mossColor = '#829c36';
 
-    // Draw grass outline/fill on top if no solid block above
-    if (!hasTop) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, 0);
-      this.ctx.lineTo(size, 0);
-      // Draw wobbly grass clumps hanging down
-      for (let gx = size; gx >= 0; gx -= 5) {
-        const wobble = 6 + Math.sin(gx * 0.35 + seed) * 3.5;
-        this.ctx.lineTo(gx, wobble);
+      if (!hasTop) {
+        offCtx.beginPath();
+        offCtx.moveTo(0, 0);
+        offCtx.lineTo(size, 0);
+        for (let gx = size; gx >= 0; gx -= 5) {
+          const wobble = 6 + Math.sin(gx * 0.35 + seed) * 3.5;
+          offCtx.lineTo(gx, wobble);
+        }
+        offCtx.closePath();
+        offCtx.fillStyle = mossColor;
+        offCtx.fill();
+
+        offCtx.fillStyle = mossColor;
+        offCtx.beginPath();
+        offCtx.moveTo(size * 0.22, 1);
+        offCtx.quadraticCurveTo(size * 0.24, -3.5, size * 0.27, -2);
+        offCtx.quadraticCurveTo(size * 0.25, -1, size * 0.3, 1);
+        offCtx.moveTo(size * 0.5, 1);
+        offCtx.quadraticCurveTo(size * 0.48, -4.5, size * 0.45, -2.5);
+        offCtx.quadraticCurveTo(size * 0.52, -1, size * 0.55, 1);
+        offCtx.moveTo(size * 0.78, 1);
+        offCtx.quadraticCurveTo(size * 0.76, -3.5, size * 0.73, -2);
+        offCtx.quadraticCurveTo(size * 0.8, -1, size * 0.83, 1);
+        offCtx.fill();
       }
-      this.ctx.closePath();
-      this.ctx.fillStyle = mossColor;
-      this.ctx.fill();
 
-      // Draw a few small vertical grass blades on top of the block
-      this.ctx.fillStyle = mossColor;
-      this.ctx.beginPath();
-      // Left blade
-      this.ctx.moveTo(size * 0.22, 1);
-      this.ctx.quadraticCurveTo(size * 0.24, -3.5, size * 0.27, -2);
-      this.ctx.quadraticCurveTo(size * 0.25, -1, size * 0.3, 1);
-      // Center blade
-      this.ctx.moveTo(size * 0.5, 1);
-      this.ctx.quadraticCurveTo(size * 0.48, -4.5, size * 0.45, -2.5);
-      this.ctx.quadraticCurveTo(size * 0.52, -1, size * 0.55, 1);
-      // Right blade
-      this.ctx.moveTo(size * 0.78, 1);
-      this.ctx.quadraticCurveTo(size * 0.76, -3.5, size * 0.73, -2);
-      this.ctx.quadraticCurveTo(size * 0.8, -1, size * 0.83, 1);
-      this.ctx.fill();
-    }
-
-    // Draw grass/moss on left side if no solid block on left
-    if (!hasLeft) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, 0);
-      for (let gy = 0; gy <= size; gy += 5) {
-        const wobble = 6 + Math.sin(gy * 0.35 + seed + 1.5) * 3.5;
-        this.ctx.lineTo(wobble, gy);
+      if (!hasLeft) {
+        offCtx.beginPath();
+        offCtx.moveTo(0, 0);
+        for (let gy = 0; gy <= size; gy += 5) {
+          const wobble = 6 + Math.sin(gy * 0.35 + seed + 1.5) * 3.5;
+          offCtx.lineTo(wobble, gy);
+        }
+        offCtx.lineTo(0, size);
+        offCtx.closePath();
+        offCtx.fillStyle = mossColor;
+        offCtx.fill();
       }
-      this.ctx.lineTo(0, size);
-      this.ctx.closePath();
-      this.ctx.fillStyle = mossColor;
-      this.ctx.fill();
-    }
 
-    // Draw grass/moss on right side if no solid block on right
-    if (!hasRight) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(size, 0);
-      for (let gy = 0; gy <= size; gy += 5) {
-        const wobble = size - (6 + Math.sin(gy * 0.35 + seed + 3) * 3.5);
-        this.ctx.lineTo(wobble, gy);
+      if (!hasRight) {
+        offCtx.beginPath();
+        offCtx.moveTo(size, 0);
+        for (let gy = 0; gy <= size; gy += 5) {
+          const wobble = size - (6 + Math.sin(gy * 0.35 + seed + 3) * 3.5);
+          offCtx.lineTo(wobble, gy);
+        }
+        offCtx.lineTo(size, size);
+        offCtx.closePath();
+        offCtx.fillStyle = mossColor;
+        offCtx.fill();
       }
-      this.ctx.lineTo(size, size);
-      this.ctx.closePath();
-      this.ctx.fillStyle = mossColor;
-      this.ctx.fill();
+
+      offCtx.strokeStyle = colors.border;
+      offCtx.lineWidth = 2.5;
+
+      if (!hasTop) {
+        offCtx.beginPath();
+        offCtx.moveTo(0, 0);
+        const w = (getWobble(c * 17 + r * 31) - 0.5) * 5;
+        offCtx.quadraticCurveTo(size / 2, w, size, 0);
+        offCtx.stroke();
+      }
+      if (!hasRight) {
+        offCtx.beginPath();
+        offCtx.moveTo(size, 0);
+        const w = (getWobble(c * 19 + r * 29) - 0.5) * 5;
+        offCtx.quadraticCurveTo(size + w, size / 2, size, size);
+        offCtx.stroke();
+      }
+      if (!hasBottom) {
+        offCtx.beginPath();
+        offCtx.moveTo(size, size);
+        const w = (getWobble(c * 23 + r * 37) - 0.5) * 5;
+        offCtx.quadraticCurveTo(size / 2, size + w, 0, size);
+        offCtx.stroke();
+      }
+      if (!hasLeft) {
+        offCtx.beginPath();
+        offCtx.moveTo(0, size);
+        const w = (getWobble(c * 13 + r * 41) - 0.5) * 5;
+        offCtx.quadraticCurveTo(w, size / 2, 0, 0);
+        offCtx.stroke();
+      }
+
+      this.earthCache.set(cacheKey, cachedCanvas);
     }
 
-    // 5. Draw Hand-Drawn Outline Strokes on external exposed edges (non-molded)
-    this.ctx.strokeStyle = colors.border;
-    this.ctx.lineWidth = 2.5;
-
-    if (!hasTop) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, 0);
-      const w = (getWobble(c * 17 + r * 31) - 0.5) * 5;
-      this.ctx.quadraticCurveTo(size / 2, w, size, 0);
-      this.ctx.stroke();
-    }
-    if (!hasRight) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(size, 0);
-      const w = (getWobble(c * 19 + r * 29) - 0.5) * 5;
-      this.ctx.quadraticCurveTo(size + w, size / 2, size, size);
-      this.ctx.stroke();
-    }
-    if (!hasBottom) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(size, size);
-      const w = (getWobble(c * 23 + r * 37) - 0.5) * 5;
-      this.ctx.quadraticCurveTo(size / 2, size + w, 0, size);
-      this.ctx.stroke();
-    }
-    if (!hasLeft) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, size);
-      const w = (getWobble(c * 13 + r * 41) - 0.5) * 5;
-      this.ctx.quadraticCurveTo(w, size / 2, 0, 0);
-      this.ctx.stroke();
-    }
-
+    this.ctx.save();
+    this.ctx.globalAlpha = alpha;
+    this.ctx.drawImage(cachedCanvas, x - 12, y - 12);
     this.ctx.restore();
   }
 
@@ -797,6 +790,71 @@ export class Editor {
       case CONFIG.TOOL_SPRING_BOOTS:
         if (this.level.getTile(col, row) !== 16) {
           this.level.setTile(col, row, 16);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_DOUBLE_JUMP:
+        if (this.level.getTile(col, row) !== 24) {
+          this.level.setTile(col, row, 24);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_BLOCK_ICE:
+        if (this.level.getTile(col, row) !== 17) {
+          this.level.setTile(col, row, 17);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_PORTAL_GRAVITY:
+        if (this.level.getTile(col, row) !== 18) {
+          this.level.setTile(col, row, 18);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_CONVEYOR_LEFT:
+        if (this.level.getTile(col, row) !== 19) {
+          this.level.setTile(col, row, 19);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_CONVEYOR_RIGHT:
+        if (this.level.getTile(col, row) !== 20) {
+          this.level.setTile(col, row, 20);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_TRIPWIRE:
+        if (this.level.getTile(col, row) !== 21) {
+          this.level.setTile(col, row, 21);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_CHECKPOINT:
+        if (this.level.getTile(col, row) !== 25) {
+          this.level.setTile(col, row, 25);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_FAKE_WALL:
+        if (this.level.getTile(col, row) !== 26) {
+          this.level.setTile(col, row, 26);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_SPEED_BOOST:
+        if (this.level.getTile(col, row) !== 27) {
+          this.level.setTile(col, row, 27);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_BLOCK_CRUMBLE:
+        if (this.level.getTile(col, row) !== 22) {
+          this.level.setTile(col, row, 22);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_MOVING_PLATFORM:
+        if (this.level.addPlatform(col, row)) {
           audio.playTileSound();
         }
         break;
@@ -1024,11 +1082,135 @@ export class Editor {
           this.ctx.lineTo(-5, 9);
           this.ctx.lineTo(5, 7);
           this.ctx.lineTo(-5, 11);
-          this.ctx.lineTo(5, 9);
+          this.ctx.lineTo(-5, 11);
           this.ctx.lineTo(5, 13);
           this.ctx.strokeStyle = '#a3a3a3';
           this.ctx.stroke();
           this.ctx.restore();
+          break;
+        case CONFIG.TOOL_DOUBLE_JUMP:
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          this.ctx.fillStyle = '#0ea5e9'; // Light Blue
+          this.ctx.beginPath();
+          this.ctx.arc(-8, -2, 6, 0, Math.PI * 2);
+          this.ctx.arc(8, -2, 6, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#38bdf8';
+          this.ctx.beginPath();
+          this.ctx.moveTo(0, 10);
+          this.ctx.lineTo(-12, -4);
+          this.ctx.lineTo(-4, -4);
+          this.ctx.lineTo(0, 4);
+          this.ctx.lineTo(4, -4);
+          this.ctx.lineTo(12, -4);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.restore();
+          break;
+        case CONFIG.TOOL_SPEED_BOOST:
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          this.ctx.fillStyle = '#f59e0b'; // Amber
+          this.ctx.beginPath();
+          this.ctx.moveTo(-10, 5);
+          this.ctx.lineTo(5, 5);
+          this.ctx.lineTo(-2, -5);
+          this.ctx.lineTo(12, -5);
+          this.ctx.lineTo(-5, -15);
+          this.ctx.lineTo(2, -5);
+          this.ctx.lineTo(-12, -5);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.restore();
+          break;
+        case CONFIG.TOOL_BLOCK_ICE:
+          this.ctx.fillStyle = '#a5f3fc';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#cffafe';
+          this.ctx.fillRect(x + 2, y + 2, CONFIG.TILE_SIZE - 4, 4);
+          this.ctx.fillRect(x + 2, y + 6, 4, CONFIG.TILE_SIZE - 8);
+          break;
+        case CONFIG.TOOL_PORTAL_GRAVITY:
+          const cxG = x + CONFIG.TILE_SIZE / 2;
+          const cyG = y + CONFIG.TILE_SIZE / 2;
+          this.ctx.fillStyle = 'rgba(139, 92, 246, 0.4)';
+          this.ctx.beginPath();
+          this.ctx.arc(cxG, cyG, CONFIG.TILE_SIZE * 0.4, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#c084fc';
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.arc(cxG, cyG, CONFIG.TILE_SIZE * 0.45, 0, Math.PI * 2);
+          this.ctx.stroke();
+          // Upward arrow
+          this.ctx.fillStyle = '#c084fc';
+          this.ctx.beginPath();
+          this.ctx.moveTo(cxG, cyG - 10);
+          this.ctx.lineTo(cxG - 6, cyG + 2);
+          this.ctx.lineTo(cxG - 2, cyG + 2);
+          this.ctx.lineTo(cxG - 2, cyG + 10);
+          this.ctx.lineTo(cxG + 2, cyG + 10);
+          this.ctx.lineTo(cxG + 2, cyG + 2);
+          this.ctx.lineTo(cxG + 6, cyG + 2);
+          this.ctx.closePath();
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_CONVEYOR_LEFT:
+        case CONFIG.TOOL_CONVEYOR_RIGHT:
+          this.ctx.fillStyle = '#64748b';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#94a3b8';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 6);
+          this.ctx.fillStyle = '#f8fafc';
+          this.ctx.beginPath();
+          if (this.currentTool === CONFIG.TOOL_CONVEYOR_LEFT) {
+            this.ctx.moveTo(x + 25, y + 15);
+            this.ctx.lineTo(x + 15, y + 20);
+            this.ctx.lineTo(x + 25, y + 25);
+          } else {
+            this.ctx.moveTo(x + 15, y + 15);
+            this.ctx.lineTo(x + 25, y + 20);
+            this.ctx.lineTo(x + 15, y + 25);
+          }
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_TRIPWIRE:
+          this.ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.strokeStyle = '#ef4444';
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x, y + CONFIG.TILE_SIZE / 2);
+          this.ctx.lineTo(x + CONFIG.TILE_SIZE, y + CONFIG.TILE_SIZE / 2);
+          this.ctx.stroke();
+          break;
+        case CONFIG.TOOL_BLOCK_CRUMBLE:
+          this.ctx.fillStyle = '#b45309';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.strokeStyle = '#78350f';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 5, y);
+          this.ctx.lineTo(x + 15, y + 15);
+          this.ctx.lineTo(x + 10, y + 25);
+          this.ctx.moveTo(x + 30, y + 10);
+          this.ctx.lineTo(x + 20, y + 20);
+          this.ctx.lineTo(x + 25, y + 40);
+          this.ctx.stroke();
+          break;
+        case CONFIG.TOOL_MOVING_PLATFORM:
+          this.ctx.fillStyle = '#f59e0b';
+          this.ctx.fillRect(x, y + 10, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE / 2);
+          this.ctx.fillStyle = '#d97706';
+          this.ctx.fillRect(x, y + 10 + CONFIG.TILE_SIZE / 2, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE / 4);
+          this.ctx.fillStyle = '#fef3c7';
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 5, y + 20);
+          this.ctx.lineTo(x + 15, y + 20);
+          this.ctx.moveTo(x + 25, y + 20);
+          this.ctx.lineTo(x + 35, y + 20);
+          this.ctx.stroke();
           break;
         case CONFIG.TOOL_KEY:
           this.ctx.fillStyle = '#ffeb3b';

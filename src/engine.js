@@ -161,6 +161,10 @@ export class Engine {
     this.player.vy = 0;
     this.player.isGrounded = false;
     this.player.facing = 'right';
+    this.player.hasSpeedBoost = false;
+    this.player.hasDoubleJump = false;
+    this.player.doubleJumpAvailable = false;
+    this.player.hasSpringBoots = false;
     this.player.coyoteTimer = 0;
     this.player.jumpBufferTimer = 0;
     this.player.scaleX = 1;
@@ -182,6 +186,7 @@ export class Engine {
     this.dustParticles = [];
     this.screenShake = 0;
     this.hasKey = false;
+    this.crumblingTiles = new Map();
 
     if (this.mode === CONFIG.MODE_PLAY) {
       // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
@@ -221,6 +226,21 @@ export class Engine {
       facing: 'right',
       walkFrame: 0,
       walkTimer: 0,
+    }));
+
+    this.livePlatforms = this.level.platforms.map(p => ({
+      id: p.id,
+      x: p.col * CONFIG.TILE_SIZE,
+      y: p.row * CONFIG.TILE_SIZE + 10,
+      width: CONFIG.TILE_SIZE,
+      height: CONFIG.TILE_SIZE / 2,
+      vx: p.axis === 'x' ? 1.5 : 0,
+      vy: p.axis === 'y' ? 1.5 : 0,
+      startX: p.col * CONFIG.TILE_SIZE,
+      startY: p.row * CONFIG.TILE_SIZE + 10,
+      distance: p.distance * CONFIG.TILE_SIZE,
+      axis: p.axis,
+      dir: 1
     }));
 
     // Center camera near player spawn when resetting
@@ -295,7 +315,9 @@ export class Engine {
   start() {
     if (!this.isRunning) {
       this.isRunning = true;
-      requestAnimationFrame(() => this.loop());
+      this.lastFrameTime = performance.now();
+      this.accumulator = 0;
+      requestAnimationFrame((time) => this.loop(time));
     }
   }
 
@@ -332,15 +354,35 @@ export class Engine {
     }
   }
 
-  loop() {
-    if (this.mode === CONFIG.MODE_PLAY && !this.hasWon) {
-      this.update();
+  loop(currentTime) {
+    if (!this.isRunning) return;
+    
+    if (!currentTime) currentTime = performance.now();
+    let deltaTime = currentTime - (this.lastFrameTime || currentTime);
+    this.lastFrameTime = currentTime;
+
+    // Prevent spiral of death if the tab was inactive
+    if (deltaTime > 250) deltaTime = 250;
+
+    if (this.accumulator === undefined) this.accumulator = 0;
+    this.accumulator += deltaTime;
+
+    const timestep = 1000 / 60; // 16.666ms per update
+
+    // Fixed timestep update
+    while (this.accumulator >= timestep) {
+      if (this.mode === CONFIG.MODE_PLAY && !this.hasWon) {
+        this.update();
+      }
+      this.updateCamera();
+      this.accumulator -= timestep;
     }
-    this.updateCamera();
+
+    // Always render as fast as the monitor refreshes (up to 120Hz/144Hz)
+    // The physics will cleanly run exactly 60 times a second.
     this.render();
-    if (this.isRunning) {
-      requestAnimationFrame(() => this.loop());
-    }
+
+    requestAnimationFrame((time) => this.loop(time));
   }
 
   update() {
@@ -552,12 +594,29 @@ export class Engine {
       }
     } else {
       // Horizontal Movement
-      const targetVx = this.keys.left ? -CONFIG.MOVE_SPEED : (this.keys.right ? CONFIG.MOVE_SPEED : 0);
+      const maxSpeed = this.player.hasSpeedBoost ? CONFIG.MOVE_SPEED * 1.5 : CONFIG.MOVE_SPEED;
+      const targetVx = this.keys.left ? -maxSpeed : (this.keys.right ? maxSpeed : 0);
       if (this.keys.left) this.player.facing = 'left';
       if (this.keys.right) this.player.facing = 'right';
 
+      let currentAccel = CONFIG.ACCELERATION;
+      let currentDecel = CONFIG.DECELERATION;
+      if (this.player.isGrounded) {
+        const pCol = Math.floor((this.player.x + this.player.width / 2) / CONFIG.TILE_SIZE);
+        const pRow = Math.floor((this.player.y + this.player.height + 2) / CONFIG.TILE_SIZE);
+        const tileBelow = this.getTile(pCol, pRow);
+        if (tileBelow === 17) {
+          currentAccel *= 0.15;
+          currentDecel *= 0.02;
+        } else if (tileBelow === 19) {
+          this.player.x -= 2;
+        } else if (tileBelow === 20) {
+          this.player.x += 2;
+        }
+      }
+
       if (targetVx !== 0) {
-        this.player.vx += (targetVx - this.player.vx) * CONFIG.ACCELERATION;
+        this.player.vx += (targetVx - this.player.vx) * currentAccel;
         // Spawn running dust
         if (this.player.isGrounded && Math.abs(this.player.vx) > CONFIG.MOVE_SPEED * 0.4) {
           if (Math.random() < 0.25) {
@@ -565,21 +624,35 @@ export class Engine {
           }
         }
       } else {
-        this.player.vx += (0 - this.player.vx) * CONFIG.DECELERATION;
+        this.player.vx += (0 - this.player.vx) * currentDecel;
         if (Math.abs(this.player.vx) < 0.1) this.player.vx = 0;
       }
 
       // Jump check (coyote time and jump buffering)
-      if (this.player.jumpBufferTimer > 0 && (this.player.isGrounded || this.player.coyoteTimer > 0)) {
-        const jumpForce = this.player.hasSpringBoots ? CONFIG.JUMP_FORCE * 1.5 : CONFIG.JUMP_FORCE;
-        this.player.vy = -jumpForce;
-        this.player.isGrounded = false;
-        this.player.coyoteTimer = 0;
-        this.player.jumpBufferTimer = 0;
-        this.player.jumpStretchTimer = 10;
-        this.player.landSquishTimer = 0;
-        audio.playJumpSound();
-        this.spawnJumpDust();
+      if (this.player.jumpBufferTimer > 0) {
+        if (this.player.isGrounded || this.player.coyoteTimer > 0) {
+          const jumpForce = this.player.hasSpringBoots ? CONFIG.JUMP_FORCE * 1.5 : CONFIG.JUMP_FORCE;
+          this.player.vy = -jumpForce;
+          this.player.isGrounded = false;
+          this.player.coyoteTimer = 0;
+          this.player.jumpBufferTimer = 0;
+          this.player.jumpStretchTimer = 10;
+          this.player.landSquishTimer = 0;
+          if (this.player.hasDoubleJump) this.player.doubleJumpAvailable = true;
+          audio.playJumpSound();
+          this.spawnJumpDust();
+        } else if (this.player.hasDoubleJump && this.player.doubleJumpAvailable) {
+          // Double jump
+          const jumpForce = this.player.hasSpringBoots ? CONFIG.JUMP_FORCE * 1.5 : CONFIG.JUMP_FORCE;
+          this.player.vy = -jumpForce;
+          this.player.jumpBufferTimer = 0;
+          this.player.doubleJumpAvailable = false;
+          this.player.jumpStretchTimer = 10;
+          this.player.landSquishTimer = 0;
+          audio.playJumpSound();
+          // Optional: A distinct effect for mid-air jump
+          this.spawnJumpDust();
+        }
       }
 
       // Variable Jump Height (cut upward velocity when jump key is released early)
@@ -588,8 +661,15 @@ export class Engine {
       }
 
       // Apply Gravity
-      this.player.vy += CONFIG.GRAVITY;
-      if (this.player.vy > 12) this.player.vy = 12; // Terminal velocity
+      const pColGravity = Math.floor((this.player.x + this.player.width / 2) / CONFIG.TILE_SIZE);
+      const pRowGravity = Math.floor((this.player.y + this.player.height / 2) / CONFIG.TILE_SIZE);
+      if (this.getTile(pColGravity, pRowGravity) === 18) {
+        this.player.vy -= CONFIG.GRAVITY * 1.5;
+        if (this.player.vy < -CONFIG.MOVE_SPEED * 1.5) this.player.vy = -CONFIG.MOVE_SPEED * 1.5;
+      } else {
+        this.player.vy += CONFIG.GRAVITY;
+        if (this.player.vy > 12) this.player.vy = 12; // Terminal velocity
+      }
     }
 
     // Calculate Squash & Stretch Scale Factors
@@ -639,6 +719,9 @@ export class Engine {
       this.player.tiltAngle = 0;
     }
 
+    // Update platforms first so player can move with them
+    this.updatePlatforms();
+
     // Handle Horizontal Collisions First
     this.player.x += this.player.vx;
     this.resolveHorizontalCollisions();
@@ -654,10 +737,16 @@ export class Engine {
     // Check Hazards
     this.checkHazards();
 
+    // Check Tripwires
+    this.checkTripwires();
+
     // Check Portals
     this.checkPortals();
 
-    // Check Coins
+    // Process Crumbling Tiles
+    this.processCrumblingTiles();
+
+    // Check coins
     this.checkCoins();
 
     // Update and check enemies
@@ -684,6 +773,48 @@ export class Engine {
       decay: 0.025 + Math.random() * 0.02,
       isSquare: this.player.charId === 'classic',
     });
+  }
+
+  updatePlatforms() {
+    if (this.isDead || this.hasWon) return;
+
+    for (const plat of this.livePlatforms) {
+      plat.x += plat.vx * plat.dir;
+      plat.y += plat.vy * plat.dir;
+
+      // Reverse direction if traveled too far
+      if (plat.axis === 'x') {
+        if (Math.abs(plat.x - plat.startX) >= plat.distance) {
+          plat.dir *= -1;
+        }
+      } else {
+        if (Math.abs(plat.y - plat.startY) >= plat.distance) {
+          plat.dir *= -1;
+        }
+      }
+
+      // If player is on top of this platform, carry them!
+      // Must be falling or stationary vertically relative to the platform
+      if (this.player.vy >= 0) {
+        const pBottom = this.player.y + this.player.height;
+        const pBottomPrev = this.player.y - this.player.vy + this.player.height;
+        
+        // Ensure player's X overlaps platform X
+        if (this.player.x + this.player.width > plat.x && this.player.x < plat.x + plat.width) {
+          // Check if player landed on it this frame or was already on it
+          // We allow a small tolerance for `plat.y` because the platform might be moving down
+          if (pBottomPrev <= plat.y - (plat.vy * plat.dir) + 1 && pBottom + 2 >= plat.y) {
+            this.player.isGrounded = true;
+            if (this.player.hasDoubleJump) this.player.doubleJumpAvailable = true;
+            this.player.y = plat.y - this.player.height;
+            this.player.vy = plat.vy * plat.dir; // Move with platform vertically
+            
+            // Carry horizontally (unless walking against a wall, but we resolve wall collision later)
+            this.player.x += plat.vx * plat.dir;
+          }
+        }
+      }
+    }
   }
 
   spawnJumpDust() {
@@ -762,7 +893,12 @@ export class Engine {
     }
 
     if (isTrail) {
-      capeColor = liningColor = faceColor = eyeColor = (themeName === 'spooky' ? '#00ffcc' : '#c29b68');
+      ctx.fillStyle = themeName === 'spooky' ? '#00ffcc' : '#c29b68';
+      ctx.beginPath();
+      ctx.roundRect(-10, -20, 20, 20, 6);
+      ctx.fill();
+      ctx.restore();
+      return;
     }
 
     // 12fps Hand-drawn wiggle boil effect
@@ -1064,7 +1200,7 @@ export class Engine {
   }
 
   checkPortals() {
-    if (this.isDead || this.hasWon || this.portalCooldown > 0) return;
+    if (this.isDead || this.hasWon) return;
     if (!this.level.portal1 || !this.level.portal2) return;
 
     const playerBox = {
@@ -1102,9 +1238,18 @@ export class Engine {
       playerBox.top > p2Box.bottom
     );
 
-    if (isOverlapping1) {
+    // If the player isn't touching any portals, clear the exclusion memory
+    if (!isOverlapping1 && !isOverlapping2) {
+      this.lastPortalExited = null;
+    }
+
+    if (this.portalCooldown > 0) return;
+
+    if (isOverlapping1 && this.lastPortalExited !== 1) {
+      this.lastPortalExited = 2; // Prevent immediately teleporting back from portal 2
       this.teleportPlayer(this.level.portal1, this.level.portal2, '#06b6d4', '#ec4899');
-    } else if (isOverlapping2) {
+    } else if (isOverlapping2 && this.lastPortalExited !== 2) {
+      this.lastPortalExited = 1; // Prevent immediately teleporting back from portal 1
       this.teleportPlayer(this.level.portal2, this.level.portal1, '#ec4899', '#06b6d4');
     }
   }
@@ -1234,6 +1379,56 @@ export class Engine {
           this.killPlayer();
           return;
         }
+      }
+    }
+  }
+
+  checkTripwires() {
+    if (this.isDead || this.hasWon) return;
+
+    const box = {
+      left: this.player.x,
+      right: this.player.x + this.player.width,
+      top: this.player.y,
+      bottom: this.player.y + this.player.height,
+    };
+
+    const minCol = Math.max(0, Math.floor(box.left / CONFIG.TILE_SIZE));
+    const maxCol = Math.min(CONFIG.GRID_COLS - 1, Math.floor((box.right - 0.01) / CONFIG.TILE_SIZE));
+    const minRow = Math.max(0, Math.floor(box.top / CONFIG.TILE_SIZE));
+    const maxRow = Math.min(CONFIG.GRID_ROWS - 1, Math.floor((box.bottom - 0.01) / CONFIG.TILE_SIZE));
+
+    for (let r = minRow; r <= maxRow; r++) {
+      for (let c = minCol; c <= maxCol; c++) {
+        if (this.getTile(c, r) === 21) {
+          if (!this.switchCooldown) {
+            this.level.switchState = this.level.switchState === 'red' ? 'blue' : 'red';
+            this.switchCooldown = 30;
+            if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+          }
+        }
+      }
+    }
+  }
+
+  processCrumblingTiles() {
+    if (this.isDead || this.hasWon) return;
+    
+    for (const [key, data] of this.crumblingTiles.entries()) {
+      data.timer--;
+      const [col, row] = key.split(',').map(Number);
+      if (data.state === 'shaking' && data.timer <= 0) {
+        // Break the block
+        this.level.setTile(col, row, 0);
+        data.state = 'broken';
+        data.timer = 180; // 3 seconds to respawn
+        this.breakBlock(col, row);
+        if (!this.isSimulation && audio.playBreakSound) audio.playBreakSound();
+      } else if (data.state === 'broken' && data.timer <= 0) {
+        // Respawn the block
+        this.level.setTile(col, row, 22);
+        this.crumblingTiles.delete(key);
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
       }
     }
   }
@@ -1624,16 +1819,20 @@ export class Engine {
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const tileVal = this.getTile(c, r);
-        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7 || tileVal === 8 || tileVal === 10 || tileVal === 11) {
+        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7 || tileVal === 8 || tileVal === 10 || tileVal === 11 || tileVal === 17 || tileVal === 19 || tileVal === 20 || tileVal === 22) {
           tiles.push({ col: c, row: r, type: tileVal });
         } else if (tileVal === 12 && this.level.switchState === 'red') {
           tiles.push({ col: c, row: r, type: 12 });
         } else if (tileVal === 13 && this.level.switchState === 'blue') {
           tiles.push({ col: c, row: r, type: 13 });
-        } else if (tileVal === 15 && this.ghostIsSolid) {
-          tiles.push({ col: c, row: r, type: 15 });
         } else if (tileVal === 16) {
           tiles.push({ col: c, row: r, type: 16 });
+        } else if (tileVal === 24) {
+          tiles.push({ col: c, row: r, type: 24 });
+        } else if (tileVal === 25) {
+          tiles.push({ col: c, row: r, type: 25 });
+        } else if (tileVal === 27) {
+          tiles.push({ col: c, row: r, type: 27 });
         }
       }
     }
@@ -1670,6 +1869,30 @@ export class Engine {
       if (tile.type === 16) {
         this.level.setTile(tile.col, tile.row, 0);
         this.player.hasSpringBoots = true;
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        continue;
+      }
+      if (tile.type === 24) {
+        this.level.setTile(tile.col, tile.row, 0);
+        this.player.hasDoubleJump = true;
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        continue;
+      }
+      if (tile.type === 25) {
+        // Collect checkpoint
+        this.level.playerSpawn = { col: tile.col, row: tile.row };
+        // We do NOT remove the tile so they can see they got it, 
+        // or we could replace it with a "checked" flag tile. Let's just remove it and spawn dust!
+        this.level.setTile(tile.col, tile.row, 0);
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        continue;
+      }
+      if (tile.type === 27) {
+        this.level.setTile(tile.col, tile.row, 0);
+        this.player.hasSpeedBoost = true;
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
         continue;
@@ -1764,6 +1987,8 @@ export class Engine {
           } else {
             this.player.vy = 0;
             this.player.isGrounded = true;
+            if (this.player.hasDoubleJump) this.player.doubleJumpAvailable = true;
+            this.player.coyoteTimer = CONFIG.COYOTE_TIME;
           }
 
           playerBox.top = this.player.y;
@@ -1779,6 +2004,11 @@ export class Engine {
             if (!this.isSimulation) {
               audio.playBounceSound();
               this.bounceAnims.set(`${tile.col},${tile.row}`, { timer: 15 });
+            }
+          } else if (tile.type === 22) {
+            const key = `${tile.col},${tile.row}`;
+            if (!this.crumblingTiles.has(key)) {
+              this.crumblingTiles.set(key, { state: 'shaking', timer: 60 });
             }
           }
         }
@@ -1829,6 +2059,7 @@ export class Engine {
   }
 
   render() {
+    const now = Date.now();
     // Clear Canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -1887,12 +2118,14 @@ export class Engine {
           if (this.assets.fire) {
             this.ctx.drawImage(this.assets.fire, 0, 0, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           } else {
-            const time = Date.now() * 0.005;
+            const time = now * 0.005;
             // Glowing embers
-            const glow = this.ctx.createRadialGradient(CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE, 5, CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-            glow.addColorStop(0, 'rgba(255, 100, 0, 0.6)');
-            glow.addColorStop(1, 'rgba(255, 0, 0, 0)');
-            this.ctx.fillStyle = glow;
+            if (!this._fireGlow) {
+              this._fireGlow = this.ctx.createRadialGradient(CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE, 5, CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+              this._fireGlow.addColorStop(0, 'rgba(255, 100, 0, 0.6)');
+              this._fireGlow.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            }
+            this.ctx.fillStyle = this._fireGlow;
             this.ctx.fillRect(0, 0, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
 
             // 3 animated flame peaks
@@ -1954,17 +2187,19 @@ export class Engine {
           this.ctx.save();
           this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2);
 
-          const floatOffset = Math.sin(Date.now() * 0.004 + (c * 17) + (r * 23)) * 3;
+          const floatOffset = Math.sin(now * 0.004 + (c * 17) + (r * 23)) * 3;
           this.ctx.translate(0, floatOffset);
 
-          const spinScale = Math.cos(Date.now() * 0.006 + (c * 7) + (r * 11));
+          const spinScale = Math.cos(now * 0.006 + (c * 7) + (r * 11));
           this.ctx.scale(spinScale, 1);
 
-          const outerGrad = this.ctx.createRadialGradient(0, 0, CONFIG.TILE_SIZE * 0.1, 0, 0, CONFIG.TILE_SIZE * 0.35);
-          outerGrad.addColorStop(0, '#ffe57f');
-          outerGrad.addColorStop(0.7, '#ffd60a');
-          outerGrad.addColorStop(1, '#ffab00');
-          this.ctx.fillStyle = outerGrad;
+          if (!this._coinOuterGrad) {
+            this._coinOuterGrad = this.ctx.createRadialGradient(0, 0, CONFIG.TILE_SIZE * 0.1, 0, 0, CONFIG.TILE_SIZE * 0.35);
+            this._coinOuterGrad.addColorStop(0, '#ffe57f');
+            this._coinOuterGrad.addColorStop(0.7, '#ffd60a');
+            this._coinOuterGrad.addColorStop(1, '#ffab00');
+          }
+          this.ctx.fillStyle = this._coinOuterGrad;
           this.ctx.strokeStyle = '#d4a359';
           this.ctx.lineWidth = 1.5;
           this.ctx.beginPath();
@@ -2010,7 +2245,7 @@ export class Engine {
           // Key
           this.ctx.save();
           this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2);
-          const floatOffset = Math.sin(Date.now() * 0.005 + (c * 17) + (r * 23)) * 4;
+          const floatOffset = Math.sin(now * 0.005 + (c * 17) + (r * 23)) * 4;
           this.ctx.translate(0, floatOffset);
           this.ctx.fillStyle = '#ffeb3b';
           this.ctx.fillRect(-10, -5, 20, 10);
@@ -2068,7 +2303,7 @@ export class Engine {
           this.ctx.fill();
           this.ctx.strokeStyle = '#cddc39';
           this.ctx.lineWidth = 2;
-          const rotation = (Date.now() * 0.002) % (Math.PI * 2);
+          const rotation = (now * 0.002) % (Math.PI * 2);
           this.ctx.save();
           this.ctx.translate(cxS, cyS);
           this.ctx.rotate(rotation);
@@ -2102,7 +2337,7 @@ export class Engine {
           // Spring Boots
           this.ctx.save();
           this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
-          const floatOffset = Math.sin(Date.now() * 0.005 + x) * 4;
+          const floatOffset = Math.sin(now * 0.005 + x) * 4;
           this.ctx.translate(0, floatOffset);
           this.ctx.fillStyle = '#4ade80';
           this.ctx.beginPath();
@@ -2127,6 +2362,145 @@ export class Engine {
           this.ctx.strokeStyle = '#a3a3a3';
           this.ctx.stroke();
           this.ctx.restore();
+        } else if (tileVal === 24) {
+          // Double Jump Powerup
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          this.ctx.fillStyle = '#0ea5e9'; // Light Blue
+          // Small wings icon
+          this.ctx.beginPath();
+          this.ctx.arc(-8, -2, 6, 0, Math.PI * 2);
+          this.ctx.arc(8, -2, 6, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#38bdf8';
+          this.ctx.beginPath();
+          this.ctx.moveTo(0, 10);
+          this.ctx.lineTo(-12, -4);
+          this.ctx.lineTo(-4, -4);
+          this.ctx.lineTo(0, 4);
+          this.ctx.lineTo(4, -4);
+          this.ctx.lineTo(12, -4);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.restore();
+        } else if (tileVal === 27) {
+          // Speed Boost Powerup
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          this.ctx.fillStyle = '#f59e0b'; // Amber
+          this.ctx.beginPath();
+          this.ctx.moveTo(-10, 5);
+          this.ctx.lineTo(5, 5);
+          this.ctx.lineTo(-2, -5);
+          this.ctx.lineTo(12, -5);
+          this.ctx.lineTo(-5, -15);
+          this.ctx.lineTo(2, -5);
+          this.ctx.lineTo(-12, -5);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.restore();
+        } else if (tileVal === 17) {
+          // Ice Block
+          this.ctx.fillStyle = '#a5f3fc';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#cffafe';
+          this.ctx.fillRect(x + 2, y + 2, CONFIG.TILE_SIZE - 4, 4);
+          this.ctx.fillRect(x + 2, y + 6, 4, CONFIG.TILE_SIZE - 8);
+        } else if (tileVal === 18) {
+          // Anti-Gravity Zone
+          const cxG = x + CONFIG.TILE_SIZE / 2;
+          const cyG = y + CONFIG.TILE_SIZE / 2;
+          this.ctx.fillStyle = 'rgba(139, 92, 246, 0.3)';
+          this.ctx.beginPath();
+          this.ctx.arc(cxG, cyG, CONFIG.TILE_SIZE * 0.4, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#c084fc';
+          this.ctx.lineWidth = 2;
+          const pulse = Math.sin(now * 0.005) * 2;
+          this.ctx.beginPath();
+          this.ctx.arc(cxG, cyG, CONFIG.TILE_SIZE * 0.3 + pulse, 0, Math.PI * 2);
+          this.ctx.stroke();
+          // Floating particles effect
+          this.ctx.fillStyle = '#d8b4fe';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE * 0.3, y + CONFIG.TILE_SIZE - ((now * 0.02) % CONFIG.TILE_SIZE), 2, 0, Math.PI * 2);
+          this.ctx.arc(x + CONFIG.TILE_SIZE * 0.7, y + CONFIG.TILE_SIZE - ((now * 0.015 + 10) % CONFIG.TILE_SIZE), 1.5, 0, Math.PI * 2);
+          this.ctx.fill();
+        } else if (tileVal === 19 || tileVal === 20) {
+          // Conveyor Belts
+          this.ctx.fillStyle = '#64748b';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#94a3b8';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 6);
+          this.ctx.fillStyle = '#f8fafc';
+          this.ctx.beginPath();
+          const offset = (now * 0.05) % 10;
+          if (tileVal === 19) {
+            // Left Conveyor
+            this.ctx.moveTo(x + 25 - offset, y + 15);
+            this.ctx.lineTo(x + 15 - offset, y + 20);
+            this.ctx.lineTo(x + 25 - offset, y + 25);
+          } else {
+            // Right Conveyor
+            this.ctx.moveTo(x + 15 + offset, y + 15);
+            this.ctx.lineTo(x + 25 + offset, y + 20);
+            this.ctx.lineTo(x + 15 + offset, y + 25);
+          }
+          this.ctx.fill();
+        } else if (tileVal === 21) {
+          // Tripwire
+          this.ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.strokeStyle = '#ef4444';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.beginPath();
+          // Pulsing line
+          const glow = Math.sin(now * 0.01) * 2;
+          this.ctx.moveTo(x, y + CONFIG.TILE_SIZE / 2 + glow);
+          this.ctx.lineTo(x + CONFIG.TILE_SIZE, y + CONFIG.TILE_SIZE / 2 + glow);
+          this.ctx.stroke();
+        } else if (tileVal === 22) {
+          // Crumble Block
+          const key = `${c},${r}`;
+          const crumbleData = this.crumblingTiles.get(key);
+          let offsetX = 0;
+          let offsetY = 0;
+          if (crumbleData && crumbleData.state === 'shaking') {
+            offsetX = (Math.random() - 0.5) * 4;
+            offsetY = (Math.random() - 0.5) * 4;
+          }
+          this.ctx.fillStyle = '#b45309';
+          this.ctx.fillRect(x + offsetX, y + offsetY, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.strokeStyle = '#78350f';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + offsetX + 5, y + offsetY);
+          this.ctx.lineTo(x + offsetX + 15, y + offsetY + 15);
+          this.ctx.lineTo(x + offsetX + 10, y + offsetY + 25);
+          this.ctx.moveTo(x + offsetX + 30, y + offsetY + 10);
+          this.ctx.lineTo(x + offsetX + 20, y + offsetY + 20);
+          this.ctx.lineTo(x + offsetX + 25, y + offsetY + 40);
+          this.ctx.stroke();
+        } else if (tileVal === 25) {
+          // Checkpoint Flag
+          this.ctx.fillStyle = '#ef4444'; // Red flag
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 10, y + 5);
+          this.ctx.lineTo(x + 30, y + 12);
+          this.ctx.lineTo(x + 10, y + 20);
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#d4d4d8'; // Pole
+          this.ctx.lineWidth = 4;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 10, y + 5);
+          this.ctx.lineTo(x + 10, y + 40);
+          this.ctx.stroke();
+        } else if (tileVal === 26) {
+          // Fake Wall (looks like Earth, tile 7)
+          this.ctx.fillStyle = '#4ade80';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 8);
+          this.ctx.fillStyle = '#8b5a2b';
+          this.ctx.fillRect(x, y + 8, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE - 8);
         }
       }
     }
@@ -2142,7 +2516,7 @@ export class Engine {
     }
 
     // Render Portals if they exist
-    const time = Date.now() * 0.003;
+    const time = now * 0.003;
     const renderPortal = (portal, color1, color2) => {
       const cx = portal.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
       const cy = portal.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
@@ -2333,7 +2707,22 @@ export class Engine {
       }
     }
 
-    // 4. Render Enemies – Ghibli Soot Sprite style (play mode = live; edit mode = spawn markers)
+    // 6.5 Render Platforms
+    if (this.livePlatforms) {
+      for (const plat of this.livePlatforms) {
+        this.ctx.fillStyle = '#f59e0b';
+        this.ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+        this.ctx.fillStyle = '#d97706';
+        this.ctx.fillRect(plat.x, plat.y + plat.height, plat.width, plat.height / 2);
+        this.ctx.fillStyle = '#fef3c7';
+        this.ctx.beginPath();
+        this.ctx.moveTo(plat.x + 5, plat.y + 10);
+        this.ctx.lineTo(plat.x + plat.width - 5, plat.y + 10);
+        this.ctx.stroke();
+      }
+    }
+
+    // 7. Render Particles – Ghibli Soot Sprite style (play mode = live; edit mode = spawn markers)
     const drawSootSprite = (ctx, cx, cy, radius, walkFrame, alpha = 1, type = 'patrol') => {
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -2523,7 +2912,7 @@ export class Engine {
          ctx.fillStyle = '#fff';
       } else if (state === 'warn') {
          // Blink
-         ctx.fillStyle = Math.floor(Date.now() / 100) % 2 === 0 ? '#e91e63' : '#111';
+         ctx.fillStyle = Math.floor(now / 100) % 2 === 0 ? '#e91e63' : '#111';
       } else {
          ctx.fillStyle = '#e91e63';
       }

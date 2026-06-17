@@ -390,7 +390,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnScrollDown = document.getElementById('btn-scroll-down');
 
   const toolbar = document.getElementById('action-bar-container') || document.getElementById('editor-toolbar');
-  const toolButtons = document.querySelectorAll('.tool-btn');
+  const toolButtons = document.querySelectorAll('.tool-btn, .popup-item-btn[data-tool]');
   const gameCanvas = document.getElementById('game-canvas');
 
   // Initialize Game Objects

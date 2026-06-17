@@ -246,6 +246,61 @@ function createFortressOfBouncinessGrid() {
   return grid;
 }
 
+// Preset 10: Mechanics Showcase
+function createMechanicsShowcaseGrid() {
+  const grid = createBlankGrid();
+  // Ice slide
+  for (let c = 10; c <= 15; c++) {
+    grid[27][c] = 17;
+    grid[28][c] = 17;
+  }
+  // Double Jump powerup before pit
+  grid[26][15] = 24;
+  
+  // Spikes pit
+  for (let c = 16; c <= 20; c++) {
+    grid[27][c] = 4;
+    grid[28][c] = 4;
+  }
+
+  // Anti-Gravity tunnel
+  grid[26][23] = 18;
+  grid[25][23] = 18;
+  grid[24][23] = 18;
+  grid[23][23] = 18;
+  grid[22][23] = 18;
+  
+  // Ceiling with Conveyor Right
+  for (let c = 22; c <= 30; c++) {
+    grid[19][c] = 20; // Ceiling floor
+    grid[18][c] = 1;  // Ceiling backing
+  }
+  
+  // Drop down
+  for (let r = 20; r <= 27; r++) {
+    grid[r][31] = 1; // Wall to force drop down
+  }
+
+  // Tripwire
+  grid[27][35] = 21;
+
+  // Red/Blue block puzzle
+  grid[27][40] = 12; // Red block blocks bottom
+  grid[26][40] = 12;
+  grid[25][40] = 12;
+
+  // Blue block blocks top (initially open if switch is unpressed)
+  // Actually tripwire toggles the state. 
+  grid[24][40] = 13;
+  grid[23][40] = 13;
+
+  // Goal platform
+  for (let c = 52; c <= 56; c++) {
+    grid[20][c] = 1;
+  }
+  return grid;
+}
+
 const PRESETS = [
   {
     id: 'preset-1',
@@ -327,6 +382,17 @@ const PRESETS = [
     goalPos: { col: 45, row: 27 },
     enemies: [
       { id: 'e1', col: 35, row: 27, speed: 1.5, patrolRange: 4, type: 'chaser' }
+    ],
+    isPreset: true,
+  },
+  {
+    id: 'preset-10',
+    name: 'Mechanics Showcase',
+    grid: createMechanicsShowcaseGrid(),
+    playerSpawn: { col: 5, row: 27 },
+    goalPos: { col: 54, row: 19 },
+    platforms: [
+      { id: 'p1', col: 44, row: 25, distance: 4, axis: 'y' }
     ],
     isPreset: true,
   }
