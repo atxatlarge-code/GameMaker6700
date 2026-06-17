@@ -262,10 +262,22 @@
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ghibli" title="Forest Kid (Ghibli)">
                   <img src="assets/player_ghibli.png" class="tool-icon-img" alt="Forest Kid (Ghibli)" style="border-radius: 4px;">
                 </button>
-                <button class="popup-item-btn soon" data-name="Top down player"><i class="fa-solid fa-user-astronaut"></i> Top down player</button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_topdown" title="Top Down Player">
+                  <i class="fa-solid fa-user-astronaut" style="font-size: 1.4rem; color: #9c27b0;"></i>
+                </button>
                 <button class="popup-item-btn soon" data-name="Vertical paddle"><i class="fa-solid fa-grip-lines-vertical"></i> Vertical paddle</button>
                 <button class="popup-item-btn soon" data-name="Horizontal paddle"><i class="fa-solid fa-grip-lines"></i> Horizontal paddle</button>
-                <button class="popup-item-btn soon" data-name="Bouncing ball"><i class="fa-solid fa-basketball"></i> Bouncing ball</button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ball" title="Bouncing Ball">
+                  <svg viewBox="0 0 32 32" class="tool-icon-svg">
+                    <defs>
+                      <radialGradient id="ballGrad" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#ff9800"/>
+                        <stop offset="100%" stop-color="#e65100"/>
+                      </radialGradient>
+                    </defs>
+                    <circle cx="16" cy="16" r="12" fill="url(#ballGrad)" />
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -371,7 +383,8 @@
                     <path d="M 2.5 3 C 12 2, 20 2.5, 29.5 3 C 29.8 12, 29.5 20, 29.5 29 C 20 29.5, 12 29.2, 2.5 29 C 2 20, 2.3 12, 2.5 3" fill="none" stroke="#542e14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </button>
-                <button class="popup-item-btn soon" data-name="Moveable block"><i class="fa-solid fa-arrows-up-down-left-right"></i> Moveable block</button>
+                <button class="popup-item-btn" data-tool="lock"><i class="fa-solid fa-lock" style="color:#9e9e9e"></i> Lock Block</button>
+                <button class="popup-item-btn" data-tool="moveable"><i class="fa-solid fa-box" style="color:#a87a51"></i> Moveable block</button>
               </div>
             </div>
 
@@ -387,6 +400,7 @@
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="trampoline" title="Powerup">
                   <img id="img-tool-trampoline" src="assets/trampoline.png" class="tool-icon-img" alt="Powerup">
                 </button>
+                <button class="popup-item-btn" data-tool="key"><i class="fa-solid fa-key" style="color:#ffeb3b"></i> Key</button>
                 <button class="popup-item-btn soon" data-name="Save flag"><i class="fa-solid fa-flag"></i> Save flag</button>
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="coin" title="Coin">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
@@ -441,9 +455,9 @@
                   </svg>
                 </button>
                 <button class="popup-item-btn soon" data-name="Horizontal enemy"><i class="fa-solid fa-arrows-left-right"></i> Horiz enemy</button>
-                <button class="popup-item-btn soon" data-name="Vertical enemy"><i class="fa-solid fa-arrows-up-down"></i> Vert enemy</button>
+                <button class="popup-item-btn" data-tool="thwomp"><i class="fa-solid fa-square-caret-down" style="color:#607d8b;"></i> Thwomp Block</button>
                 <button class="popup-item-btn soon" data-name="Diagonal enemy"><i class="fa-solid fa-arrow-trend-up"></i> Diag enemy</button>
-                <button class="popup-item-btn soon" data-name="Chasing enemy"><i class="fa-solid fa-eye"></i> Chasing enemy</button>
+                <button class="popup-item-btn" data-tool="enemy_chaser" title="Chasing Enemy"><i class="fa-solid fa-eye" style="color:#ef4444;"></i> Chasing Enemy</button>
                 <button class="popup-item-btn soon" data-name="4 way lazer"><i class="fa-solid fa-bullseye"></i> 4 way lazer</button>
               </div>
             </div>
@@ -503,10 +517,9 @@
                 <span>Switches</span>
               </button>
               <div class="group-popup" id="popup-switches">
-                <button class="popup-item-btn soon" data-name="Switch"><i class="fa-solid fa-toggle-off"></i> Switch</button>
-                <button class="popup-item-btn soon" data-name="Switch block on"><i class="fa-solid fa-square-check"></i> Switch block on</button>
-                <button class="popup-item-btn soon" data-name="Switch block off"><i class="fa-solid fa-square"></i> Switch block off</button>
-                <button class="popup-item-btn soon" data-name="Falling block"><i class="fa-solid fa-arrow-down-short-wide"></i> Falling block</button>
+                <button class="popup-item-btn" data-tool="switch"><i class="fa-solid fa-toggle-on" style="color:#f44336"></i> ON/OFF Switch</button>
+                <button class="popup-item-btn" data-tool="block_red"><i class="fa-solid fa-square" style="color:#f44336"></i> Red Block</button>
+                <button class="popup-item-btn" data-tool="block_blue"><i class="fa-solid fa-square" style="color:#2196f3"></i> Blue Block</button>
               </div>
             </div>
 
@@ -526,7 +539,9 @@
               </button>
               <div class="group-popup" id="popup-style">
                 <button class="popup-item-btn theme-btn active" data-theme="default"><i class="fa-solid fa-circle" style="color:#528c46"></i> Default</button>
-                <button class="popup-item-btn theme-btn" data-theme="16bit"><i class="fa-solid fa-circle" style="color:#b85c27"></i> 16-bit</button>
+                <button class="popup-item-btn" data-tool="coin"><i class="fa-solid fa-coins" style="color:#ffb703"></i> Coin</button>
+                <button class="popup-item-btn" data-tool="key"><i class="fa-solid fa-key" style="color:#ffeb3b"></i> Key</button>
+                <button class="popup-item-btn" data-tool="lock"><i class="fa-solid fa-lock" style="color:#9e9e9e"></i> Lock Block</button>
                 <button class="popup-item-btn theme-btn" data-theme="butterflies"><i class="fa-solid fa-circle" style="color:#00f2fe"></i> Butterflies</button>
                 <button class="popup-item-btn theme-btn" data-theme="icecream"><i class="fa-solid fa-circle" style="color:#b8e0d2"></i> Ice cream</button>
                 <button class="popup-item-btn theme-btn" data-theme="spooky"><i class="fa-solid fa-circle" style="color:#686de0"></i> Spooky</button>

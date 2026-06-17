@@ -205,6 +205,47 @@ function createTowerOfPerilGrid() {
   return grid;
 }
 
+function createFortressOfBouncinessGrid() {
+  const grid = createBlankGrid();
+  
+  // Starting area walls
+  grid[27][10] = 1;
+  grid[26][10] = 1;
+  grid[25][10] = 1;
+
+  // Key platform up high
+  for (let c = 12; c <= 18; c++) grid[18][c] = 1;
+  grid[17][15] = 9; // Key
+  
+  // A moveable block blocking the way
+  grid[27][12] = 10;
+  
+  // Trampoline to reach the key
+  grid[27][14] = 2;
+  
+  // Fire pit
+  for (let c = 20; c <= 30; c++) grid[27][c] = 3;
+  // A trampoline in the middle of the fire pit
+  grid[26][25] = 1;
+  grid[25][25] = 2; // Trampoline on top of a block
+
+  // Lock blocking the exit
+  grid[27][40] = 8;
+  grid[26][40] = 8;
+  grid[25][40] = 8;
+  grid[24][40] = 8;
+  
+  // Safe zone after the fire pit
+  for (let c = 31; c <= 50; c++) grid[27][c] = 1;
+  
+  // A few coins scattered
+  grid[16][15] = 5;
+  grid[21][25] = 5;
+  grid[26][35] = 5;
+
+  return grid;
+}
+
 const PRESETS = [
   {
     id: 'preset-1',
@@ -276,6 +317,17 @@ const PRESETS = [
     goalPos: { col: 50, row: 9 },
     portal1: { col: 35, row: 10 },
     portal2: { col: 46, row: 9 },
+    isPreset: true,
+  },
+  {
+    id: 'preset-9',
+    name: 'Fortress of Bounciness',
+    grid: createFortressOfBouncinessGrid(),
+    playerSpawn: { col: 5, row: 27 },
+    goalPos: { col: 45, row: 27 },
+    enemies: [
+      { id: 'e1', col: 35, row: 27, speed: 1.5, patrolRange: 4, type: 'chaser' }
+    ],
     isPreset: true,
   }
 ];

@@ -141,6 +141,9 @@ export class Engine {
     if (this.player.charId === 'classic') {
       this.player.width = 28;
       this.player.height = 28;
+    } else if (this.player.charId === 'ball') {
+      this.player.width = 24;
+      this.player.height = 24;
     } else {
       this.player.width = 32;
       this.player.height = 38;
@@ -172,6 +175,7 @@ export class Engine {
     this.playerTrails = [];
     this.dustParticles = [];
     this.screenShake = 0;
+    this.hasKey = false;
 
     if (this.mode === CONFIG.MODE_PLAY) {
       // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
@@ -352,6 +356,9 @@ export class Engine {
       return;
     }
 
+    if (!this.level.switchState) this.level.switchState = 'red';
+    if (this.switchCooldown > 0) this.switchCooldown--;
+
     // Autoplay action override
     if (this.isAutoplay) {
       if (this.autoplayPath && this.autoplayIndex < this.autoplayPath.length) {
@@ -464,44 +471,66 @@ export class Engine {
       this.screenShake = Math.max(0, this.screenShake - 0.5);
     }
 
-    // Horizontal Movement
-    const targetVx = this.keys.left ? -CONFIG.MOVE_SPEED : (this.keys.right ? CONFIG.MOVE_SPEED : 0);
-    if (this.keys.left) this.player.facing = 'left';
-    if (this.keys.right) this.player.facing = 'right';
+    if (this.player.charId === 'topdown') {
+      const targetVx = this.keys.left ? -CONFIG.MOVE_SPEED : (this.keys.right ? CONFIG.MOVE_SPEED : 0);
+      const targetVy = this.keys.up ? -CONFIG.MOVE_SPEED : (this.keys.down ? CONFIG.MOVE_SPEED : 0);
+      
+      if (this.keys.left) this.player.facing = 'left';
+      if (this.keys.right) this.player.facing = 'right';
 
-    if (targetVx !== 0) {
-      this.player.vx += (targetVx - this.player.vx) * CONFIG.ACCELERATION;
-      // Spawn running dust
-      if (this.player.isGrounded && Math.abs(this.player.vx) > CONFIG.MOVE_SPEED * 0.4) {
-        if (Math.random() < 0.25) {
-          this.spawnRunDust();
-        }
+      if (targetVx !== 0) {
+        this.player.vx += (targetVx - this.player.vx) * CONFIG.ACCELERATION;
+      } else {
+        this.player.vx += (0 - this.player.vx) * CONFIG.DECELERATION;
+        if (Math.abs(this.player.vx) < 0.1) this.player.vx = 0;
+      }
+
+      if (targetVy !== 0) {
+        this.player.vy += (targetVy - this.player.vy) * CONFIG.ACCELERATION;
+      } else {
+        this.player.vy += (0 - this.player.vy) * CONFIG.DECELERATION;
+        if (Math.abs(this.player.vy) < 0.1) this.player.vy = 0;
       }
     } else {
-      this.player.vx += (0 - this.player.vx) * CONFIG.DECELERATION;
-      if (Math.abs(this.player.vx) < 0.1) this.player.vx = 0;
-    }
+      // Horizontal Movement
+      const targetVx = this.keys.left ? -CONFIG.MOVE_SPEED : (this.keys.right ? CONFIG.MOVE_SPEED : 0);
+      if (this.keys.left) this.player.facing = 'left';
+      if (this.keys.right) this.player.facing = 'right';
 
-    // Jump check (coyote time and jump buffering)
-    if (this.player.jumpBufferTimer > 0 && (this.player.isGrounded || this.player.coyoteTimer > 0)) {
-      this.player.vy = -CONFIG.JUMP_FORCE;
-      this.player.isGrounded = false;
-      this.player.coyoteTimer = 0;
-      this.player.jumpBufferTimer = 0;
-      this.player.jumpStretchTimer = 10;
-      this.player.landSquishTimer = 0;
-      audio.playJumpSound();
-      this.spawnJumpDust();
-    }
+      if (targetVx !== 0) {
+        this.player.vx += (targetVx - this.player.vx) * CONFIG.ACCELERATION;
+        // Spawn running dust
+        if (this.player.isGrounded && Math.abs(this.player.vx) > CONFIG.MOVE_SPEED * 0.4) {
+          if (Math.random() < 0.25) {
+            this.spawnRunDust();
+          }
+        }
+      } else {
+        this.player.vx += (0 - this.player.vx) * CONFIG.DECELERATION;
+        if (Math.abs(this.player.vx) < 0.1) this.player.vx = 0;
+      }
 
-    // Variable Jump Height (cut upward velocity when jump key is released early)
-    if (!this.isSimulation && !this.keys.up && this.player.vy < -2.0) {
-      this.player.vy *= 0.6; // reduce rise speed smoothly
-    }
+      // Jump check (coyote time and jump buffering)
+      if (this.player.jumpBufferTimer > 0 && (this.player.isGrounded || this.player.coyoteTimer > 0)) {
+        this.player.vy = -CONFIG.JUMP_FORCE;
+        this.player.isGrounded = false;
+        this.player.coyoteTimer = 0;
+        this.player.jumpBufferTimer = 0;
+        this.player.jumpStretchTimer = 10;
+        this.player.landSquishTimer = 0;
+        audio.playJumpSound();
+        this.spawnJumpDust();
+      }
 
-    // Apply Gravity
-    this.player.vy += CONFIG.GRAVITY;
-    if (this.player.vy > 12) this.player.vy = 12; // Terminal velocity
+      // Variable Jump Height (cut upward velocity when jump key is released early)
+      if (!this.isSimulation && !this.keys.up && this.player.vy < -2.0) {
+        this.player.vy *= 0.6; // reduce rise speed smoothly
+      }
+
+      // Apply Gravity
+      this.player.vy += CONFIG.GRAVITY;
+      if (this.player.vy > 12) this.player.vy = 12; // Terminal velocity
+    }
 
     // Calculate Squash & Stretch Scale Factors
     let sqX = 1;
@@ -1080,15 +1109,24 @@ export class Engine {
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const tileVal = this.getTile(c, r);
-        if (tileVal === 5) {
+        if (tileVal === 5 || tileVal === 9) {
           this.setTile(c, r, 0);
-          this.coinsCollected++;
+          
+          if (tileVal === 5) {
+            this.coinsCollected++;
+          } else if (tileVal === 9) {
+            this.hasKey = true;
+          }
           
           if (this.isSimulation) continue;
 
-          audio.playCoinSound();
-          const hudVal = document.getElementById('hud-coins-collected');
-          if (hudVal) hudVal.textContent = this.coinsCollected.toString();
+          if (tileVal === 5) {
+            audio.playCoinSound();
+            const hudVal = document.getElementById('hud-coins-collected');
+            if (hudVal) hudVal.textContent = this.coinsCollected.toString();
+          } else {
+            if (audio.playCoinSound) audio.playCoinSound();
+          }
 
           const coinCenterX = c * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
           const coinCenterY = r * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
@@ -1147,8 +1185,12 @@ export class Engine {
     for (const enemy of this.liveEnemies) {
 
       // ── Gravity ────────────────────────────────────────────────────────────
-      enemy.vy += CONFIG.GRAVITY;
-      if (enemy.vy > 12) enemy.vy = 12; // terminal velocity
+      if (enemy.type !== 'thwomp' || enemy.state === 'falling') {
+        enemy.vy += (enemy.type === 'thwomp') ? CONFIG.GRAVITY * 1.5 : CONFIG.GRAVITY;
+        if (enemy.vy > 15) enemy.vy = 15; // terminal velocity
+      } else {
+        enemy.vy = 0;
+      }
 
       // ── Vertical movement & ground collision ───────────────────────────────
       enemy.isGrounded = false;
@@ -1176,6 +1218,28 @@ export class Engine {
             enemy.y = tileTop - enemy.height;
             enemy.vy = 0;
             enemy.isGrounded = true;
+            
+            if (enemy.type === 'thwomp' && enemy.state === 'falling') {
+              enemy.state = 'returning';
+              this.cameraShake = 15;
+              if (audio.playBreakSound && !this.isSimulation) audio.playBreakSound();
+              // Spawn dust around the thwomp base
+              if (!this.isSimulation) {
+                for(let i=0; i<10; i++){
+                  this.spawnLandDust(6); // reusing land dust for big impact
+                }
+              }
+            }
+
+            if (tv === 2) {
+              enemy.vy = -CONFIG.TRAMPOLINE_BOUNCE_FORCE * 0.85;
+              enemy.isGrounded = false;
+              if (!this.isSimulation) {
+                audio.playBounceSound();
+                this.bounceAnims.set(`${c},${r}`, { timer: 15 });
+              }
+            }
+
             eBoxV.top = enemy.y;
             eBoxV.bottom = enemy.y + enemy.height;
           } else if (enemy.vy < 0 && eBoxV.top < tileBot && (eBoxV.top - enemy.vy) >= tileBot) {
@@ -1187,8 +1251,45 @@ export class Engine {
         }
       }
 
+      // ── Thwomp AI ─────────────────────────────────────────────────────────
+      if (enemy.type === 'thwomp') {
+        if (!enemy.state) {
+          enemy.state = 'idle';
+          enemy.startY = enemy.y;
+        }
+        if (enemy.state === 'idle') {
+          // Check if player is directly below
+          const pxC = this.player.x + this.player.width / 2;
+          const exC = enemy.x + enemy.width / 2;
+          if (Math.abs(pxC - exC) < CONFIG.TILE_SIZE * 1.5 && this.player.y > enemy.y) {
+            enemy.state = 'falling';
+            enemy.shakeTimer = 0;
+          }
+        } else if (enemy.state === 'returning') {
+          enemy.shakeTimer++;
+          if (enemy.shakeTimer > 30) {
+            enemy.y -= 2; // slow return
+            if (enemy.y <= enemy.startY) {
+              enemy.y = enemy.startY;
+              enemy.state = 'idle';
+            }
+          }
+        }
+        continue; // skip horizontal movement entirely
+      }
+
       // ── Horizontal patrol (only when on the ground) ────────────────────────
       if (enemy.isGrounded) {
+        if (enemy.type === 'chaser') {
+          if (this.player.x + this.player.width/2 < enemy.x + enemy.width/2) {
+            enemy.vx = -enemy.speed;
+            enemy.facing = 'left';
+          } else {
+            enemy.vx = enemy.speed;
+            enemy.facing = 'right';
+          }
+        }
+
         // Advance walk animation
         enemy.walkTimer++;
         if (enemy.walkTimer >= 8) {
@@ -1212,8 +1313,13 @@ export class Engine {
           const edgeAhead = nextFloor !== 1 && nextFloor !== 2 && nextFloor !== 7;
           if (wallAhead || edgeAhead) {
             enemy.x = rightCol * CONFIG.TILE_SIZE - enemy.width;
-            enemy.vx = -enemy.speed;
-            enemy.facing = 'left';
+            if (enemy.type === 'chaser') {
+              enemy.vy = -6; // Jump!
+              enemy.isGrounded = false;
+            } else {
+              enemy.vx = -enemy.speed;
+              enemy.facing = 'left';
+            }
           }
         } else {
           const leftCol = Math.floor(enemy.x / CONFIG.TILE_SIZE);
@@ -1223,20 +1329,27 @@ export class Engine {
           const edgeAhead = nextFloor !== 1 && nextFloor !== 2 && nextFloor !== 7;
           if (wallAhead || edgeAhead) {
             enemy.x = (leftCol + 1) * CONFIG.TILE_SIZE;
-            enemy.vx = enemy.speed;
-            enemy.facing = 'right';
+            if (enemy.type === 'chaser') {
+              enemy.vy = -6; // Jump!
+              enemy.isGrounded = false;
+            } else {
+              enemy.vx = enemy.speed;
+              enemy.facing = 'right';
+            }
           }
         }
 
         // Patrol range edges
-        if (enemy.x <= enemy.patrolLeft) {
-          enemy.x = enemy.patrolLeft;
-          enemy.vx = enemy.speed;
-          enemy.facing = 'right';
-        } else if (enemy.x + enemy.width >= enemy.patrolRight) {
-          enemy.x = enemy.patrolRight - enemy.width;
-          enemy.vx = -enemy.speed;
-          enemy.facing = 'left';
+        if (enemy.type !== 'chaser') {
+          if (enemy.x <= enemy.patrolLeft) {
+            enemy.x = enemy.patrolLeft;
+            enemy.vx = enemy.speed;
+            enemy.facing = 'right';
+          } else if (enemy.x + enemy.width >= enemy.patrolRight) {
+            enemy.x = enemy.patrolRight - enemy.width;
+            enemy.vx = -enemy.speed;
+            enemy.facing = 'left';
+          }
         }
       } else {
         // Airborne – freeze walk animation so legs don't flail in the air
@@ -1383,8 +1496,12 @@ export class Engine {
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const tileVal = this.getTile(c, r);
-        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7) {
+        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7 || tileVal === 8 || tileVal === 10 || tileVal === 11) {
           tiles.push({ col: c, row: r, type: tileVal });
+        } else if (tileVal === 12 && this.level.switchState === 'red') {
+          tiles.push({ col: c, row: r, type: 12 });
+        } else if (tileVal === 13 && this.level.switchState === 'blue') {
+          tiles.push({ col: c, row: r, type: 13 });
         }
       }
     }
@@ -1402,6 +1519,41 @@ export class Engine {
     const tiles = this.getOverlappingTiles(playerBox);
 
     for (const tile of tiles) {
+      if (tile.type === 11) {
+        if (!this.switchCooldown) {
+          this.level.switchState = this.level.switchState === 'red' ? 'blue' : 'red';
+          this.switchCooldown = 20;
+          if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        }
+      }
+      if (tile.type === 8) {
+        if (this.hasKey) {
+          this.level.setTile(tile.col, tile.row, 0);
+          this.hasKey = false;
+          if (!this.isSimulation && audio.playBreakSound) audio.playBreakSound();
+          this.spawnJumpDust();
+          continue;
+        }
+      }
+      if (tile.type === 10) {
+        if (this.player.vx > 0) {
+          if (this.getTile(tile.col + 1, tile.row) === 0) {
+            this.level.setTile(tile.col, tile.row, 0);
+            this.level.setTile(tile.col + 1, tile.row, 10);
+            this.spawnJumpDust();
+            if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+            continue;
+          }
+        } else if (this.player.vx < 0) {
+          if (this.getTile(tile.col - 1, tile.row) === 0) {
+            this.level.setTile(tile.col, tile.row, 0);
+            this.level.setTile(tile.col - 1, tile.row, 10);
+            this.spawnJumpDust();
+            if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+            continue;
+          }
+        }
+      }
       const tileLeft = tile.col * CONFIG.TILE_SIZE;
       const tileRight = tileLeft + CONFIG.TILE_SIZE;
 
@@ -1436,6 +1588,22 @@ export class Engine {
     const tiles = this.getOverlappingTiles(playerBox);
 
     for (const tile of tiles) {
+      if (tile.type === 11) {
+        if (!this.switchCooldown) {
+          this.level.switchState = this.level.switchState === 'red' ? 'blue' : 'red';
+          this.switchCooldown = 20;
+          if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        }
+      }
+      if (tile.type === 8) {
+        if (this.hasKey) {
+          this.level.setTile(tile.col, tile.row, 0);
+          this.hasKey = false;
+          if (!this.isSimulation && audio.playBreakSound) audio.playBreakSound();
+          this.spawnJumpDust();
+          continue;
+        }
+      }
       const tileTop = tile.row * CONFIG.TILE_SIZE;
       const tileBottom = tileTop + CONFIG.TILE_SIZE;
 
@@ -1448,8 +1616,17 @@ export class Engine {
             this.spawnLandDust(this.player.vy);
           }
           this.player.y = tileTop - this.player.height;
-          this.player.vy = 0;
-          this.player.isGrounded = true;
+          
+          if (this.player.charId === 'ball') {
+            this.player.vy = Math.min(-6, -this.player.vy * 0.85);
+            this.player.isGrounded = false;
+            this.player.jumpStretchTimer = 10;
+            if (!this.isSimulation && this.player.vy < -2) audio.playBounceSound();
+          } else {
+            this.player.vy = 0;
+            this.player.isGrounded = true;
+          }
+
           playerBox.top = this.player.y;
           playerBox.bottom = this.player.y + this.player.height;
 
@@ -1681,6 +1858,67 @@ export class Engine {
           this.editor.renderBreakableBlock(x, y, 1, c, r, this);
         } else if (tileVal === 7) {
           this.editor.renderEarthBlock(x, y, 1, c, r, this);
+        } else if (tileVal === 8) {
+          // Lock Block
+          this.ctx.fillStyle = '#9e9e9e';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#616161';
+          this.ctx.font = 'bold 20px sans-serif';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText('L', x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+        } else if (tileVal === 9) {
+          // Key
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2);
+          const floatOffset = Math.sin(Date.now() * 0.005 + (c * 17) + (r * 23)) * 4;
+          this.ctx.translate(0, floatOffset);
+          this.ctx.fillStyle = '#ffeb3b';
+          this.ctx.fillRect(-10, -5, 20, 10);
+          this.ctx.fillStyle = '#c8b900';
+          this.ctx.font = 'bold 20px sans-serif';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText('K', 0, 0);
+          this.ctx.restore();
+        } else if (tileVal === 10) {
+          // Moveable block
+          this.ctx.fillStyle = '#a87a51';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#8a6039';
+          this.ctx.fillRect(x + 4, y + 4, CONFIG.TILE_SIZE - 8, CONFIG.TILE_SIZE - 8);
+          this.ctx.fillStyle = '#5c3a21';
+          this.ctx.fillRect(x + 18, y + 4, 4, CONFIG.TILE_SIZE - 8);
+          this.ctx.fillRect(x + 4, y + 18, CONFIG.TILE_SIZE - 8, 4);
+        } else if (tileVal === 11) {
+          // Switch block
+          this.ctx.fillStyle = this.level.switchState === 'blue' ? '#2196f3' : '#f44336';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.font = 'bold 20px sans-serif';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText(this.level.switchState === 'blue' ? 'B' : 'R', x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+        } else if (tileVal === 12) {
+          // Red Block
+          if (this.level.switchState === 'red') {
+            this.ctx.fillStyle = '#f44336';
+            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          } else {
+            this.ctx.strokeStyle = '#f44336';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(x+2, y+2, CONFIG.TILE_SIZE-4, CONFIG.TILE_SIZE-4);
+          }
+        } else if (tileVal === 13) {
+          // Blue Block
+          if (this.level.switchState === 'blue') {
+            this.ctx.fillStyle = '#2196f3';
+            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          } else {
+            this.ctx.strokeStyle = '#2196f3';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(x+2, y+2, CONFIG.TILE_SIZE-4, CONFIG.TILE_SIZE-4);
+          }
         }
       }
     }
@@ -1849,6 +2087,24 @@ export class Engine {
           isEdit ? 0 : this.player.tiltAngle,
           1.0
         );
+      } else if (renderCharId === 'ball') {
+        this.ctx.save();
+        this.ctx.translate(px + this.player.width / 2, py + this.player.height / 2);
+        const sx = isEdit ? 1 : this.player.scaleX;
+        const sy = isEdit ? 1 : this.player.scaleY;
+        this.ctx.scale(sx, sy);
+        this.ctx.beginPath();
+        const r = this.player.width / 2;
+        this.ctx.arc(0, 0, r, 0, Math.PI * 2);
+        this.ctx.fillStyle = '#ff9800';
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#e65100';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+        this.ctx.restore();
+      } else if (renderCharId === 'topdown') {
+        this.ctx.fillStyle = '#9c27b0';
+        this.ctx.fillRect(px, py, this.player.width, this.player.height);
       } else {
         // Draw our custom Ghibli Forest Kid!
         this.drawForestKid(
@@ -1867,7 +2123,7 @@ export class Engine {
     }
 
     // 4. Render Enemies – Ghibli Soot Sprite style (play mode = live; edit mode = spawn markers)
-    const drawSootSprite = (ctx, cx, cy, radius, walkFrame, alpha = 1) => {
+    const drawSootSprite = (ctx, cx, cy, radius, walkFrame, alpha = 1, type = 'patrol') => {
       ctx.save();
       ctx.globalAlpha = alpha;
 
@@ -1900,9 +2156,15 @@ export class Engine {
 
       // Main body – slightly warm dark charcoal gradient
       const bodyGrad = ctx.createRadialGradient(cx - radius * 0.25, bodyY - radius * 0.25, radius * 0.05, cx, bodyY, radius);
-      bodyGrad.addColorStop(0, '#3d3035');   // warm highlight
-      bodyGrad.addColorStop(0.45, '#1e1720');
-      bodyGrad.addColorStop(1, '#0e0b10');   // deep shadow
+      if (type === 'chaser') {
+        bodyGrad.addColorStop(0, '#b43232');   // highlight
+        bodyGrad.addColorStop(0.45, '#8c1919'); // midtone
+        bodyGrad.addColorStop(1, '#3c0000');   // deep shadow
+      } else {
+        bodyGrad.addColorStop(0, '#3d3035');   // warm highlight
+        bodyGrad.addColorStop(0.45, '#1e1720');
+        bodyGrad.addColorStop(1, '#0e0b10');   // deep shadow
+      }
       ctx.fillStyle = bodyGrad;
       ctx.beginPath();
       ctx.arc(cx, bodyY, radius, 0, Math.PI * 2);
@@ -1917,7 +2179,11 @@ export class Engine {
         const by = bodyY + Math.sin(angle) * (radius * 0.88);
         // Each bump has a slightly different size for organic feel
         const br = bumpR * (0.75 + 0.35 * Math.sin(i * 2.3 + 1.1));
-        ctx.fillStyle = i % 2 === 0 ? '#221c25' : '#1a141e';
+        if (type === 'chaser') {
+          ctx.fillStyle = i % 2 === 0 ? '#962828' : '#781414';
+        } else {
+          ctx.fillStyle = i % 2 === 0 ? '#221c25' : '#1a141e';
+        }
         ctx.beginPath();
         ctx.arc(bx, by, br, 0, Math.PI * 2);
         ctx.fill();
@@ -1940,7 +2206,7 @@ export class Engine {
         ctx.fill();
 
         // Deep black iris / pupil
-        ctx.fillStyle = '#0d0a0f';
+        ctx.fillStyle = type === 'chaser' ? '#ffe000' : '#0d0a0f';
         ctx.beginPath();
         ctx.arc(ex, ey2 + eyeR * 0.08, eyeR * 0.62, 0, Math.PI * 2);
         ctx.fill();
@@ -1987,21 +2253,57 @@ export class Engine {
       ctx.restore();
     };
 
+    const drawThwomp = (ctx, cx, cy, width, height, state) => {
+      ctx.save();
+      const x = cx - width / 2;
+      const y = cy - height / 2;
+      ctx.fillStyle = '#607d8b';
+      ctx.fillRect(x, y, width, height);
+      // draw angry eyes
+      ctx.fillStyle = state === 'falling' ? '#ff5252' : '#263238';
+      ctx.fillRect(x + 8, y + 15, 6, 6);
+      ctx.fillRect(x + 26, y + 15, 6, 6);
+      // draw spikes on bottom
+      ctx.fillStyle = '#cfd8dc';
+      ctx.beginPath();
+      ctx.moveTo(x, y + height);
+      ctx.lineTo(x + 10, y + height + 10);
+      ctx.lineTo(x + 20, y + height);
+      ctx.lineTo(x + 30, y + height + 10);
+      ctx.lineTo(x + 40, y + height);
+      ctx.fill();
+      ctx.restore();
+    };
+
     if (this.mode === CONFIG.MODE_PLAY) {
       for (const enemy of this.liveEnemies) {
-        // Centre of the sprite
-        const cx = enemy.x + enemy.width / 2;
-        const cy = enemy.y + enemy.height / 2 - enemy.height * 0.05;
-        const radius = enemy.width * 0.52;
-        drawSootSprite(this.ctx, cx, cy, radius, enemy.walkFrame);
+        if (enemy.type === 'thwomp') {
+          const cx = enemy.x + enemy.width / 2;
+          const cy = enemy.y + enemy.height / 2;
+          drawThwomp(this.ctx, cx, cy, enemy.width, enemy.height, enemy.state);
+        } else {
+          // Centre of the sprite
+          const cx = enemy.x + enemy.width / 2;
+          const cy = enemy.y + enemy.height / 2 - enemy.height * 0.05;
+          const radius = enemy.width * 0.52;
+          drawSootSprite(this.ctx, cx, cy, radius, enemy.walkFrame, 1, enemy.type);
+        }
       }
     } else if (this.mode === CONFIG.MODE_EDIT) {
       // Ghost spawn markers in edit mode
       for (const e of this.level.enemies) {
-        const cx = e.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
-        const cy = e.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
-        const radius = CONFIG.TILE_SIZE * 0.38;
-        drawSootSprite(this.ctx, cx, cy, radius, 0, 0.6);
+        if (e.type === 'thwomp') {
+          const cx = e.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+          const cy = e.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+          this.ctx.globalAlpha = 0.6;
+          drawThwomp(this.ctx, cx, cy, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE, 'idle');
+          this.ctx.globalAlpha = 1.0;
+        } else {
+          const cx = e.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+          const cy = e.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+          const radius = CONFIG.TILE_SIZE * 0.38;
+          drawSootSprite(this.ctx, cx, cy, radius, 0, 0.6, e.type);
+        }
         // Patrol range dashed line
         this.ctx.save();
         this.ctx.strokeStyle = 'rgba(180,150,180,0.3)';

@@ -2866,7 +2866,8 @@ canvas {
 }
 
 .theme-icecream canvas {
-  background: linear-gradient(180deg, #ffe5ec 0%, #ffb3c6 100%) !important;
+  background: url('assets/ice_cream_bg.png') repeat !important;
+  background-size: 512px !important;
 }
 
 .theme-spooky canvas {

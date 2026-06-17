@@ -752,6 +752,42 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_LOCK:
+        if (this.level.getTile(col, row) !== 8) {
+          this.level.setTile(col, row, 8);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_MOVEABLE:
+        if (this.level.getTile(col, row) !== 10) {
+          this.level.setTile(col, row, 10);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_KEY:
+        if (this.level.getTile(col, row) !== 9) {
+          this.level.setTile(col, row, 9);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_SWITCH:
+        if (this.level.getTile(col, row) !== 11) {
+          this.level.setTile(col, row, 11);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_BLOCK_RED:
+        if (this.level.getTile(col, row) !== 12) {
+          this.level.setTile(col, row, 12);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_BLOCK_BLUE:
+        if (this.level.getTile(col, row) !== 13) {
+          this.level.setTile(col, row, 13);
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_ENEMY:
         if (this.level.addEnemy(col, row, CONFIG.ENEMY_SPEED, CONFIG.ENEMY_PATROL_RANGE)) {
           audio.playTileSound();
@@ -783,6 +819,22 @@ export class Editor {
         if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
           if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'ghibli') {
             this.level.setPlayerSpawn(col, row, 'ghibli');
+            audio.playTileSound();
+          }
+        }
+        break;
+      case CONFIG.TOOL_PLAYER_BALL:
+        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+          if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'ball') {
+            this.level.setPlayerSpawn(col, row, 'ball');
+            audio.playTileSound();
+          }
+        }
+        break;
+      case CONFIG.TOOL_PLAYER_TOPDOWN:
+        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+          if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'topdown') {
+            this.level.setPlayerSpawn(col, row, 'topdown');
             audio.playTileSound();
           }
         }
@@ -865,6 +917,53 @@ export class Editor {
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           }
           break;
+        case CONFIG.TOOL_LOCK:
+          this.ctx.fillStyle = '#9e9e9e';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#616161';
+          this.ctx.font = 'bold 20px sans-serif';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText('L', x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          break;
+        case CONFIG.TOOL_MOVEABLE:
+          this.ctx.fillStyle = '#a87a51';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          // Draw a small inner box
+          this.ctx.fillStyle = '#8a6039';
+          this.ctx.fillRect(x + 4, y + 4, CONFIG.TILE_SIZE - 8, CONFIG.TILE_SIZE - 8);
+          // And a cross
+          this.ctx.fillStyle = '#5c3a21';
+          this.ctx.fillRect(x + 18, y + 4, 4, CONFIG.TILE_SIZE - 8);
+          this.ctx.fillRect(x + 4, y + 18, CONFIG.TILE_SIZE - 8, 4);
+          break;
+        case CONFIG.TOOL_SWITCH:
+          this.ctx.fillStyle = '#f44336'; // Default red switch
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.font = 'bold 20px sans-serif';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText('R', x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          break;
+        case CONFIG.TOOL_BLOCK_RED:
+          this.ctx.fillStyle = '#f44336';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          break;
+        case CONFIG.TOOL_BLOCK_BLUE:
+          this.ctx.strokeStyle = '#2196f3';
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeRect(x+2, y+2, CONFIG.TILE_SIZE-4, CONFIG.TILE_SIZE-4);
+          break;
+        case CONFIG.TOOL_KEY:
+          this.ctx.fillStyle = '#ffeb3b';
+          this.ctx.fillRect(x + 10, y + 15, 20, 10);
+          this.ctx.fillStyle = '#c8b900';
+          this.ctx.font = 'bold 20px sans-serif';
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.fillText('K', x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          break;
         case CONFIG.TOOL_COIN:
           this.ctx.save();
           this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2);
@@ -892,7 +991,9 @@ export class Editor {
           this.ctx.fill();
           break;
         case CONFIG.TOOL_PLAYER_CLASSIC:
-        case CONFIG.TOOL_PLAYER_GHIBLI: {
+        case CONFIG.TOOL_PLAYER_GHIBLI:
+        case CONFIG.TOOL_PLAYER_BALL:
+        case CONFIG.TOOL_PLAYER_TOPDOWN: {
           const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
           const isInvalid = tileVal !== 0 ||
             this.level.enemies.some(e => e.col === this.hoverCol && e.row === this.hoverRow) ||
@@ -928,7 +1029,7 @@ export class Editor {
               this.ctx.globalAlpha = isInvalid ? 0.25 : 0.55;
               this.ctx.fillRect(x + (CONFIG.TILE_SIZE - 28) / 2, y + (CONFIG.TILE_SIZE - 28), 28, 28);
             }
-          } else {
+          } else if (this.currentTool === CONFIG.TOOL_PLAYER_GHIBLI) {
             if (this.engine) {
               const width = this.engine.player ? this.engine.player.width : 32;
               const height = this.engine.player ? this.engine.player.height : 38;
@@ -947,6 +1048,22 @@ export class Editor {
                 isInvalid ? 0.25 : 0.55
               );
             }
+          } else if (this.currentTool === CONFIG.TOOL_PLAYER_BALL) {
+            this.ctx.beginPath();
+            const r = 12;
+            const px = x + CONFIG.TILE_SIZE / 2;
+            const py = y + CONFIG.TILE_SIZE - r;
+            this.ctx.arc(px, py, r, 0, Math.PI * 2);
+            this.ctx.fillStyle = '#ff9800';
+            this.ctx.globalAlpha = isInvalid ? 0.25 : 0.55;
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#e65100';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+          } else if (this.currentTool === CONFIG.TOOL_PLAYER_TOPDOWN) {
+            this.ctx.fillStyle = '#9c27b0';
+            this.ctx.globalAlpha = isInvalid ? 0.25 : 0.55;
+            this.ctx.fillRect(x + (CONFIG.TILE_SIZE - 28) / 2, y + (CONFIG.TILE_SIZE - 28), 28, 28);
           }
           this.ctx.globalAlpha = 1;
           break;
@@ -959,7 +1076,8 @@ export class Editor {
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           }
           break;
-        case CONFIG.TOOL_ENEMY: {
+        case CONFIG.TOOL_ENEMY:
+        case CONFIG.TOOL_ENEMY_CHASER: {
           const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
           const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 5 || tileVal === 6 || tileVal === 7) ||
             (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
@@ -982,13 +1100,13 @@ export class Editor {
           // Bumps
           for (let i = 0; i < 8; i++) {
             const a = (i / 8) * Math.PI * 2 - Math.PI * 0.5;
-            this.ctx.fillStyle = 'rgba(30,23,32,0.8)';
+            this.ctx.fillStyle = this.currentTool === CONFIG.TOOL_ENEMY_CHASER ? 'rgba(150, 40, 40, 0.8)' : 'rgba(30,23,32,0.8)';
             this.ctx.beginPath();
             this.ctx.arc(cx2 + Math.cos(a) * r2 * 0.88, cy2 + Math.sin(a) * r2 * 0.88, r2 * 0.25, 0, Math.PI * 2);
             this.ctx.fill();
           }
           // Body
-          this.ctx.fillStyle = 'rgba(30,23,32,0.85)';
+          this.ctx.fillStyle = this.currentTool === CONFIG.TOOL_ENEMY_CHASER ? 'rgba(180, 50, 50, 0.85)' : 'rgba(30,23,32,0.85)';
           this.ctx.beginPath();
           this.ctx.arc(cx2, cy2, r2, 0, Math.PI * 2);
           this.ctx.fill();
@@ -1014,7 +1132,7 @@ export class Editor {
 
       // Border highlight around hovered tile
       let isValid = true;
-      if (this.currentTool === CONFIG.TOOL_ENEMY) {
+      if (this.currentTool === CONFIG.TOOL_ENEMY || this.currentTool === CONFIG.TOOL_ENEMY_CHASER) {
         const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
         const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6 || tileVal === 7) ||
           (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||

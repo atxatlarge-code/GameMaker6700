@@ -25,6 +25,8 @@ export const CONFIG = {
   TOOL_WALL: 'wall',
   TOOL_PLAYER_CLASSIC: 'player_classic',
   TOOL_PLAYER_GHIBLI: 'player_ghibli',
+  TOOL_PLAYER_BALL: 'player_ball',
+  TOOL_PLAYER_TOPDOWN: 'player_topdown',
   TOOL_GOAL: 'goal',
   TOOL_TRAMPOLINE: 'trampoline',
   TOOL_FIRE: 'fire',
@@ -35,9 +37,15 @@ export const CONFIG = {
   TOOL_COIN: 'coin',
   TOOL_BREAKABLE: 'breakable',
   TOOL_EARTH: 'earth',
+  TOOL_KEY: 'key',
+  TOOL_LOCK: 'lock',
+  TOOL_MOVEABLE: 'moveable',
+  TOOL_THWOMP: 'thwomp',
+  TOOL_SWITCH: 'switch',
+  TOOL_BLOCK_RED: 'block_red',
+  TOOL_BLOCK_BLUE: 'block_blue',
 
   // Enemy defaults
   ENEMY_SPEED: 1.8,
   ENEMY_PATROL_RANGE: 5, // tiles either side before turning
 };
-

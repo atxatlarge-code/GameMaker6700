@@ -86,7 +86,7 @@ export class Level {
     }
   }
 
-  addEnemy(col, row, speed, patrolRange) {
+  addEnemy(col, row, speed, patrolRange, type = 'patrol') {
     // Only one enemy per tile
     if (this.enemies.some(e => e.col === col && e.row === row)) return false;
 
@@ -119,6 +119,7 @@ export class Level {
       row,
       speed,
       patrolRange,
+      type,
     });
     if (this.onModify) this.onModify();
     return true;
