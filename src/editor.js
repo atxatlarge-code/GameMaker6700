@@ -847,6 +847,42 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_BUMPER:
+        if (this.level.getTile(col, row) !== 28) {
+          this.level.setTile(col, row, 28);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_GRAVITY_SWITCH:
+        if (this.level.getTile(col, row) !== 29) {
+          this.level.setTile(col, row, 29);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_JETPACK:
+        if (this.level.getTile(col, row) !== 30) {
+          this.level.setTile(col, row, 30);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_WATER:
+        if (this.level.getTile(col, row) !== 31) {
+          this.level.setTile(col, row, 31);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_SLIME:
+        if (this.level.getTile(col, row) !== 32) {
+          this.level.setTile(col, row, 32);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_BOOMERANG:
+        if (this.level.getTile(col, row) !== 33) {
+          this.level.setTile(col, row, 33);
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_BLOCK_CRUMBLE:
         if (this.level.getTile(col, row) !== 22) {
           this.level.setTile(col, row, 22);
@@ -863,6 +899,11 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_ENEMY_CHASER:
+        if (this.level.addEnemy(col, row, CONFIG.ENEMY_SPEED, 0, 'chaser')) {
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_LAZER:
         if (this.level.addEnemy(col, row, 0, 0, 'lazer')) {
           audio.playTileSound();
@@ -876,6 +917,11 @@ export class Editor {
         } else if (this.level.getTile(col, row) !== 0) {
           this.level.setTile(col, row, 0);
           audio.playEraseSound();
+        }
+        break;
+      case CONFIG.TOOL_ENEMY_TELEPORT:
+        if (this.level.addEnemy(col, row, 0, 0, 'teleport')) {
+          audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_PORTAL:
@@ -1124,6 +1170,57 @@ export class Editor {
           this.ctx.fill();
           this.ctx.restore();
           break;
+        case CONFIG.TOOL_BUMPER:
+          this.ctx.fillStyle = '#ec4899'; // Pink bumper
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2, 14, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#fbcfe8';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2, 8, 0, Math.PI * 2);
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_GRAVITY_SWITCH:
+          this.ctx.fillStyle = '#4b5563';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#c084fc';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2, 10, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#fff';
+          this.ctx.fillText("G", x + CONFIG.TILE_SIZE/2 - 4, y + CONFIG.TILE_SIZE/2 + 4);
+          break;
+        case CONFIG.TOOL_JETPACK:
+          this.ctx.fillStyle = '#ef4444'; // Red backpack
+          this.ctx.beginPath();
+          this.ctx.roundRect(x + 8, y + 4, 16, 20, 4);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#fb923c'; // Orange nozzles
+          this.ctx.fillRect(x + 10, y + 24, 4, 4);
+          this.ctx.fillRect(x + 18, y + 24, 4, 4);
+          this.ctx.fillStyle = '#64748b'; // Straps
+          this.ctx.fillRect(x + 4, y + 8, 4, 12);
+          this.ctx.fillRect(x + 24, y + 8, 4, 12);
+          break;
+        case CONFIG.TOOL_WATER:
+          this.ctx.fillStyle = 'rgba(59, 130, 246, 0.4)'; // Transparent blue
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.strokeStyle = 'rgba(96, 165, 250, 0.6)';
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x, y + 4);
+          this.ctx.quadraticCurveTo(x + 8, y - 2, x + 16, y + 4);
+          this.ctx.quadraticCurveTo(x + 24, y + 10, x + 32, y + 4);
+          this.ctx.stroke();
+          break;
+        case CONFIG.TOOL_BOOMERANG:
+          this.ctx.fillStyle = '#a855f7';
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 5, y + 20);
+          this.ctx.quadraticCurveTo(x + 20, y + 5, x + 35, y + 20);
+          this.ctx.quadraticCurveTo(x + 20, y + 15, x + 5, y + 20);
+          this.ctx.fill();
+          break;
         case CONFIG.TOOL_BLOCK_ICE:
           this.ctx.fillStyle = '#a5f3fc';
           this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
@@ -1260,6 +1357,22 @@ export class Editor {
           this.ctx.arc(cxS, cyS, CONFIG.TILE_SIZE * 0.2, 0, Math.PI * 1.5);
           this.ctx.stroke();
           break;
+        case CONFIG.TOOL_WATER:
+          if (this.assets.water) {
+            this.ctx.drawImage(this.assets.water, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          } else {
+            this.ctx.fillStyle = 'rgba(0, 150, 255, 0.5)';
+            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          }
+          break;
+        case CONFIG.TOOL_SLIME:
+          if (this.assets.slime) {
+            this.ctx.drawImage(this.assets.slime, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          } else {
+            this.ctx.fillStyle = 'rgba(100, 255, 100, 0.8)';
+            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          }
+          break;
         case CONFIG.TOOL_PLAYER_CLASSIC:
         case CONFIG.TOOL_PLAYER_GHIBLI:
         case CONFIG.TOOL_PLAYER_BALL:
@@ -1357,7 +1470,8 @@ export class Editor {
           }
           break;
         case CONFIG.TOOL_ENEMY:
-        case CONFIG.TOOL_ENEMY_CHASER: {
+        case CONFIG.TOOL_ENEMY_CHASER:
+        case CONFIG.TOOL_ENEMY_TELEPORT: {
           const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
           const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 5 || tileVal === 6 || tileVal === 7) ||
             (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
@@ -1380,13 +1494,19 @@ export class Editor {
           // Bumps
           for (let i = 0; i < 8; i++) {
             const a = (i / 8) * Math.PI * 2 - Math.PI * 0.5;
-            this.ctx.fillStyle = this.currentTool === CONFIG.TOOL_ENEMY_CHASER ? 'rgba(150, 40, 40, 0.8)' : 'rgba(30,23,32,0.8)';
+            let color = 'rgba(30,23,32,0.8)';
+            if (this.currentTool === CONFIG.TOOL_ENEMY_CHASER) color = 'rgba(150, 40, 40, 0.8)';
+            if (this.currentTool === CONFIG.TOOL_ENEMY_TELEPORT) color = 'rgba(100, 40, 160, 0.8)';
+            this.ctx.fillStyle = color;
             this.ctx.beginPath();
             this.ctx.arc(cx2 + Math.cos(a) * r2 * 0.88, cy2 + Math.sin(a) * r2 * 0.88, r2 * 0.25, 0, Math.PI * 2);
             this.ctx.fill();
           }
           // Body
-          this.ctx.fillStyle = this.currentTool === CONFIG.TOOL_ENEMY_CHASER ? 'rgba(180, 50, 50, 0.85)' : 'rgba(30,23,32,0.85)';
+          let bodyColor = 'rgba(30,23,32,0.85)';
+          if (this.currentTool === CONFIG.TOOL_ENEMY_CHASER) bodyColor = 'rgba(180, 50, 50, 0.85)';
+          if (this.currentTool === CONFIG.TOOL_ENEMY_TELEPORT) bodyColor = 'rgba(130, 50, 190, 0.85)';
+          this.ctx.fillStyle = bodyColor;
           this.ctx.beginPath();
           this.ctx.arc(cx2, cy2, r2, 0, Math.PI * 2);
           this.ctx.fill();

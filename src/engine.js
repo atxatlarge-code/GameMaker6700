@@ -165,6 +165,7 @@ export class Engine {
     this.player.hasDoubleJump = false;
     this.player.doubleJumpAvailable = false;
     this.player.hasSpringBoots = false;
+    this.player.hasBoomerang = false;
     this.player.coyoteTimer = 0;
     this.player.jumpBufferTimer = 0;
     this.player.scaleX = 1;
@@ -174,6 +175,11 @@ export class Engine {
     this.player.blinkDuration = 0;
     this.player.walkCycle = 0;
     this.player.landSquishTimer = 0;
+    
+    // Level animations
+    this.crumblingBlocks = [];
+    this.ghostTimer = 0;
+    this.boomerangs = [];
     this.player.jumpStretchTimer = 0;
     this.isDead = false;
     this.deathTimer = 0;
@@ -273,6 +279,9 @@ export class Engine {
       if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'Space') {
         this.keys.up = true;
         this.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
+      }
+      if (e.code === 'KeyF' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        this.throwBoomerang();
       }
     });
 
@@ -629,7 +638,15 @@ export class Engine {
       }
 
       // Jump check (coyote time and jump buffering)
-      if (this.player.jumpBufferTimer > 0) {
+      
+      if (this.player.isWallSliding) {
+        this.player.vy = -CONFIG.JUMP_FORCE;
+        this.player.vx = this.player.wallDirection * CONFIG.MOVE_SPEED * 1.5;
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playJumpSound) audio.playJumpSound();
+        this.player.isWallSliding = false;
+      } else
+if (this.player.jumpBufferTimer > 0) {
         if (this.player.isGrounded || this.player.coyoteTimer > 0) {
           const jumpForce = this.player.hasSpringBoots ? CONFIG.JUMP_FORCE * 1.5 : CONFIG.JUMP_FORCE;
           this.player.vy = -jumpForce;
@@ -724,6 +741,20 @@ export class Engine {
 
     // Handle Horizontal Collisions First
     this.player.x += this.player.vx;
+    // Slime Wall physics
+    this.player.isWallSliding = false;
+    if (!this.player.isGrounded && this.player.vy > 0) {
+      const inset = 2;
+      const leftTile = this.getTile(Math.floor((this.player.x - 1) / CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height / 2) / CONFIG.TILE_SIZE));
+      const rightTile = this.getTile(Math.floor((this.player.x + this.player.width + 1) / CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height / 2) / CONFIG.TILE_SIZE));
+      
+      if ((this.keys.left && leftTile === 32) || (this.keys.right && rightTile === 32)) {
+        this.player.isWallSliding = true;
+        this.player.wallDirection = this.keys.left ? 1 : -1;
+        this.player.vy *= 0.8;
+      }
+    }
+
     this.resolveHorizontalCollisions();
 
     // Handle Vertical Collisions Next
@@ -751,6 +782,21 @@ export class Engine {
 
     // Update and check enemies
     this.updateEnemies();
+
+    // Update boomerangs
+    this.updateBoomerangs();
+
+    // Update crumbling blocks
+    for (let i = this.crumblingBlocks.length - 1; i >= 0; i--) {
+      const b = this.crumblingBlocks[i];
+      b.timer--;
+      if (b.timer <= 0) {
+        this.setTile(b.col, b.row, 0);
+        this.crumblingBlocks.splice(i, 1);
+        if (audio.playBreakSound && !this.isSimulation) audio.playBreakSound();
+      }
+    }
+
 
     // Boundary check (if player falls off world bottom, reset)
     if (this.player.y > CONFIG.GRID_ROWS * CONFIG.TILE_SIZE + 100) {
@@ -805,6 +851,28 @@ export class Engine {
           // We allow a small tolerance for `plat.y` because the platform might be moving down
           if (pBottomPrev <= plat.y - (plat.vy * plat.dir) + 1 && pBottom + 2 >= plat.y) {
             this.player.isGrounded = true;
+
+        // Ice block (18) and Conveyor (20, 21)
+        const groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
+        if (groundTile === 18) {
+          this.player.friction = 0.98;
+        } else {
+          this.player.friction = CONFIG.FRICTION;
+        }
+        if (groundTile === 20) this.player.x -= 2;
+        if (groundTile === 21) this.player.x += 2;
+        
+        // Crumbling block (22)
+        if (groundTile === 22) {
+          const col = Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE);
+          const row = Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE);
+          let found = false;
+          for (const b of this.crumblingBlocks) {
+            if (b.col === col && b.row === row) { found = true; break; }
+          }
+          if (!found) this.crumblingBlocks.push({col, row, timer: 30});
+        }
+
             if (this.player.hasDoubleJump) this.player.doubleJumpAvailable = true;
             this.player.y = plat.y - this.player.height;
             this.player.vy = plat.vy * plat.dir; // Move with platform vertically
@@ -891,6 +959,17 @@ export class Engine {
     } else {
       capeColor = '#4a5d4e'; liningColor = '#c29b68'; faceColor = '#f5f0eb'; eyeColor = '#2b2621';
     }
+    const skin = this.player ? (this.player.skin || 'default') : 'default';
+    if (skin === 'ninja') {
+      capeColor = '#111111'; liningColor = '#e63946'; faceColor = '#ffe0e0'; eyeColor = '#111111';
+    } else if (skin === 'knight') {
+      capeColor = '#a8dadc'; liningColor = '#457b9d'; faceColor = '#f1faee'; eyeColor = '#1d3557';
+    } else if (skin === 'gold') {
+      capeColor = '#ffb703'; liningColor = '#fb8500'; faceColor = '#fff3b0'; eyeColor = '#023047';
+    } else if (skin === 'void') {
+      capeColor = '#000000'; liningColor = '#ff00ff'; faceColor = '#220022'; eyeColor = '#ff00ff';
+    }
+
 
     if (isTrail) {
       ctx.fillStyle = themeName === 'spooky' ? '#00ffcc' : '#c29b68';
@@ -1314,7 +1393,17 @@ export class Engine {
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const tileVal = this.getTile(c, r);
-        if (tileVal === 5 || tileVal === 9) {
+        if (tileVal === 19 || tileVal === 5 || tileVal === 9) {
+
+          if (tileVal === 19 && this.portalCooldown <= 0) {
+            this.level.gravityDir = (this.level.gravityDir || 1) * -1;
+            this.portalCooldown = 30;
+            this.player.vy = 0;
+            if (audio.playTileSound && !this.isSimulation) audio.playTileSound();
+          }
+
+          if (tileVal === 19) continue;
+          if (tileVal === 5 || tileVal === 9) {
           this.setTile(c, r, 0);
           
           if (tileVal === 5) {
@@ -1434,6 +1523,104 @@ export class Engine {
   }
 
   // ── Enemy AI ─────────────────────────────────────────────────────────────
+  
+  throwBoomerang() {
+    if (!this.player.hasBoomerang) return;
+    if (this.boomerangs.length > 0) return;
+
+    if (audio.playTileSound && !this.isSimulation) audio.playTileSound();
+
+    this.boomerangs.push({
+      x: this.player.x + this.player.width / 2 - 8,
+      y: this.player.y + this.player.height / 2 - 8,
+      vx: this.player.facing === 'left' ? -12 : 12,
+      vy: 0,
+      width: 16,
+      height: 16,
+      state: 'outward',
+      timer: 20,
+      rotation: 0
+    });
+  }
+
+  updateBoomerangs() {
+    for (let i = this.boomerangs.length - 1; i >= 0; i--) {
+      const b = this.boomerangs[i];
+      b.rotation += 0.4;
+      
+      if (b.state === 'outward') {
+        b.timer--;
+        if (b.timer <= 0) b.state = 'returning';
+        
+        const nextX = b.x + b.vx;
+        const col = Math.floor((nextX + (b.vx > 0 ? b.width : 0)) / CONFIG.TILE_SIZE);
+        const rowTop = Math.floor(b.y / CONFIG.TILE_SIZE);
+        const rowBot = Math.floor((b.y + b.height - 0.1) / CONFIG.TILE_SIZE);
+        
+        let hitWall = false;
+        for (let r = rowTop; r <= rowBot; r++) {
+          if (this.isSolid(col, r)) {
+            hitWall = true;
+            break;
+          }
+        }
+        
+        if (hitWall) {
+          b.state = 'returning';
+        } else {
+          b.x += b.vx;
+          b.y += b.vy;
+        }
+      } else {
+        const dx = (this.player.x + this.player.width / 2) - (b.x + b.width / 2);
+        const dy = (this.player.y + this.player.height / 2) - (b.y + b.height / 2);
+        const dist = Math.hypot(dx, dy);
+        
+        if (dist < 20) {
+          this.boomerangs.splice(i, 1);
+          continue;
+        }
+        
+        const returnSpeed = 14;
+        b.vx = (dx / dist) * returnSpeed;
+        b.vy = (dy / dist) * returnSpeed;
+        b.x += b.vx;
+        b.y += b.vy;
+      }
+      
+      const bLeft = b.x, bRight = b.x + b.width, bTop = b.y, bBot = b.y + b.height;
+      for (let j = this.liveEnemies.length - 1; j >= 0; j--) {
+        const e = this.liveEnemies[j];
+        if (e.isDead) continue;
+        if (bRight > e.x && bLeft < e.x + e.width && bBot > e.y && bTop < e.y + e.height) {
+          e.isDead = true;
+          this.spawnEnemyDeathParticles(e);
+          if (audio.playBreakSound && !this.isSimulation) audio.playBreakSound();
+        }
+      }
+
+      const minCol = Math.max(0, Math.floor(bLeft / CONFIG.TILE_SIZE));
+      const maxCol = Math.min(CONFIG.GRID_COLS - 1, Math.floor((bRight - 0.01) / CONFIG.TILE_SIZE));
+      const minRow = Math.max(0, Math.floor(bTop / CONFIG.TILE_SIZE));
+      const maxRow = Math.min(CONFIG.GRID_ROWS - 1, Math.floor((bBot - 0.01) / CONFIG.TILE_SIZE));
+
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
+          if (this.getTile(c, r) === 5) {
+            this.setTile(c, r, 0);
+            this.coinsCollected++;
+            if (!this.isSimulation) {
+              if (audio.playCoinSound) audio.playCoinSound();
+              const hudVal = document.getElementById('hud-coins-collected');
+              if (hudVal) hudVal.textContent = this.coinsCollected.toString();
+              this.spawnCoinParticles(c * CONFIG.TILE_SIZE + 20, r * CONFIG.TILE_SIZE + 20);
+            }
+          }
+        }
+      }
+    }
+  }
+
   updateEnemies() {
     if (this.isDead || this.hasWon) return;
 
@@ -1987,6 +2174,28 @@ export class Engine {
           } else {
             this.player.vy = 0;
             this.player.isGrounded = true;
+
+        // Ice block (18) and Conveyor (20, 21)
+        const groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
+        if (groundTile === 18) {
+          this.player.friction = 0.98;
+        } else {
+          this.player.friction = CONFIG.FRICTION;
+        }
+        if (groundTile === 20) this.player.x -= 2;
+        if (groundTile === 21) this.player.x += 2;
+        
+        // Crumbling block (22)
+        if (groundTile === 22) {
+          const col = Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE);
+          const row = Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE);
+          let found = false;
+          for (const b of this.crumblingBlocks) {
+            if (b.col === col && b.row === row) { found = true; break; }
+          }
+          if (!found) this.crumblingBlocks.push({col, row, timer: 30});
+        }
+
             if (this.player.hasDoubleJump) this.player.doubleJumpAvailable = true;
             this.player.coyoteTimer = CONFIG.COYOTE_TIME;
           }

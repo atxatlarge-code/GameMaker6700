@@ -15,6 +15,8 @@ const assets = {
   trampoline: null,
   fire: null,
   spikes: null,
+  water: null,
+  slime: null,
 };
 
 function loadAndRemoveWhiteBg(src, previewSelector, callback) {
@@ -224,6 +226,12 @@ function renderLevelPreview(canvas, levelObj) {
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
         ctx.fillStyle = '#528c46'; // Grass green
         ctx.fillRect(x, y, tileW + 0.5, (tileH * 0.3) + 0.5);
+      } else if (t === 31) {
+        ctx.fillStyle = '#0096ff';
+        ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
+      } else if (t === 32) {
+        ctx.fillStyle = '#4ade80';
+        ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
       }
     }
   }
@@ -363,6 +371,16 @@ window.addEventListener('DOMContentLoaded', () => {
       if (spikesImg) spikesImg.src = img.src;
     }
   });
+  loadAndRemoveWhiteBg('assets/water.png', '.water-preview', (img) => {
+    if (img) {
+      assets.water = img;
+    }
+  });
+  loadAndRemoveWhiteBg('assets/slime.png', '.slime-preview', (img) => {
+    if (img) {
+      assets.slime = img;
+    }
+  });
 
   const menuView = document.getElementById('menu-view');
   const editorView = document.getElementById('editor-view');
@@ -393,13 +411,35 @@ window.addEventListener('DOMContentLoaded', () => {
   const toolButtons = document.querySelectorAll('.tool-btn, .popup-item-btn[data-tool]');
   const gameCanvas = document.getElementById('game-canvas');
 
+  // Global progression
+  window.globalCoins = parseInt(localStorage.getItem('gm6700_global_coins') || '0', 10);
+  window.unlockedSkins = JSON.parse(localStorage.getItem('gm6700_unlocked_skins') || '["default"]');
+  window.selectedSkin = localStorage.getItem('gm6700_selected_skin') || 'default';
+
+  function updateGlobalCoinDisplay() {
+    const el = document.getElementById('global-coin-count');
+    if (el) el.innerText = window.globalCoins;
+  }
+  updateGlobalCoinDisplay();
+
   // Initialize Game Objects
   const level = new Level();
   const editor = new Editor(gameCanvas, level, assets);
   const engine = new Engine(gameCanvas, level, editor, assets, () => {
     audio.playWinSound();
+    
+    // Add coins collected this run to global
+    if (engine.coinsCollected > 0) {
+      window.globalCoins += engine.coinsCollected;
+      localStorage.setItem('gm6700_global_coins', window.globalCoins.toString());
+      updateGlobalCoinDisplay();
+      // prevent farming from the same run continuously if desired, but we'll leave it simple
+      engine.coinsCollected = 0; 
+    }
+
     winOverlay.classList.remove('hidden');
   });
+  engine.player.skin = window.selectedSkin;
   window.engine = engine;
 
   // Initialize custom dynamic character icons
@@ -764,6 +804,24 @@ window.addEventListener('DOMContentLoaded', () => {
       actionGroups.forEach(g => g.classList.remove('open'));
     });
   });
+
+  // Darkness Toggle
+  const btnDarkness = document.getElementById('btn-toggle-darkness');
+  if (btnDarkness) {
+    btnDarkness.addEventListener('click', (e) => {
+      if (engine.mode === CONFIG.MODE_PLAY) return;
+      e.stopPropagation();
+      
+      level.isDark = !level.isDark;
+      if (level.isDark) {
+        btnDarkness.classList.add('active');
+      } else {
+        btnDarkness.classList.remove('active');
+      }
+      
+      actionGroups.forEach(g => g.classList.remove('open'));
+    });
+  }
 
   // Undo Action Button
   const btnUndoAction = document.getElementById('btn-undo-action');
@@ -1384,6 +1442,97 @@ window.addEventListener('DOMContentLoaded', () => {
     cachedThreads = threads;
     updateUnreadBadges();
   });
+
+  // --- COIN SHOP UI LOGIC ---
+  const btnOpenShop = document.getElementById('btn-open-shop');
+  const btnCloseShop = document.getElementById('btn-close-shop');
+  const shopOverlay = document.getElementById('shop-overlay');
+  const shopItemsContainer = document.getElementById('shop-items');
+
+  const shopSkins = [
+    { id: 'default', name: 'Forest Kid', cost: 0, icon: 'fa-leaf', color: '#528c46' },
+    { id: 'ninja', name: 'Ninja', cost: 20, icon: 'fa-user-ninja', color: '#111111' },
+    { id: 'knight', name: 'Knight', cost: 50, icon: 'fa-chess-knight', color: '#457b9d' },
+    { id: 'gold', name: 'Golden Kid', cost: 100, icon: 'fa-crown', color: '#ffb703' },
+    { id: 'void', name: 'Void Walker', cost: 250, icon: 'fa-meteor', color: '#ff00ff' }
+  ];
+
+  function renderShop() {
+    shopItemsContainer.innerHTML = '';
+    shopSkins.forEach(skin => {
+      const isUnlocked = window.unlockedSkins.includes(skin.id);
+      const isSelected = window.selectedSkin === skin.id;
+      const canAfford = window.globalCoins >= skin.cost;
+
+      const itemCard = document.createElement('div');
+      itemCard.style.cssText = `
+        background: #1e293b;
+        border: 2px solid ${isSelected ? '#ffb703' : '#334155'};
+        border-radius: 8px;
+        padding: 15px;
+        width: 130px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      `;
+
+      itemCard.innerHTML = `
+        <i class="fa-solid ${skin.icon}" style="font-size: 32px; color: ${skin.color}; margin-bottom: 10px;"></i>
+        <div style="font-weight: bold; margin-bottom: 5px; color: #f8fafc; font-size: 14px;">${skin.name}</div>
+        <div style="margin-bottom: 10px; font-size: 12px; color: ${isUnlocked ? '#4ade80' : (canAfford ? '#fbbf24' : '#ef4444')};">
+          ${isUnlocked ? 'Owned' : '<i class="fa-solid fa-coins"></i> ' + skin.cost}
+        </div>
+      `;
+
+      const actionBtn = document.createElement('button');
+      actionBtn.className = isSelected ? 'secondary-btn' : 'primary-btn';
+      actionBtn.style.width = '100%';
+      actionBtn.style.padding = '4px 8px';
+      actionBtn.style.fontSize = '12px';
+      
+      if (isSelected) {
+        actionBtn.innerText = 'Equipped';
+        actionBtn.disabled = true;
+      } else if (isUnlocked) {
+        actionBtn.innerText = 'Equip';
+        actionBtn.onclick = () => {
+          window.selectedSkin = skin.id;
+          localStorage.setItem('gm6700_selected_skin', skin.id);
+          engine.player.skin = skin.id;
+          audio.playTileSound();
+          renderShop();
+        };
+      } else {
+        actionBtn.innerText = 'Buy';
+        actionBtn.disabled = !canAfford;
+        if (canAfford) {
+          actionBtn.onclick = () => {
+            window.globalCoins -= skin.cost;
+            window.unlockedSkins.push(skin.id);
+            localStorage.setItem('gm6700_global_coins', window.globalCoins.toString());
+            localStorage.setItem('gm6700_unlocked_skins', JSON.stringify(window.unlockedSkins));
+            updateGlobalCoinDisplay();
+            audio.playCoinSound();
+            renderShop();
+          };
+        }
+      }
+      
+      itemCard.appendChild(actionBtn);
+      shopItemsContainer.appendChild(itemCard);
+    });
+  }
+
+  if (btnOpenShop && btnCloseShop) {
+    btnOpenShop.addEventListener('click', () => {
+      renderShop();
+      shopOverlay.classList.remove('hidden');
+    });
+    btnCloseShop.addEventListener('click', () => {
+      shopOverlay.classList.add('hidden');
+    });
+  }
 
   // Background auto-polling for real-time updates
   setInterval(async () => {

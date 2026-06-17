@@ -301,6 +301,49 @@ function createMechanicsShowcaseGrid() {
   return grid;
 }
 
+function createAbyssalDepthsGrid() {
+  const grid = createBlankGrid();
+  // Deep pit
+  for (let r = 10; r <= 27; r++) {
+    grid[r][4] = 1; // Left wall
+    grid[r][16] = 1; // Right wall
+  }
+  // Slime wall on the right for sliding down safely
+  for (let r = 12; r <= 25; r++) {
+    grid[r][15] = 32;
+  }
+  // Water pool at the bottom
+  for (let r = 24; r <= 27; r++) {
+    for (let c = 5; c <= 15; c++) {
+      grid[r][c] = 31;
+    }
+  }
+  // Switch in the water
+  grid[27][10] = 11;
+  // Fire hazard in the water to avoid
+  grid[27][12] = 14;
+
+  // Path out of the water using trampolines
+  grid[27][5] = 3;
+  grid[23][5] = 3;
+  
+  // High ledge to goal
+  for (let c = 16; c <= 25; c++) {
+    grid[10][c] = 1;
+  }
+  
+  // Doorway is blocked by red block
+  grid[9][24] = 12;
+  grid[8][24] = 12;
+
+  // Floor out of bounds for the rest
+  for (let c = 26; c < CONFIG.GRID_COLS; c++) {
+    grid[27][c] = 1;
+  }
+
+  return grid;
+}
+
 const PRESETS = [
   {
     id: 'preset-1',
@@ -394,6 +437,15 @@ const PRESETS = [
     platforms: [
       { id: 'p1', col: 44, row: 25, distance: 4, axis: 'y' }
     ],
+    isPreset: true,
+  },
+  {
+    id: 'preset-11',
+    name: 'Abyssal Depths',
+    grid: createAbyssalDepthsGrid(),
+    playerSpawn: { col: 6, row: 10 },
+    goalPos: { col: 25, row: 9 },
+    isDark: true,
     isPreset: true,
   }
 ];

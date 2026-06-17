@@ -13,6 +13,7 @@ export class Level {
     this.enemies = []; // [{ id, col, row, speed, patrolRange, type }]
     this.platforms = []; // [{ id, col, row, distance, axis }]
     this.isPreset = true;
+    this.isDark = false;
     this.onModify = null;
     this.history = [];
     this.initDefaultGrid();
@@ -31,6 +32,7 @@ export class Level {
     this.enemies = levelData.enemies ? levelData.enemies.map(e => ({ ...e })) : [];
     this.platforms = levelData.platforms ? levelData.platforms.map(p => ({ ...p })) : [];
     this.isPreset = levelData.isPreset || false;
+    this.isDark = levelData.isDark || false;
     this.history = [];
   }
 
@@ -47,6 +49,7 @@ export class Level {
       enemies: this.enemies.map(e => ({ ...e })),
       platforms: this.platforms.map(p => ({ ...p })),
       isPreset: this.isPreset,
+      isDark: this.isDark,
     };
   }
 
@@ -61,6 +64,7 @@ export class Level {
       _nextPortal: this._nextPortal,
       enemies: this.enemies.map(e => ({ ...e })),
       platforms: this.platforms.map(p => ({ ...p })),
+      isDark: this.isDark,
     });
     if (this.history.length > 30) {
       this.history.shift();
@@ -78,6 +82,7 @@ export class Level {
       this._nextPortal = state._nextPortal;
       this.enemies = state.enemies ? state.enemies.map(e => ({ ...e })) : [];
       this.platforms = state.platforms ? state.platforms.map(p => ({ ...p })) : [];
+      this.isDark = state.isDark || false;
       if (this.onModify) this.onModify();
       return true;
     }

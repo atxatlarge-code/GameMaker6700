@@ -61,6 +61,13 @@ export const CONFIG = {
   TOOL_CHECKPOINT: 'checkpoint',
   TOOL_FAKE_WALL: 'fake_wall',
   TOOL_SPEED_BOOST: 'speed_boost',
+  TOOL_BUMPER: 'bumper',
+  TOOL_GRAVITY_SWITCH: 'gravity_switch',
+  TOOL_JETPACK: 'jetpack',
+  TOOL_ENEMY_TELEPORT: 'enemy_teleport',
+  TOOL_WATER: 'water',
+  TOOL_SLIME: 'slime',
+  TOOL_BOOMERANG: 'boomerang',
 
   // Enemy defaults
   ENEMY_SPEED: 1.8,
