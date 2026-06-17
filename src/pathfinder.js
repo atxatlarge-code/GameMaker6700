@@ -64,18 +64,33 @@ export function solveLevel(engine) {
     vx: engine.player.vx,
     vy: engine.player.vy,
     isGrounded: engine.player.isGrounded,
+    hasDash: engine.player.hasDash,
+    dashAvailable: engine.player.dashAvailable,
+    isDashing: engine.player.isDashing,
+    dashTimer: engine.player.dashTimer,
     facing: engine.player.facing,
     coyoteTimer: engine.player.coyoteTimer,
     jumpBufferTimer: engine.player.jumpBufferTimer,
+    hasMagneticBoots: engine.player.hasMagneticBoots,
+    magneticState: engine.player.magneticState,
+    hasGrapple: engine.player.hasGrapple,
+    grappleHook: engine.player.grappleHook ? { ...engine.player.grappleHook } : null,
+    
+    // Engine State
+    switchState: engine.level.switchState,
+    timeFreezeTimer: engine.timeFreezeTimer || 0,
+    
     isDead: engine.isDead,
     deathTimer: engine.deathTimer,
     portalCooldown: engine.portalCooldown,
+    gravityDir: engine.level ? engine.level.gravityDir : 1,
     hasWon: engine.hasWon,
     enemies: engine.liveEnemies.map(e => ({ ...e })),
     // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
     playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
     coinsCollected: engine.coinsCollected,
-      stalactites: engine.stalactites ? engine.stalactites.map(s => ({ ...s })) : []
+    stalactites: engine.stalactites ? engine.stalactites.map(s => ({ ...s })) : [],
+    slidingIceBlocks: engine.slidingIceBlocks ? engine.slidingIceBlocks.map(b => ({ ...b, toggledSwitches: b.toggledSwitches ? new Set(b.toggledSwitches) : new Set() })) : []
   });
 
   // Helper to restore the exact state of the engine
@@ -84,21 +99,36 @@ export function solveLevel(engine) {
     engine.player.y = s.y;
     engine.player.vx = s.vx;
     engine.player.vy = s.vy;
-    engine.player.isGrounded = s.player.isGrounded;
+    engine.player.isGrounded = s.isGrounded;
+    engine.player.hasDash = s.hasDash;
+    engine.player.dashAvailable = s.dashAvailable;
+    engine.player.isDashing = s.isDashing;
+    engine.player.dashTimer = s.dashTimer;
     engine.player.facing = s.facing;
-    engine.player.coyoteTimer = s.player.coyoteTimer;
-    engine.player.jumpBufferTimer = s.player.jumpBufferTimer;
+    engine.player.coyoteTimer = s.coyoteTimer;
+    engine.player.jumpBufferTimer = s.jumpBufferTimer;
+    engine.player.hasMagneticBoots = s.hasMagneticBoots;
+    engine.player.magneticState = s.magneticState;
+    engine.player.hasGrapple = s.hasGrapple;
+    engine.player.grappleHook = s.grappleHook ? { ...s.grappleHook } : null;
+    
+    // Engine State
+    engine.level.switchState = s.switchState;
+    engine.timeFreezeTimer = s.timeFreezeTimer;
+    
     engine.isDead = s.isDead;
     engine.deathTimer = s.deathTimer;
     engine.portalCooldown = s.portalCooldown;
+    if (engine.level) engine.level.gravityDir = s.gravityDir;
     engine.hasWon = s.hasWon;
 
     // Restore enemies to their exact stored positions and states
-    engine.liveEnemies = s.liveEnemies.map(se => ({ ...se }));
+    engine.liveEnemies = s.enemies.map(se => ({ ...se }));
     // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
     engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
     engine.coinsCollected = s.coinsCollected;
-      engine.stalactites = s.stalactites ? s.stalactites.map(st => ({ ...st })) : [];
+    engine.stalactites = s.stalactites ? s.stalactites.map(st => ({ ...st })) : [];
+    engine.slidingIceBlocks = s.slidingIceBlocks ? s.slidingIceBlocks.map(b => ({ ...b, toggledSwitches: b.toggledSwitches ? new Set(b.toggledSwitches) : new Set() })) : [];
   };
 
   const startState = {
@@ -112,12 +142,16 @@ export function solveLevel(engine) {
 
   const getDiscretizedKey = (s) => {
     // Round positions to nearest 5px and velocities to nearest 0.5 to allow state aggregation
-    const playerPart = `${Math.round(s.player.x / 5)},${Math.round(s.player.y / 5)},${Math.round(s.player.vx * 2)},${Math.round(s.player.vy * 2)},${s.player.isGrounded ? 1 : 0},${s.player.coyoteTimer || 0},${s.player.jumpBufferTimer || 0}`;
+    const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer || 0},${s.jumpBufferTimer || 0},${s.gravityDir || 1},${s.hasDash ? 1 : 0},${s.dashAvailable ? 1 : 0},${s.isDashing ? 1 : 0},${s.magneticState || 'none'},${s.grappleHook ? `${Math.round(s.grappleHook.x/5)},${Math.round(s.grappleHook.y/5)},${s.grappleHook.attached?1:0}` : '0'},${s.timeFreezeTimer > 0 ? 1 : 0}`;
+    const levelPart = `${s.coinsCollected},${s.switchState}`;
     
     // Include enemy positions rounded to nearest 10px to prevent pruning valid stomp/patrol paths
-    const enemyPart = s.liveEnemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
+    const enemyPart = s.enemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
     
-    return `${playerPart}|${enemyPart}`;
+    // Include sliding ice blocks positions rounded to 5px
+    const icePart = s.slidingIceBlocks ? s.slidingIceBlocks.map(b => `${Math.round(b.x / 5)},${Math.round(b.y / 5)}`).join('|') : '';
+    
+    return `${playerPart}|${enemyPart}|${icePart}`;
   };
 
   const getHeuristic = (s) => {
@@ -127,13 +161,13 @@ export function solveLevel(engine) {
   };
 
   // Possible actions the bot can make
-  const actions = [
-    { right: true, left: false, jump: false },
-    { right: true, left: false, jump: true },
-    { right: false, left: true, jump: false },
-    { right: false, left: true, jump: true },
-    { right: false, left: false, jump: false },
-    { right: false, left: false, jump: true }
+  const baseActions = [
+    { right: true, left: false, jump: false, dash: false, down: false, up: false },
+    { right: true, left: false, jump: true, dash: false, down: false, up: false },
+    { right: false, left: true, jump: false, dash: false, down: false, up: false },
+    { right: false, left: true, jump: true, dash: false, down: false, up: false },
+    { right: false, left: false, jump: false, dash: false, down: false, up: false },
+    { right: false, left: false, jump: true, dash: false, down: false, up: false }
   ];
 
   let iterations = 0;
@@ -155,13 +189,32 @@ export function solveLevel(engine) {
     if (visited.has(key)) continue;
     visited.add(key);
 
-    for (const act of actions) {
+    let currentActions = baseActions;
+    if (curr.hasDash && curr.dashAvailable && !curr.isGrounded && !curr.isDashing) {
+      currentActions = currentActions.concat([
+        { right: true, left: false, jump: false, dash: true, down: false, up: false },
+        { right: false, left: true, jump: false, dash: true, down: false, up: false }
+      ]);
+    }
+    if (curr.hasMagneticBoots && (curr.magneticState === 'left' || curr.magneticState === 'right')) {
+      currentActions = currentActions.concat([
+        { right: false, left: false, jump: false, dash: false, down: true, up: false },
+        { right: false, left: false, jump: false, dash: false, down: false, up: true },
+        { right: false, left: false, jump: true, dash: false, down: false, up: false } // Jump off the wall
+      ]);
+    }
+
+    for (const act of currentActions) {
       restoreEngine(curr);
 
       engine.keys.left = act.left;
       engine.keys.right = act.right;
+      engine.keys.dash = act.dash;
+      engine.keys.down = act.down || false;
+      engine.keys.up = act.up || false;
       if (act.jump) {
         engine.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
+        engine.keys.up = true; // Ensure up is set for jump logic
       }
 
       // Step physics 5 frames for this action
@@ -242,16 +295,16 @@ export class AsyncPathfinder {
     this.originalState = this.saveEngine();
 
     this.actions = [
-      { right: true, left: false, jump: false },
-      { right: true, left: false, jump: true },
-      { right: false, left: true, jump: false },
-      { right: false, left: true, jump: true },
-      { right: false, left: false, jump: false },
-      { right: false, left: false, jump: true }
+      { right: true, left: false, jump: false, down: false, up: false },
+      { right: true, left: false, jump: true, down: false, up: false },
+      { right: false, left: true, jump: false, down: false, up: false },
+      { right: false, left: true, jump: true, down: false, up: false },
+      { right: false, left: false, jump: false, down: false, up: false },
+      { right: false, left: false, jump: true, down: false, up: false }
     ];
 
     this.getDiscretizedKey = (s) => {
-      const playerPart = `${Math.round(s.player.x / 5)},${Math.round(s.player.y / 5)},${Math.round(s.player.vx * 2)},${Math.round(s.player.vy * 2)},${s.player.isGrounded ? 1 : 0},${s.player.coyoteTimer || 0},${s.player.jumpBufferTimer || 0}`;
+      const playerPart = `${Math.round(s.player.x / 5)},${Math.round(s.player.y / 5)},${Math.round(s.player.vx * 2)},${Math.round(s.player.vy * 2)},${s.player.isGrounded ? 1 : 0},${s.player.coyoteTimer || 0},${s.player.jumpBufferTimer || 0},${s.player.magneticState || 'none'}`;
       const enemyPart = s.liveEnemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
       return `${playerPart}|${enemyPart}`;
     };
@@ -297,14 +350,26 @@ export class AsyncPathfinder {
       if (this.visited.has(key)) continue;
       this.visited.add(key);
 
-      for (const act of this.actions) {
-        this.restoreEngine(curr);
-
-        this.engine.keys.left = act.left;
-        this.engine.keys.right = act.right;
-        if (act.jump) {
-          this.engine.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
+        let currentActions = this.actions;
+        if (curr.player.hasMagneticBoots && (curr.player.magneticState === 'left' || curr.player.magneticState === 'right')) {
+          currentActions = currentActions.concat([
+            { right: false, left: false, jump: false, down: true, up: false },
+            { right: false, left: false, jump: false, down: false, up: true },
+            { right: false, left: false, jump: true, down: false, up: false } // Jump off the wall
+          ]);
         }
+
+        for (const act of currentActions) {
+          this.restoreEngine(curr);
+
+          this.engine.keys.left = act.left;
+          this.engine.keys.right = act.right;
+          this.engine.keys.down = act.down || false;
+          this.engine.keys.up = act.up || false;
+          if (act.jump) {
+            this.engine.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
+            this.engine.keys.up = true; // Ensure up is set for jump logic
+          }
 
         for (let f = 0; f < 5; f++) {
           this.engine.update();

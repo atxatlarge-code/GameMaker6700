@@ -230,6 +230,14 @@ export class Engine {
     this.player.doubleJumpAvailable = false;
     this.player.hasSpringBoots = false;
     this.player.hasBoomerang = false;
+    this.player.hasDash = false;
+    this.player.dashAvailable = false;
+    this.player.isDashing = false;
+    this.player.dashTimer = 0;
+    this.player.hasMagneticBoots = false;
+    this.player.magneticState = 'none';
+    this.player.hasGrapple = false;
+    this.player.grappleHook = null;
     this.player.coyoteTimer = 0;
     this.player.jumpBufferTimer = 0;
     this.player.scaleX = 1;
@@ -349,12 +357,46 @@ export class Engine {
       if (this.mode !== CONFIG.MODE_PLAY || this.hasWon) return;
       if (e.code === 'KeyA' || e.code === 'ArrowLeft') this.keys.left = true;
       if (e.code === 'KeyD' || e.code === 'ArrowRight') this.keys.right = true;
-      if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'Space') {
-        this.keys.up = true;
-        this.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
-      }
-      if (e.code === 'KeyF' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-        this.throwBoomerang();
+      switch (e.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+        case 'Space':
+          this.keys.up = true;
+          this.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
+          if (this.player.hasGrapple && this.player.grappleHook && this.player.grappleHook.attached) {
+            this.player.grappleHook = null;
+          }
+          break;
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          if (this.player.hasDash && this.player.dashAvailable && !this.player.isDashing && !this.isDead) {
+            this.player.isDashing = true;
+            this.player.dashTimer = 15; // 15 frames dash
+            this.player.dashAvailable = false;
+            this.player.vy = 0;
+            if (this.player.facing === 'left') {
+              this.player.vx = -12;
+            } else {
+              this.player.vx = 12;
+            }
+            if (!this.isSimulation && audio.playPowerupSound) audio.playPowerupSound();
+          }
+          this.throwBoomerang();
+          break;
+        case 'KeyE':
+          if (this.player.hasGrapple && !this.isDead && !this.hasWon) {
+            if (this.player.grappleHook && this.player.grappleHook.attached) {
+              // Detach
+              this.player.grappleHook = null;
+            } else if (!this.player.grappleHook) {
+              // Fire
+              this.fireGrapple();
+            }
+          }
+          break;
+        case 'KeyF':
+          this.throwBoomerang();
+          break;
       }
     });
 
@@ -484,6 +526,10 @@ export class Engine {
         }
       }
       return;
+    }
+
+    if (this.timeFreezeTimer > 0) {
+      this.timeFreezeTimer--;
     }
 
     if (!this.level.switchState) this.level.switchState = 'red';
@@ -753,12 +799,21 @@ if (this.player.jumpBufferTimer > 0) {
       // Apply Gravity
       const pColGravity = Math.floor((this.player.x + this.player.width / 2) / CONFIG.TILE_SIZE);
       const pRowGravity = Math.floor((this.player.y + this.player.height / 2) / CONFIG.TILE_SIZE);
+      
+      let gDir = 1;
+      if (this.player.hasMagneticBoots && this.player.magneticState === 'attached') {
+        gDir = -1;
+      }
+      this.gravityDir = gDir; // Store for other systems (like pathfinder)
+
       if (this.getTile(pColGravity, pRowGravity) === 18) {
-        this.player.vy -= CONFIG.GRAVITY * 1.5;
+        this.player.vy -= CONFIG.GRAVITY * 1.5 * gDir;
         if (this.player.vy < -CONFIG.MOVE_SPEED * 1.5) this.player.vy = -CONFIG.MOVE_SPEED * 1.5;
+        if (this.player.vy > CONFIG.MOVE_SPEED * 1.5) this.player.vy = CONFIG.MOVE_SPEED * 1.5;
       } else {
-        this.player.vy += CONFIG.GRAVITY;
+        this.player.vy += CONFIG.GRAVITY * gDir;
         if (this.player.vy > 12) this.player.vy = 12; // Terminal velocity
+        if (this.player.vy < -12) this.player.vy = -12;
       }
       
       // Wind Zones (36=Up, 37=Down, 38=Left, 39=Right)
@@ -828,8 +883,66 @@ if (this.player.jumpBufferTimer > 0) {
       this.player.tiltAngle = 0;
     }
 
+    // Dash Update
+    if (this.player.isDashing) {
+      if (this.player.dashTimer > 0) {
+        this.player.dashTimer--;
+        this.player.vy = 0; // lock y
+      } else {
+        this.player.isDashing = false;
+        this.player.vy = 0;
+      }
+    }
+
+    // Grapple Projectile & Spring Update
+    if (this.player.hasGrapple && this.player.grappleHook) {
+      const h = this.player.grappleHook;
+      if (!h.attached) {
+        // Fly through air
+        h.x += h.vx;
+        h.y += h.vy;
+        const hc = Math.floor(h.x / CONFIG.TILE_SIZE);
+        const hr = Math.floor(h.y / CONFIG.TILE_SIZE);
+        const hTile = this.getTile(hc, hr);
+        
+        // If it hits a solid tile (1, 2, 6, 7, etc.), it attaches!
+        if (hTile === 1 || hTile === 2 || hTile === 6 || hTile === 7 || hTile === 8 || hTile === 10 || hTile === 16 || hTile === 18 || hTile === 22 || hTile === 32 || hTile === 40 || hTile === 42) {
+          h.attached = true;
+          // Snap to hit position exactly or center of tile
+          h.x = hc * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+          h.y = hr * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+          
+          // Calculate rest length based on where player was when it attached
+          const px = this.player.x + this.player.width / 2;
+          const py = this.player.y + this.player.height / 2;
+          h.length = Math.hypot(h.x - px, h.y - py);
+          if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        } else if (h.x < 0 || h.x > this.level.width || h.y < 0 || h.y > this.level.height) {
+          this.player.grappleHook = null; // Missed and flew off screen
+        }
+      } else {
+        // Spring Physics Constraint!
+        const px = this.player.x + this.player.width / 2;
+        const py = this.player.y + this.player.height / 2;
+        const dx = h.x - px;
+        const dy = h.y - py;
+        const dist = Math.hypot(dx, dy);
+        
+        // If player moves further than rope length, pull them back!
+        if (dist > h.length) {
+          const stretch = dist - h.length;
+          const fx = (dx / dist) * stretch * CONFIG.GRAPPLE_STIFFNESS;
+          const fy = (dy / dist) * stretch * CONFIG.GRAPPLE_STIFFNESS;
+          this.player.vx += fx;
+          this.player.vy += fy;
+        }
+      }
+    }
+
     // Update platforms first so player can move with them
-    this.updatePlatforms();
+    if (this.timeFreezeTimer <= 0) {
+      this.updatePlatforms();
+    }
 
     // Handle Horizontal Collisions First
     this.player.x += this.player.vx;
@@ -854,6 +967,25 @@ if (this.player.jumpBufferTimer > 0) {
     this.player.y += this.player.vy;
     this.resolveVerticalCollisions();
 
+    // Check for magnetic boots attachment (if tile 42 is touching top or bottom)
+    if (this.player.hasMagneticBoots) {
+      const topRow = Math.floor((this.player.y - 2) / CONFIG.TILE_SIZE);
+      const bottomRow = Math.floor((this.player.y + this.player.height + 2) / CONFIG.TILE_SIZE);
+      const colL = Math.floor((this.player.x + 2) / CONFIG.TILE_SIZE);
+      const colR = Math.floor((this.player.x + this.player.width - 2) / CONFIG.TILE_SIZE);
+      
+      let isTouchingMagnet = false;
+      if (this.getTile(colL, topRow) === 42 || this.getTile(colR, topRow) === 42 ||
+          this.getTile(colL, bottomRow) === 42 || this.getTile(colR, bottomRow) === 42) {
+        isTouchingMagnet = true;
+      }
+      
+      this.player.magneticState = isTouchingMagnet ? 'attached' : 'none';
+      if (this.player.magneticState === 'attached') {
+        this.player.isGrounded = true; // allow jumping off ceiling
+      }
+    }
+
     // Check Win Condition
     this.checkWinCondition();
 
@@ -873,7 +1005,9 @@ if (this.player.jumpBufferTimer > 0) {
     this.checkCoins();
 
     // Update and check enemies
-    this.updateEnemies();
+    if (this.timeFreezeTimer <= 0) {
+      this.updateEnemies();
+    }
 
     // Update boomerangs
     this.updateBoomerangs();
@@ -911,44 +1045,105 @@ if (this.player.jumpBufferTimer > 0) {
     }
 
     // Update stalactites
-    for (let i = this.stalactites.length - 1; i >= 0; i--) {
-      const st = this.stalactites[i];
-      if (st.state === 'shaking') {
-        st.timer--;
-        if (st.timer <= 0) {
-          st.state = 'falling';
-          if (!this.isSimulation && window.audio && window.audio.playTileSound) window.audio.playTileSound();
-        }
-      } else if (st.state === 'falling') {
-        st.vy += 0.5; // Gravity
-        st.y += st.vy;
-        
-        // Collision with player
-        if (!this.isDead && !this.hasWon &&
-            this.player.x < st.x + st.width - 4 &&
-            this.player.x + this.player.width > st.x + 4 &&
-            this.player.y < st.y + st.height - 4 &&
-            this.player.y + this.player.height > st.y + 4) {
-          this.killPlayer();
-        }
-        
-        // Collision with ground
-        const bottomRow = Math.floor((st.y + st.height) / CONFIG.TILE_SIZE);
-        const col = Math.floor((st.x + st.width/2) / CONFIG.TILE_SIZE);
-        const tile = this.getTile(col, bottomRow);
-        if (tile === 1 || tile === 6 || tile === 7 || tile === 18) {
-          // Shatter
-          this.stalactites.splice(i, 1);
-          if (!this.isSimulation && window.audio && window.audio.playTileSound) window.audio.playTileSound();
-        } else if (st.y > CONFIG.GRID_ROWS * CONFIG.TILE_SIZE) {
-          this.stalactites.splice(i, 1);
+    if (this.timeFreezeTimer <= 0) {
+      for (let i = this.stalactites.length - 1; i >= 0; i--) {
+        const st = this.stalactites[i];
+        if (st.state === 'shaking') {
+          st.timer--;
+          if (st.timer <= 0) {
+            st.state = 'falling';
+            if (!this.isSimulation && window.audio && window.audio.playTileSound) window.audio.playTileSound();
+          }
+        } else if (st.state === 'falling') {
+          st.vy += 0.5; // Gravity
+          st.y += st.vy;
+          
+          // Check collision with player
+          if (st.x < this.player.x + this.player.width && st.x + st.width > this.player.x &&
+              st.y < this.player.y + this.player.height && st.y + st.height > this.player.y) {
+            this.killPlayer();
+          }
+
+          // Check collision with ground
+          const stCol = Math.floor((st.x + st.width/2) / CONFIG.TILE_SIZE);
+          const stRow = Math.floor((st.y + st.height) / CONFIG.TILE_SIZE);
+          const stTile = this.getTile(stCol, stRow);
+          
+          if (stTile === 1 || stTile === 6 || stTile === 7 || stTile === 16 || stTile === 18) {
+            // Shatter
+            this.stalactites.splice(i, 1);
+            if (!this.isSimulation && window.audio && window.audio.playBreakSound) window.audio.playBreakSound();
+            for(let p=0; p<5; p++) {
+              this.breakParticles.push({
+                x: st.x + st.width/2,
+                y: st.y + st.height,
+                vx: (Math.random()-0.5)*4,
+                vy: (Math.random()-1)*4,
+                vRotation: (Math.random()-0.5)*0.2,
+                rotation: Math.random()*Math.PI*2,
+                alpha: 1
+              });
+            }
+          } else if (st.y > CONFIG.GRID_ROWS * CONFIG.TILE_SIZE) {
+            this.stalactites.splice(i, 1);
+          }
         }
       }
     }
 
     this.updateShadowClone();
 
-    // Update crumbling blocks
+    // Update sliding ice blocks
+    if (this.slidingIceBlocks && this.timeFreezeTimer <= 0) {
+      for (let i = this.slidingIceBlocks.length - 1; i >= 0; i--) {
+        const block = this.slidingIceBlocks[i];
+        block.x += block.vx;
+
+        // Check bounds
+        if (block.x < 0 || block.x > this.level.width) {
+          this.slidingIceBlocks.splice(i, 1);
+          continue;
+        }
+
+        // Check if hitting a solid wall
+        const checkCol = block.vx > 0 ? Math.floor((block.x + block.width - 1) / CONFIG.TILE_SIZE) : Math.floor(block.x / CONFIG.TILE_SIZE);
+        const checkRow = Math.floor((block.y + block.height / 2) / CONFIG.TILE_SIZE);
+        const tileVal = this.getTile(checkCol, checkRow);
+        
+        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7 || tileVal === 8 || tileVal === 10 || tileVal === 17 || tileVal === 19 || tileVal === 20 || tileVal === 22 || tileVal === 40 || tileVal === 42) {
+          // Snap back and turn solid
+          const snapCol = block.vx > 0 ? checkCol - 1 : checkCol + 1;
+          this.setTile(snapCol, checkRow, 42); // Turned into frozen block
+          this.slidingIceBlocks.splice(i, 1);
+          
+          if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+          continue;
+        }
+
+        // Check Switches (11)
+        const centerCol = Math.floor((block.x + block.width / 2) / CONFIG.TILE_SIZE);
+        if (this.getTile(centerCol, checkRow) === 11) {
+          if (!block.toggledSwitches) block.toggledSwitches = new Set();
+          const switchKey = `${centerCol},${checkRow}`;
+          if (!block.toggledSwitches.has(switchKey)) {
+            block.toggledSwitches.add(switchKey);
+            this.level.switchState = this.level.switchState === 'red' ? 'blue' : 'red';
+            if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+          }
+        }
+
+        // Crush Enemies
+        for (let e = this.liveEnemies.length - 1; e >= 0; e--) {
+          const enemy = this.liveEnemies[e];
+          if (block.x < enemy.x + enemy.width && block.x + block.width > enemy.x &&
+              block.y < enemy.y + enemy.height && block.y + block.height > enemy.y) {
+            this.spawnEnemyDeathParticles(enemy);
+            if (!this.isSimulation && audio.playEnemyDeathSound) audio.playEnemyDeathSound();
+            this.liveEnemies.splice(e, 1);
+          }
+        }
+      }
+    }
     for (let i = this.crumblingBlocks.length - 1; i >= 0; i--) {
       const b = this.crumblingBlocks[i];
       b.timer--;
@@ -981,6 +1176,18 @@ if (this.player.jumpBufferTimer > 0) {
       decay: 0.025 + Math.random() * 0.02,
       isSquare: this.player.charId === 'classic',
     });
+  }
+
+  fireGrapple() {
+    this.player.grappleHook = {
+      x: this.player.x + this.player.width / 2,
+      y: this.player.y + this.player.height / 2,
+      vx: this.player.facing === 'left' ? -CONFIG.GRAPPLE_SPEED : CONFIG.GRAPPLE_SPEED,
+      vy: -CONFIG.GRAPPLE_SPEED,
+      attached: false,
+      length: 0
+    };
+    if (!this.isSimulation && audio.playPowerupSound) audio.playPowerupSound();
   }
 
   updatePlatforms() {
@@ -2043,7 +2250,6 @@ if (this.player.jumpBufferTimer > 0) {
             }
           }
         }
-        }
         continue; // skip horizontal movement entirely
       }
 
@@ -2511,6 +2717,34 @@ if (this.player.jumpBufferTimer > 0) {
       if (tile.type === 27) {
         this.level.setTile(tile.col, tile.row, 0);
         this.player.hasSpeedBoost = true;
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        continue;
+      }
+      if (tile.type === 41) {
+        this.level.setTile(tile.col, tile.row, 0);
+        this.player.hasDash = true;
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        continue;
+      }
+      if (tile.type === 43) {
+        this.level.setTile(tile.col, tile.row, 0);
+        this.player.hasMagneticBoots = true;
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        continue;
+      }
+      if (tile.type === 44) {
+        this.level.setTile(tile.col, tile.row, 0);
+        this.player.hasGrapple = true;
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        continue;
+      }
+      if (tile.type === 45) {
+        this.level.setTile(tile.col, tile.row, 0);
+        this.timeFreezeTimer = CONFIG.STOPWATCH_DURATION;
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
         continue;
@@ -3066,6 +3300,82 @@ if (this.player.jumpBufferTimer > 0) {
           this.ctx.lineTo(-12, -5);
           this.ctx.closePath();
           this.ctx.fill();
+          this.ctx.restore();
+        } else if (tileVal === 41) {
+          // Dash Powerup
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          const floatOffset = Math.sin(now * 0.005 + x) * 4;
+          this.ctx.translate(0, floatOffset);
+          this.ctx.strokeStyle = '#06b6d4'; // Cyan
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.moveTo(-10, -5);
+          this.ctx.lineTo(-5, -5);
+          this.ctx.moveTo(-15, 0);
+          this.ctx.lineTo(-3, 0);
+          this.ctx.moveTo(-12, 5);
+          this.ctx.lineTo(-6, 5);
+          this.ctx.stroke();
+          this.ctx.restore();
+        } else if (tileVal === 43) {
+          // Magnetic Boots
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          const floatOffset = Math.sin(now * 0.005 + x) * 4;
+          this.ctx.translate(0, floatOffset);
+          this.ctx.fillStyle = '#9ca3af'; // Gray boot
+          this.ctx.beginPath();
+          this.ctx.moveTo(-6, -8);
+          this.ctx.lineTo(6, -8);
+          this.ctx.lineTo(6, 4);
+          this.ctx.lineTo(10, 4);
+          this.ctx.lineTo(10, 10);
+          this.ctx.lineTo(-6, 10);
+          this.ctx.closePath();
+          this.ctx.fill();
+          this.ctx.fillStyle = '#ef4444'; // Red
+          this.ctx.fillRect(-4, 4, 4, 4);
+          this.ctx.fillStyle = '#3b82f6'; // Blue
+          this.ctx.fillRect(0, 4, 4, 4);
+          this.ctx.restore();
+        } else if (tileVal === 44) {
+          // Grapple Hook
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          const floatOffset = Math.sin(now * 0.005 + x) * 4;
+          this.ctx.translate(0, floatOffset);
+          this.ctx.fillStyle = '#6b7280';
+          this.ctx.beginPath();
+          this.ctx.moveTo(0, -8);
+          this.ctx.lineTo(0, 6);
+          this.ctx.arc(0, 4, 6, 0, Math.PI);
+          this.ctx.lineWidth = 3;
+          this.ctx.strokeStyle = '#4b5563';
+          this.ctx.stroke();
+          this.ctx.beginPath();
+          this.ctx.arc(0, -10, 2, 0, Math.PI * 2);
+          this.ctx.strokeStyle = '#d4d4d8';
+          this.ctx.lineWidth = 2;
+          this.ctx.stroke();
+          this.ctx.restore();
+        } else if (tileVal === 45) {
+          // Stopwatch
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          const floatOffset = Math.sin(now * 0.005 + x) * 4;
+          this.ctx.translate(0, floatOffset);
+          this.ctx.fillStyle = '#eab308'; // Yellow
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, 10, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#854d0e';
+          this.ctx.lineWidth = 2;
+          this.ctx.stroke();
+          this.ctx.beginPath();
+          this.ctx.moveTo(0, 0);
+          this.ctx.lineTo(0, -7);
+          this.ctx.stroke();
           this.ctx.restore();
         } else if (tileVal === 17) {
           // Ice Block
@@ -3674,8 +3984,7 @@ if (this.player.jumpBufferTimer > 0) {
                 this.ctx.beginPath();
                 this.ctx.arc(enemy.x + enemy.width/2, enemy.y + 25, 6, 0, Math.PI, false);
                 this.ctx.fill();
-             }
-          }
+              }
           }
           this.ctx.restore();
         } else if (enemy.type === 'bat') {
@@ -3732,7 +4041,6 @@ if (this.player.jumpBufferTimer > 0) {
             this.ctx.arc(-4, -2, 2, 0, Math.PI * 2);
             this.ctx.arc(4, -2, 2, 0, Math.PI * 2);
             this.ctx.fill();
-          }
           }
           this.ctx.restore();
         } else if (enemy.type === 'mimic') {
@@ -3829,6 +4137,46 @@ if (this.player.jumpBufferTimer > 0) {
       }
     }
 
+
+    // Draw Grappling Hook Line
+    if (this.player.hasGrapple && this.player.grappleHook) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
+      this.ctx.lineTo(this.player.grappleHook.x, this.player.grappleHook.y);
+      this.ctx.strokeStyle = '#9ca3af';
+      this.ctx.lineWidth = 2;
+      this.ctx.stroke();
+      
+      // Draw hook end
+      this.ctx.fillStyle = '#6b7280';
+      this.ctx.beginPath();
+      this.ctx.arc(this.player.grappleHook.x, this.player.grappleHook.y, 4, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+
+    // Time Freeze Screen Tint
+    if (this.timeFreezeTimer > 0) {
+      // Restore camera temporarily so we can fill the screen
+      this.ctx.restore();
+      this.ctx.save();
+      this.ctx.fillStyle = 'rgba(234, 179, 8, 0.15)'; // Yellow tint
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+      // Vignette effect
+      const grad = this.ctx.createRadialGradient(
+        this.canvas.width/2, this.canvas.height/2, this.canvas.height * 0.3,
+        this.canvas.width/2, this.canvas.height/2, this.canvas.width * 0.7
+      );
+      grad.addColorStop(0, 'rgba(234, 179, 8, 0)');
+      grad.addColorStop(1, 'rgba(202, 138, 4, 0.4)');
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      
+      // We must re-apply the camera transform since we restored it
+      this.ctx.restore(); 
+      this.ctx.save();
+      this.ctx.translate(-this.camera.x, -this.camera.y);
+    }
 
     // 5. Render Editor Overlay if in Edit Mode
     if (this.mode === CONFIG.MODE_EDIT) {
