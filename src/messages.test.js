@@ -399,7 +399,7 @@ describe('CloudMessageService', () => {
       service.saveLocalThreads([{ id: 't1', messages: [] }]);
       const msg = await service.addReply('t1', 'creator', 'New Text');
       expect(global.fetch).not.toHaveBeenCalled();
-      expect(msg.senderName).toBe('Game Creator');
+      expect(msg.senderName).toBe('Game Maker');
       const local = service.loadLocalThreads();
       expect(local.find(t => t.id === 't1').messages).toHaveLength(1);
     });
