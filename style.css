@@ -162,6 +162,13 @@ body {
   background: linear-gradient(180deg, #eb6864 0%, #b3322f 100%);
 }
 
+.red-btn.danger:disabled {
+  background: linear-gradient(180deg, #5c3535 0%, #3d1c1a 100%);
+  color: #888;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .jerry-lawson-text {
   font-family: var(--font-pixel);
   font-size: 1rem;
