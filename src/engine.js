@@ -1145,113 +1145,122 @@ export class Engine {
     if (this.isDead || this.hasWon) return;
 
     for (const enemy of this.liveEnemies) {
-
-      // ── Gravity ────────────────────────────────────────────────────────────
-      enemy.vy += CONFIG.GRAVITY;
-      if (enemy.vy > 12) enemy.vy = 12; // terminal velocity
-
-      // ── Vertical movement & ground collision ───────────────────────────────
-      enemy.isGrounded = false;
-      enemy.y += enemy.vy;
-
-      // Resolve vertical tile collisions
-      const eBoxV = {
-        left: enemy.x + 2,
-        right: enemy.x + enemy.width - 2,
-        top: enemy.y,
-        bottom: enemy.y + enemy.height,
-      };
-      const minColV = Math.max(0, Math.floor(eBoxV.left / CONFIG.TILE_SIZE));
-      const maxColV = Math.min(CONFIG.GRID_COLS - 1, Math.floor((eBoxV.right - 0.01) / CONFIG.TILE_SIZE));
-      const minRowV = Math.max(0, Math.floor(eBoxV.top / CONFIG.TILE_SIZE));
-      const maxRowV = Math.min(CONFIG.GRID_ROWS - 1, Math.floor((eBoxV.bottom - 0.01) / CONFIG.TILE_SIZE));
-
-      for (let r = minRowV; r <= maxRowV; r++) {
-        for (let c = minColV; c <= maxColV; c++) {
-          const tv = this.getTile(c, r);
-          if (tv !== 1 && tv !== 2 && tv !== 7) continue;
-          const tileTop = r * CONFIG.TILE_SIZE;
-          const tileBot = tileTop + CONFIG.TILE_SIZE;
-          if (enemy.vy > 0 && eBoxV.bottom > tileTop && (eBoxV.bottom - enemy.vy) <= tileTop) {
-            enemy.y = tileTop - enemy.height;
-            enemy.vy = 0;
-            enemy.isGrounded = true;
-            eBoxV.top = enemy.y;
-            eBoxV.bottom = enemy.y + enemy.height;
-          } else if (enemy.vy < 0 && eBoxV.top < tileBot && (eBoxV.top - enemy.vy) >= tileBot) {
-            enemy.y = tileBot;
-            enemy.vy = 0;
-            eBoxV.top = enemy.y;
-            eBoxV.bottom = enemy.y + enemy.height;
-          }
-        }
-      }
-
-      // ── Horizontal patrol (only when on the ground) ────────────────────────
-      if (enemy.isGrounded) {
-        // Advance walk animation
-        enemy.walkTimer++;
-        if (enemy.walkTimer >= 8) {
-          enemy.walkTimer = 0;
-          enemy.walkFrame = (enemy.walkFrame + 1) % 4;
-        }
-
-        enemy.x += enemy.vx;
-
-        // Wall collision: check mid-body row
-        const checkY = enemy.y + enemy.height * 0.5;
-        const row = Math.floor(checkY / CONFIG.TILE_SIZE);
-        // Ground row = row directly below enemy's feet
-        const footRow = Math.floor((enemy.y + enemy.height + 1) / CONFIG.TILE_SIZE);
-
-        if (enemy.vx > 0) {
-          const rightCol = Math.floor((enemy.x + enemy.width) / CONFIG.TILE_SIZE);
-           // Reverse if hitting a wall OR if about to step off an edge
-          const nextFloor = this.getTile(rightCol, footRow);
-          const wallAhead = this.getTile(rightCol, row) === 1 || this.getTile(rightCol, row) === 7;
-          const edgeAhead = nextFloor !== 1 && nextFloor !== 2 && nextFloor !== 7;
-          if (wallAhead || edgeAhead) {
-            enemy.x = rightCol * CONFIG.TILE_SIZE - enemy.width;
-            enemy.vx = -enemy.speed;
-            enemy.facing = 'left';
-          }
-        } else {
-          const leftCol = Math.floor(enemy.x / CONFIG.TILE_SIZE);
-           // Reverse if hitting a wall OR if about to step off an edge
-          const nextFloor = this.getTile(leftCol, footRow);
-          const wallAhead = this.getTile(leftCol, row) === 1 || this.getTile(leftCol, row) === 7;
-          const edgeAhead = nextFloor !== 1 && nextFloor !== 2 && nextFloor !== 7;
-          if (wallAhead || edgeAhead) {
-            enemy.x = (leftCol + 1) * CONFIG.TILE_SIZE;
-            enemy.vx = enemy.speed;
-            enemy.facing = 'right';
-          }
-        }
-
-        // Patrol range edges
-        if (enemy.x <= enemy.patrolLeft) {
-          enemy.x = enemy.patrolLeft;
-          enemy.vx = enemy.speed;
-          enemy.facing = 'right';
-        } else if (enemy.x + enemy.width >= enemy.patrolRight) {
-          enemy.x = enemy.patrolRight - enemy.width;
-          enemy.vx = -enemy.speed;
-          enemy.facing = 'left';
-        }
-      } else {
-        // Airborne – freeze walk animation so legs don't flail in the air
-        enemy.walkFrame = 0;
-      }
-
-      // Reset if enemy falls off the world
-      if (enemy.y > CONFIG.GRID_ROWS * CONFIG.TILE_SIZE + 100) {
-        enemy.y = enemy.height * -1;
-        enemy.vy = 0;
-      }
+      this.applyEnemyGravity(enemy);
+      this.handleEnemyVerticalCollision(enemy);
+      this.handleEnemyHorizontalPatrol(enemy);
+      this.checkEnemyBounds(enemy);
     }
 
     // Check player collision with any enemy
     this.checkEnemyCollisions();
+  }
+
+  applyEnemyGravity(enemy) {
+    enemy.vy += CONFIG.GRAVITY;
+    if (enemy.vy > 12) enemy.vy = 12; // terminal velocity
+  }
+
+  handleEnemyVerticalCollision(enemy) {
+    enemy.isGrounded = false;
+    enemy.y += enemy.vy;
+
+    // Resolve vertical tile collisions
+    const eBoxV = {
+      left: enemy.x + 2,
+      right: enemy.x + enemy.width - 2,
+      top: enemy.y,
+      bottom: enemy.y + enemy.height,
+    };
+    const minColV = Math.max(0, Math.floor(eBoxV.left / CONFIG.TILE_SIZE));
+    const maxColV = Math.min(CONFIG.GRID_COLS - 1, Math.floor((eBoxV.right - 0.01) / CONFIG.TILE_SIZE));
+    const minRowV = Math.max(0, Math.floor(eBoxV.top / CONFIG.TILE_SIZE));
+    const maxRowV = Math.min(CONFIG.GRID_ROWS - 1, Math.floor((eBoxV.bottom - 0.01) / CONFIG.TILE_SIZE));
+
+    for (let r = minRowV; r <= maxRowV; r++) {
+      for (let c = minColV; c <= maxColV; c++) {
+        const tv = this.getTile(c, r);
+        if (tv !== 1 && tv !== 2 && tv !== 7) continue;
+        const tileTop = r * CONFIG.TILE_SIZE;
+        const tileBot = tileTop + CONFIG.TILE_SIZE;
+        if (enemy.vy > 0 && eBoxV.bottom > tileTop && (eBoxV.bottom - enemy.vy) <= tileTop) {
+          enemy.y = tileTop - enemy.height;
+          enemy.vy = 0;
+          enemy.isGrounded = true;
+          eBoxV.top = enemy.y;
+          eBoxV.bottom = enemy.y + enemy.height;
+        } else if (enemy.vy < 0 && eBoxV.top < tileBot && (eBoxV.top - enemy.vy) >= tileBot) {
+          enemy.y = tileBot;
+          enemy.vy = 0;
+          eBoxV.top = enemy.y;
+          eBoxV.bottom = enemy.y + enemy.height;
+        }
+      }
+    }
+  }
+
+  handleEnemyHorizontalPatrol(enemy) {
+    if (enemy.isGrounded) {
+      // Advance walk animation
+      enemy.walkTimer++;
+      if (enemy.walkTimer >= 8) {
+        enemy.walkTimer = 0;
+        enemy.walkFrame = (enemy.walkFrame + 1) % 4;
+      }
+
+      enemy.x += enemy.vx;
+
+      // Wall collision: check mid-body row
+      const checkY = enemy.y + enemy.height * 0.5;
+      const row = Math.floor(checkY / CONFIG.TILE_SIZE);
+      // Ground row = row directly below enemy's feet
+      const footRow = Math.floor((enemy.y + enemy.height + 1) / CONFIG.TILE_SIZE);
+
+      if (enemy.vx > 0) {
+        const rightCol = Math.floor((enemy.x + enemy.width) / CONFIG.TILE_SIZE);
+        // Reverse if hitting a wall OR if about to step off an edge
+        const nextFloor = this.getTile(rightCol, footRow);
+        const wallAhead = this.getTile(rightCol, row) === 1 || this.getTile(rightCol, row) === 7;
+        const edgeAhead = nextFloor !== 1 && nextFloor !== 2 && nextFloor !== 7;
+        if (wallAhead || edgeAhead) {
+          enemy.x = rightCol * CONFIG.TILE_SIZE - enemy.width;
+          enemy.vx = -enemy.speed;
+          enemy.facing = 'left';
+        }
+      } else {
+        const leftCol = Math.floor(enemy.x / CONFIG.TILE_SIZE);
+        // Reverse if hitting a wall OR if about to step off an edge
+        const nextFloor = this.getTile(leftCol, footRow);
+        const wallAhead = this.getTile(leftCol, row) === 1 || this.getTile(leftCol, row) === 7;
+        const edgeAhead = nextFloor !== 1 && nextFloor !== 2 && nextFloor !== 7;
+        if (wallAhead || edgeAhead) {
+          enemy.x = (leftCol + 1) * CONFIG.TILE_SIZE;
+          enemy.vx = enemy.speed;
+          enemy.facing = 'right';
+        }
+      }
+
+      // Patrol range edges
+      if (enemy.x <= enemy.patrolLeft) {
+        enemy.x = enemy.patrolLeft;
+        enemy.vx = enemy.speed;
+        enemy.facing = 'right';
+      } else if (enemy.x + enemy.width >= enemy.patrolRight) {
+        enemy.x = enemy.patrolRight - enemy.width;
+        enemy.vx = -enemy.speed;
+        enemy.facing = 'left';
+      }
+    } else {
+      // Airborne – freeze walk animation so legs don't flail in the air
+      enemy.walkFrame = 0;
+    }
+  }
+
+  checkEnemyBounds(enemy) {
+    // Reset if enemy falls off the world
+    if (enemy.y > CONFIG.GRID_ROWS * CONFIG.TILE_SIZE + 100) {
+      enemy.y = enemy.height * -1;
+      enemy.vy = 0;
+    }
   }
 
   checkEnemyCollisions() {
