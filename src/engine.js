@@ -5,58 +5,57 @@ export class Engine {
 
   saveState() {
     return {
-      player: {
-        x: this.player.x,
-        y: this.player.y,
-        vx: this.player.vx,
-        vy: this.player.vy,
-        isGrounded: this.player.isGrounded,
-        facing: this.player.facing,
-        coyoteTimer: this.player.coyoteTimer,
-        jumpBufferTimer: this.player.jumpBufferTimer,
-        wallDirection: this.player.wallDirection,
-        isWallSliding: this.player.isWallSliding
-      },
+      player: { ...this.player, grappleHook: this.player.grappleHook ? { ...this.player.grappleHook } : null },
       isDead: this.isDead,
       deathTimer: this.deathTimer,
       portalCooldown: this.portalCooldown,
+      lastPortalExited: this.lastPortalExited,
+      lastDoorExited: this.lastDoorExited ? { ...this.lastDoorExited } : null,
       hasWon: this.hasWon,
       liveEnemies: this.liveEnemies ? this.liveEnemies.map(e => ({ ...e })) : [],
       playGrid: this.playGrid ? this.playGrid.map(row => row.slice()) : null,
       coinsCollected: this.coinsCollected,
       stalactites: this.stalactites ? this.stalactites.map(s => ({ ...s })) : [],
       boomerangs: this.boomerangs ? this.boomerangs.map(b => ({ ...b })) : [],
+      bombs: this.bombs ? this.bombs.map(b => ({ ...b })) : [],
+      explosions: this.explosions ? this.explosions.map(e => ({ ...e })) : [],
       livePlatforms: this.livePlatforms ? this.livePlatforms.map(p => ({ ...p })) : [],
       crumblingTiles: this.crumblingTiles ? new Map(Array.from(this.crumblingTiles.entries()).map(([k, v]) => [k, { ...v }])) : new Map(),
       shadowClone: this.shadowClone ? { ...this.shadowClone } : null,
       gravityDir: this.level ? this.level.gravityDir : 1,
       tickCount: this.tickCount,
       ghostTimer: this.ghostTimer,
-      ghostIsSolid: this.ghostIsSolid
+      ghostIsSolid: this.ghostIsSolid,
+      ghostRecording: this.ghostRecording,
+      ghostRecordTimer: this.ghostRecordTimer,
+      ghostFrames: this.ghostFrames ? [...this.ghostFrames] : [],
+      ghostActive: this.ghostActive,
+      ghostPlaybackIndex: this.ghostPlaybackIndex,
+      ghostData: this.ghost ? { ...this.ghost } : null
     };
   }
 
   restoreState(s) {
-    this.player.x = s.player.x;
-    this.player.y = s.player.y;
-    this.player.vx = s.player.vx;
-    this.player.vy = s.player.vy;
-    this.player.isGrounded = s.player.isGrounded;
-    this.player.facing = s.player.facing;
-    this.player.coyoteTimer = s.player.coyoteTimer;
-    this.player.jumpBufferTimer = s.player.jumpBufferTimer;
-    this.player.wallDirection = s.player.wallDirection;
-    this.player.isWallSliding = s.player.isWallSliding;
+    Object.assign(this.player, s.player);
+    if (s.player.grappleHook) {
+      this.player.grappleHook = { ...s.player.grappleHook };
+    } else {
+      this.player.grappleHook = null;
+    }
     
     this.isDead = s.isDead;
     this.deathTimer = s.deathTimer;
     this.portalCooldown = s.portalCooldown;
+    this.lastPortalExited = s.lastPortalExited;
+    this.lastDoorExited = s.lastDoorExited ? { ...s.lastDoorExited } : null;
     this.hasWon = s.hasWon;
     this.liveEnemies = s.liveEnemies ? s.liveEnemies.map(e => ({ ...e })) : [];
     this.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
     this.coinsCollected = s.coinsCollected;
     this.stalactites = s.stalactites ? s.stalactites.map(st => ({ ...st })) : [];
     this.boomerangs = s.boomerangs ? s.boomerangs.map(b => ({ ...b })) : [];
+    this.bombs = s.bombs ? s.bombs.map(b => ({ ...b })) : [];
+    this.explosions = s.explosions ? s.explosions.map(e => ({ ...e })) : [];
     this.livePlatforms = s.livePlatforms ? s.livePlatforms.map(p => ({ ...p })) : [];
     this.crumblingTiles = s.crumblingTiles ? new Map(Array.from(s.crumblingTiles.entries()).map(([k, v]) => [k, { ...v }])) : new Map();
     this.shadowClone = s.shadowClone ? { ...s.shadowClone } : null;
@@ -64,6 +63,12 @@ export class Engine {
     this.tickCount = s.tickCount;
     this.ghostTimer = s.ghostTimer;
     this.ghostIsSolid = s.ghostIsSolid;
+    this.ghostRecording = s.ghostRecording;
+    this.ghostRecordTimer = s.ghostRecordTimer;
+    this.ghostFrames = s.ghostFrames ? [...s.ghostFrames] : [];
+    this.ghostActive = s.ghostActive;
+    this.ghostPlaybackIndex = s.ghostPlaybackIndex;
+    this.ghost = s.ghostData ? { ...s.ghostData } : null;
   }
 
   constructor(canvas, level, editor, assets, onWin) {
@@ -78,9 +83,11 @@ export class Engine {
     this.isRunning = false;
     this.hasWon = false;
 
-    this.camera = { x: 0, y: 0 };
-    this.panKeys = { up: false, down: false, left: false, right: false };
+    this.bombs = [];
+    this.explosions = [];
     this.theme = 'default';
+    this.camera = { x: 0, y: 0 };
+    this.liveEnemies = [];
 
     // Pass engine reference to editor for camera coordinate offsets
     this.editor.initEngine(this);
@@ -106,6 +113,7 @@ export class Engine {
       landSquishTimer: 0,
       jumpStretchTimer: 0,
       charId: 'ghibli',
+      hasBombs: false,
     };
 
     this.isDead = false;
@@ -128,6 +136,13 @@ export class Engine {
     this.autoplayIndex = 0;
     this.autoplayFrameCount = 0;
 
+    this.ghostRecording = false;
+    this.ghostRecordTimer = 0;
+    this.ghostFrames = [];
+    this.ghostActive = false;
+    this.ghostPlaybackIndex = 0;
+    this.ghost = null;
+
     // Live enemy instances (created when entering play mode)
     this.liveEnemies = [];
 
@@ -135,9 +150,11 @@ export class Engine {
       left: false,
       right: false,
       up: false,
+      down: false
     };
 
     this.bounceAnims = new Map();
+    this.prevGamepadState = { left: false, right: false, down: false, jump: false, dash: false, grapple: false, bomb: false };
 
     this.initListeners();
     this.resetPlayer();
@@ -161,8 +178,9 @@ export class Engine {
       if (panControls) panControls.classList.remove('hidden');
       if (playHud) playHud.classList.add('hidden');
     }
-    this.keys = { left: false, right: false, up: false };
+    this.keys = { left: false, right: false, up: false, down: false };
     this.panKeys = { up: false, down: false, left: false, right: false };
+    this.prevGamepadState = { left: false, right: false, down: false, jump: false, dash: false, grapple: false, bomb: false };
   }
 
   getTile(col, row) {
@@ -173,6 +191,15 @@ export class Engine {
       return this.playGrid[row][col];
     }
     return this.level.getTile(col, row);
+  }
+
+  isSolid(col, row) {
+    const t = this.getTile(col, row);
+    // 59 is Reflector Shield
+    return t === 1 || t === 2 || t === 7 || t === 10 || t === 11 || t === 59 ||
+           t === 105 || t === 106 || t === 107 || t === 23 || t === 24 ||
+           (t === 12 && this.level.switchState === 'red') || 
+           (t === 13 && this.level.switchState === 'blue');
   }
 
   setTile(col, row, value) {
@@ -218,6 +245,11 @@ export class Engine {
       this.player.width = 32;
       this.player.height = 38;
     }
+    
+    // Set base sizes for shrinking/growing
+    this.player.baseWidth = this.player.width;
+    this.player.baseHeight = this.player.height;
+
     // Spawn player centered horizontally in their tile
     this.player.x = this.level.playerSpawn.col * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.width) / 2;
     this.player.y = this.level.playerSpawn.row * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.height);
@@ -235,6 +267,7 @@ export class Engine {
     this.player.isDashing = false;
     this.player.dashTimer = 0;
     this.player.hasMagneticBoots = false;
+    this.player.isShrunk = false;
     this.player.magneticState = 'none';
     this.player.hasGrapple = false;
     this.player.grappleHook = null;
@@ -243,6 +276,14 @@ export class Engine {
     this.player.scaleX = 1;
     this.player.scaleY = 1;
     this.player.tiltAngle = 0;
+    this.player.isInsideCannon = false;
+    this.player.cannonAngle = 0;
+    this.player.cannonDir = 1;
+    this.player.cannonCooldown = 0;
+    this.player.isSwinging = false;
+    this.player.swingAngle = 0;
+    this.player.swingVelocity = 0;
+    this.player.swingAnchor = null;
     this.player.blinkTimer = 0;
     this.player.blinkDuration = 0;
     this.player.walkCycle = 0;
@@ -273,10 +314,55 @@ export class Engine {
       this.playGrid = this.level.grid.map(row => row.slice());
       this.coinsCollected = 0;
       this.totalCoins = 0;
+      this.turrets = [];
+      this.turretProjectiles = [];
+      this.ropes = [];
+      this.minecarts = [];
+      this.gravityWells = [];
       for (let r = 0; r < CONFIG.GRID_ROWS; r++) {
         for (let c = 0; c < CONFIG.GRID_COLS; c++) {
           if (this.playGrid[r][c] === 5) {
             this.totalCoins++;
+          }
+          if (this.playGrid[r][c] === 54) {
+            this.turrets.push({
+              col: c,
+              row: r,
+              timer: 0,
+              interval: 150
+            });
+          }
+          if (this.playGrid[r][c] === 60) {
+            this.gravityWells.push({
+              col: c,
+              row: r,
+              x: c * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2,
+              y: r * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2
+            });
+          }
+          if (this.playGrid[r][c] === 55) {
+            this.ropes.push({
+              col: c,
+              row: r,
+              angle: 0,
+              velocity: 0,
+              length: 120 // pixels
+            });
+          }
+          if (this.playGrid[r][c] === 56) {
+            this.minecarts.push({
+              id: Date.now() + Math.random(),
+              x: c * CONFIG.TILE_SIZE,
+              y: r * CONFIG.TILE_SIZE,
+              width: CONFIG.TILE_SIZE,
+              height: CONFIG.TILE_SIZE,
+              vx: 0,
+              vy: 0,
+              isOccupied: false,
+              isGrounded: false
+            });
+            // We clear the tile so it doesn't render as a normal static tile
+            this.playGrid[r][c] = 0;
           }
         }
       }
@@ -286,6 +372,11 @@ export class Engine {
       if (hudTotal) hudTotal.textContent = this.totalCoins.toString();
     } else {
       this.playGrid = null;
+      this.turrets = [];
+      this.turretProjectiles = [];
+      this.ropes = [];
+      this.minecarts = [];
+      this.gravityWells = [];
     }
 
     // Re-initialise live enemies from level definition
@@ -357,6 +448,7 @@ export class Engine {
       if (this.mode !== CONFIG.MODE_PLAY || this.hasWon) return;
       if (e.code === 'KeyA' || e.code === 'ArrowLeft') this.keys.left = true;
       if (e.code === 'KeyD' || e.code === 'ArrowRight') this.keys.right = true;
+      if (e.code === 'KeyS' || e.code === 'ArrowDown') this.keys.down = true;
       switch (e.code) {
         case 'KeyW':
         case 'ArrowUp':
@@ -394,6 +486,9 @@ export class Engine {
             }
           }
           break;
+        case 'KeyB':
+          this.dropBomb();
+          break;
         case 'KeyF':
           this.throwBoomerang();
           break;
@@ -413,6 +508,7 @@ export class Engine {
       }
       if (e.code === 'KeyA' || e.code === 'ArrowLeft') this.keys.left = false;
       if (e.code === 'KeyD' || e.code === 'ArrowRight') this.keys.right = false;
+      if (e.code === 'KeyS' || e.code === 'ArrowDown') this.keys.down = false;
       if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'Space') {
         this.keys.up = false;
       }
@@ -509,7 +605,77 @@ export class Engine {
     requestAnimationFrame((time) => this.loop(time));
   }
 
+  pollGamepad() {
+    if (!navigator.getGamepads) return;
+    const gamepads = navigator.getGamepads();
+    const gp = gamepads[0];
+    if (!gp) return;
+
+    if (!this.prevGamepadState) {
+      this.prevGamepadState = { left: false, right: false, down: false, jump: false, dash: false, grapple: false, bomb: false };
+    }
+
+    const getBtn = (idx) => gp.buttons[idx] && gp.buttons[idx].pressed;
+    const st = {
+      left: getBtn(14) || gp.axes[0] < -0.4,
+      right: getBtn(15) || gp.axes[0] > 0.4,
+      down: getBtn(13) || gp.axes[1] > 0.4,
+      jump: getBtn(0) || getBtn(12) || gp.axes[1] < -0.4,
+      dash: getBtn(2),
+      grapple: getBtn(3) || getBtn(7),
+      bomb: getBtn(1)
+    };
+
+    if (st.left && !this.prevGamepadState.left) this.keys.left = true;
+    if (!st.left && this.prevGamepadState.left) this.keys.left = false;
+    if (st.right && !this.prevGamepadState.right) this.keys.right = true;
+    if (!st.right && this.prevGamepadState.right) this.keys.right = false;
+    if (st.down && !this.prevGamepadState.down) this.keys.down = true;
+    if (!st.down && this.prevGamepadState.down) this.keys.down = false;
+
+    if (st.jump && !this.prevGamepadState.jump) {
+      this.keys.up = true;
+      this.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
+      if (this.player.hasGrapple && this.player.grappleHook && this.player.grappleHook.attached) {
+        this.player.grappleHook = null;
+      }
+    }
+    if (!st.jump && this.prevGamepadState.jump) {
+      this.keys.up = false;
+    }
+
+    if (st.dash && !this.prevGamepadState.dash) {
+      if (this.player.hasDash && this.player.dashAvailable && !this.player.isDashing && !this.isDead) {
+        this.player.isDashing = true;
+        this.player.dashTimer = 15;
+        this.player.dashAvailable = false;
+        this.player.vy = 0;
+        this.player.vx = this.player.facing === 'left' ? -12 : 12;
+        if (!this.isSimulation && window.audio && window.audio.playPowerupSound) window.audio.playPowerupSound();
+      }
+      this.throwBoomerang();
+    }
+
+    if (st.grapple && !this.prevGamepadState.grapple) {
+      if (this.player.hasGrapple && !this.isDead && !this.hasWon) {
+        if (this.player.grappleHook && this.player.grappleHook.attached) {
+          this.player.grappleHook = null;
+        } else if (!this.player.grappleHook) {
+          this.fireGrapple();
+        }
+      }
+    }
+
+    if (st.bomb && !this.prevGamepadState.bomb) {
+      this.dropBomb();
+    }
+
+    this.prevGamepadState = st;
+  }
+
   update() {
+    this.pollGamepad();
+
     if (this.isDead) {
       this.deathTimer -= 1;
       this.deathParticles.forEach(p => {
@@ -530,6 +696,10 @@ export class Engine {
 
     if (this.timeFreezeTimer > 0) {
       this.timeFreezeTimer--;
+    }
+    
+    if (this.player.cannonCooldown > 0) {
+      this.player.cannonCooldown--;
     }
 
     if (!this.level.switchState) this.level.switchState = 'red';
@@ -577,6 +747,7 @@ export class Engine {
         this.keys.left = act.left;
         this.keys.right = act.right;
         this.keys.up = act.jump;
+        this.keys.down = act.down;
 
         if (this.autoplayFrameCount === 0 && act.jump) {
           this.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
@@ -603,6 +774,8 @@ export class Engine {
       } else {
         this.keys.left = false;
         this.keys.right = false;
+        this.keys.up = false;
+        this.keys.down = false;
       }
     }
 
@@ -759,7 +932,9 @@ export class Engine {
       // Jump check (coyote time and jump buffering)
       
       if (this.player.isWallSliding) {
-        this.player.vy = -CONFIG.JUMP_FORCE;
+        let jForce = CONFIG.JUMP_FORCE;
+        if (this.player.isShrunk) jForce *= 0.8;
+        this.player.vy = -jForce;
         this.player.vx = this.player.wallDirection * CONFIG.MOVE_SPEED * 1.5;
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playJumpSound) audio.playJumpSound();
@@ -767,7 +942,8 @@ export class Engine {
       } else
 if (this.player.jumpBufferTimer > 0) {
         if (this.player.isGrounded || this.player.coyoteTimer > 0) {
-          const jumpForce = this.player.hasSpringBoots ? CONFIG.JUMP_FORCE * 1.5 : CONFIG.JUMP_FORCE;
+          let jumpForce = this.player.hasSpringBoots ? CONFIG.JUMP_FORCE * 1.5 : CONFIG.JUMP_FORCE;
+          if (this.player.isShrunk) jumpForce *= 0.8;
           this.player.vy = -jumpForce;
           this.player.isGrounded = false;
           this.player.coyoteTimer = 0;
@@ -779,7 +955,8 @@ if (this.player.jumpBufferTimer > 0) {
           this.spawnJumpDust();
         } else if (this.player.hasDoubleJump && this.player.doubleJumpAvailable) {
           // Double jump
-          const jumpForce = this.player.hasSpringBoots ? CONFIG.JUMP_FORCE * 1.5 : CONFIG.JUMP_FORCE;
+          let jumpForce = this.player.hasSpringBoots ? CONFIG.JUMP_FORCE * 1.5 : CONFIG.JUMP_FORCE;
+          if (this.player.isShrunk) jumpForce *= 0.8;
           this.player.vy = -jumpForce;
           this.player.jumpBufferTimer = 0;
           this.player.doubleJumpAvailable = false;
@@ -819,17 +996,25 @@ if (this.player.jumpBufferTimer > 0) {
       // Wind Zones (36=Up, 37=Down, 38=Left, 39=Right)
       const centerTile = this.getTile(pColGravity, pRowGravity);
       if (centerTile === 36) { // Wind Up
+        if (this.player.vy > 0) this.player.vy *= 0.8;
         this.player.vy -= CONFIG.WIND_FORCE;
         if (this.player.vy < -CONFIG.MOVE_SPEED * 1.5) this.player.vy = -CONFIG.MOVE_SPEED * 1.5;
         if (Math.random() < 0.1 && !this.isSimulation) this.spawnDust(this.player.x + this.player.width/2 + (Math.random()-0.5)*10, this.player.y + this.player.height, 0, -2, 'rgba(255,255,255,0.6)', 3, 20);
       } else if (centerTile === 37) { // Wind Down
+        if (this.player.vy < 0) this.player.vy *= 0.8;
         this.player.vy += CONFIG.WIND_FORCE;
         if (Math.random() < 0.1 && !this.isSimulation) this.spawnDust(this.player.x + this.player.width/2 + (Math.random()-0.5)*10, this.player.y, 0, 2, 'rgba(255,255,255,0.6)', 3, 20);
       } else if (centerTile === 38) { // Wind Left
+        this.player.vy -= CONFIG.GRAVITY * gDir;
+        this.player.vy *= 0.9;
+        if (this.player.vx > 0) this.player.vx *= 0.8;
         this.player.vx -= CONFIG.WIND_FORCE;
         if (this.player.vx < -CONFIG.MOVE_SPEED * 1.5) this.player.vx = -CONFIG.MOVE_SPEED * 1.5;
         if (Math.random() < 0.1 && !this.isSimulation) this.spawnDust(this.player.x + this.player.width, this.player.y + this.player.height/2 + (Math.random()-0.5)*10, -2, 0, 'rgba(255,255,255,0.6)', 3, 20);
       } else if (centerTile === 39) { // Wind Right
+        this.player.vy -= CONFIG.GRAVITY * gDir;
+        this.player.vy *= 0.9;
+        if (this.player.vx < 0) this.player.vx *= 0.8;
         this.player.vx += CONFIG.WIND_FORCE;
         if (this.player.vx > CONFIG.MOVE_SPEED * 1.5) this.player.vx = CONFIG.MOVE_SPEED * 1.5;
         if (Math.random() < 0.1 && !this.isSimulation) this.spawnDust(this.player.x, this.player.y + this.player.height/2 + (Math.random()-0.5)*10, 2, 0, 'rgba(255,255,255,0.6)', 3, 20);
@@ -944,6 +1129,52 @@ if (this.player.jumpBufferTimer > 0) {
       this.updatePlatforms();
     }
 
+    // Cannon Logic
+    if (this.player.isInsideCannon) {
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.isGrounded = false;
+      this.player.isWallSliding = false;
+      this.player.isDashing = false;
+
+      this.player.cannonAngle += this.player.cannonDir * 0.05;
+      if (this.player.cannonAngle > Math.PI - 0.2) {
+        this.player.cannonDir = -1;
+      } else if (this.player.cannonAngle < 0.2) {
+        this.player.cannonDir = 1;
+      }
+
+      if (this.keys.up) {
+        this.player.isInsideCannon = false;
+        this.player.cannonCooldown = 15;
+        const launchForce = 22;
+        this.player.vx = Math.cos(this.player.cannonAngle) * launchForce;
+        this.player.vy = -Math.sin(this.player.cannonAngle) * launchForce;
+        
+        // Bump slightly so we leave tile
+        this.player.x += Math.cos(this.player.cannonAngle) * 5;
+        this.player.y -= Math.sin(this.player.cannonAngle) * 5;
+        this.keys.up = false;
+        if (!this.isSimulation && window.audio && audio.playJumpSound) audio.playJumpSound();
+      }
+    }
+
+    if (this.player.isSwinging) {
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.isGrounded = false;
+      this.player.isWallSliding = false;
+      this.player.isDashing = false;
+    }
+
+    if (this.player.isInsideMinecart) {
+      this.player.vx = 0;
+      this.player.vy = 0;
+      this.player.isGrounded = true;
+      this.player.isWallSliding = false;
+      this.player.isDashing = false;
+    }
+
     // Handle Horizontal Collisions First
     this.player.x += this.player.vx;
     // Slime Wall physics
@@ -997,6 +1228,9 @@ if (this.player.jumpBufferTimer > 0) {
 
     // Check Portals
     this.checkPortals();
+    
+    // Check Teleportation Doors
+    this.checkDoors();
 
     // Process Crumbling Tiles
     this.processCrumblingTiles();
@@ -1011,6 +1245,20 @@ if (this.player.jumpBufferTimer > 0) {
 
     // Update boomerangs
     this.updateBoomerangs();
+
+    // Update bombs
+    this.updateBombs();
+
+    // Update turrets
+    if (this.timeFreezeTimer <= 0) {
+      this.updateTurrets();
+      this.updateGravityWells();
+      this.updateMinecarts();
+      this.updateRopes();
+    }
+
+    // Update Ghost Recorder
+    this.updateGhost();
 
     // Stalactite activation
     if (!this.isDead && !this.hasWon) {
@@ -1159,6 +1407,21 @@ if (this.player.jumpBufferTimer > 0) {
     if (this.player.y > CONFIG.GRID_ROWS * CONFIG.TILE_SIZE + 100) {
       this.resetPlayer();
     }
+  }
+
+  spawnDust(x, y, vx, vy, color, duration, size) {
+    if (this.isSimulation) return;
+    this.dustParticles.push({
+      x: x,
+      y: y,
+      vx: vx,
+      vy: vy,
+      radius: size || (2 + Math.random() * 3),
+      alpha: 1.0,
+      decay: 1 / (duration || 30),
+      color: color,
+      isSquare: this.player.charId === 'classic',
+    });
   }
 
   spawnRunDust() {
@@ -1702,6 +1965,73 @@ if (this.player.jumpBufferTimer > 0) {
     }
   }
 
+  checkDoors() {
+    if (this.isDead || this.hasWon || this.portalCooldown > 0) return;
+
+    // Player bounding box
+    const playerBox = {
+      left: this.player.x,
+      right: this.player.x + this.player.width,
+      top: this.player.y,
+      bottom: this.player.y + this.player.height,
+    };
+
+    // Find all doors in the level
+    const doors = [];
+    for (let row = 0; row < CONFIG.GRID_ROWS; row++) {
+      for (let col = 0; col < CONFIG.GRID_COLS; col++) {
+        const tileVal = this.level.grid[row][col];
+        if (tileVal >= 46 && tileVal <= 48) {
+          doors.push({ col, row, type: tileVal });
+        }
+      }
+    }
+
+    // Check collision with any door
+    let overlappingDoor = null;
+    for (const door of doors) {
+      const doorBox = {
+        left: door.col * CONFIG.TILE_SIZE,
+        right: door.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE,
+        top: door.row * CONFIG.TILE_SIZE,
+        bottom: door.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE,
+      };
+
+      if (!(
+        playerBox.right < doorBox.left ||
+        playerBox.left > doorBox.right ||
+        playerBox.bottom < doorBox.top ||
+        playerBox.top > doorBox.bottom
+      )) {
+        overlappingDoor = door;
+        break;
+      }
+    }
+
+    if (!overlappingDoor) {
+      this.lastDoorExited = null;
+      return;
+    }
+
+    // If we're already overlapping a door we just exited, ignore it
+    if (this.lastDoorExited && this.lastDoorExited.col === overlappingDoor.col && this.lastDoorExited.row === overlappingDoor.row) {
+      return;
+    }
+
+    // Find the matching door of the same type
+    const matchingDoor = doors.find(d => d.type === overlappingDoor.type && (d.col !== overlappingDoor.col || d.row !== overlappingDoor.row));
+    
+    if (matchingDoor) {
+      this.lastDoorExited = { col: matchingDoor.col, row: matchingDoor.row };
+      
+      let color = '#ef4444';
+      if (overlappingDoor.type === 47) color = '#3b82f6';
+      else if (overlappingDoor.type === 48) color = '#22c55e';
+      
+      this.teleportPlayer(overlappingDoor, matchingDoor, color, color);
+    }
+  }
+
   teleportPlayer(fromPortal, toPortal, fromColor, toColor) {
     if (this.isSimulation) {
       this.portalCooldown = 30;
@@ -1903,6 +2233,140 @@ if (this.player.jumpBufferTimer > 0) {
     }
   }
 
+  updateBombs() {
+    for (let i = this.bombs.length - 1; i >= 0; i--) {
+      const b = this.bombs[i];
+      b.timer--;
+      if (b.timer <= 0) {
+        this.bombs.splice(i, 1);
+        this.explodeBomb(b.col, b.row);
+      }
+    }
+    
+    // Update visual explosions
+    for (let i = this.explosions.length - 1; i >= 0; i--) {
+      this.explosions[i].timer--;
+      if (this.explosions[i].timer <= 0) {
+        this.explosions.splice(i, 1);
+      }
+    }
+  }
+
+  explodeBomb(col, row) {
+    if (!this.isSimulation && window.audio && window.audio.playBreakSound) window.audio.playBreakSound();
+
+    // Visual explosion
+    this.explosions.push({ col, row, timer: 15 });
+
+    const blastRadius = 1; // 3x3 area
+    const pCx = this.player.x + this.player.width / 2;
+    const pCy = this.player.y + this.player.height / 2;
+    const bCx = col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+    const bCy = row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+
+    // Destroy cracked blocks
+    for (let r = row - blastRadius; r <= row + blastRadius; r++) {
+      for (let c = col - blastRadius; c <= col + blastRadius; c++) {
+        if (this.getTile(c, r) === 50) {
+          this.level.setTile(c, r, 0);
+          this.breakBlock(c, r);
+        }
+      }
+    }
+
+    // Kill enemies
+    for (let i = this.liveEnemies.length - 1; i >= 0; i--) {
+      const e = this.liveEnemies[i];
+      const eCx = e.x + e.width / 2;
+      const eCy = e.y + e.height / 2;
+      const dist = Math.hypot(bCx - eCx, bCy - eCy);
+      if (dist <= CONFIG.TILE_SIZE * 1.5) {
+        this.liveEnemies.splice(i, 1);
+        if (!this.isSimulation && window.audio && window.audio.playEnemyDeathSound) window.audio.playEnemyDeathSound();
+      }
+    }
+
+    // Kill player
+    const pDist = Math.hypot(bCx - pCx, bCy - pCy);
+    if (pDist <= CONFIG.TILE_SIZE * 1.5 && !this.isDead && !this.hasWon) {
+      this.killPlayer();
+    }
+  }
+
+  updateGhost() {
+    if (this.isDead || this.hasWon) return;
+
+    // Check collision with Ghost Switch (51) to start recording
+    const pCx = this.player.x + this.player.width / 2;
+    const pCy = this.player.y + this.player.height / 2;
+    const col = Math.floor(pCx / CONFIG.TILE_SIZE);
+    const row = Math.floor(pCy / CONFIG.TILE_SIZE);
+
+    if (this.getTile(col, row) === 51) {
+      if (!this.ghostRecording && !this.ghostActive) {
+        this.ghostRecording = true;
+        this.ghostRecordTimer = 300; // 5 seconds
+        this.ghostFrames = [];
+        if (!this.isSimulation && window.audio && window.audio.playPowerupSound) window.audio.playPowerupSound();
+      }
+    }
+
+    if (this.ghostRecording) {
+      this.ghostFrames.push({
+        x: this.player.x,
+        y: this.player.y,
+        facing: this.player.facing,
+        walkCycle: this.player.walkCycle,
+        width: this.player.width,
+        height: this.player.height
+      });
+      
+      this.ghostRecordTimer--;
+      if (this.ghostRecordTimer <= 0) {
+        this.ghostRecording = false;
+        this.ghostActive = true;
+        this.ghostPlaybackIndex = 0;
+        if (!this.isSimulation && window.audio && window.audio.playJumpSound) window.audio.playJumpSound();
+      }
+    }
+
+    if (this.ghostActive && this.ghostFrames.length > 0) {
+      const frame = this.ghostFrames[this.ghostPlaybackIndex];
+      this.ghost = { ...frame }; // active ghost entity for collision checking
+      
+      const gCx = this.ghost.x + this.ghost.width / 2;
+      const gCy = this.ghost.y + this.ghost.height / 2;
+      const gCol = Math.floor(gCx / CONFIG.TILE_SIZE);
+      const gRow = Math.floor(gCy / CONFIG.TILE_SIZE);
+      
+      // The ghost can step on Tripwires (20) and Switch Blocks (11) if we implement collision logic for it.
+      // Actually Switch Blocks (11) require side collisions. The tripwire is easier.
+      // Let's implement ghost hitting switch block 11
+      const gTiles = this.getOverlappingTiles({
+        left: this.ghost.x,
+        right: this.ghost.x + this.ghost.width,
+        top: this.ghost.y,
+        bottom: this.ghost.y + this.ghost.height
+      });
+      for (const t of gTiles) {
+        if (t.type === 11) {
+          if (!this.switchCooldown) {
+            this.level.switchState = this.level.switchState === 'red' ? 'blue' : 'red';
+            this.switchCooldown = 20;
+            if (!this.isSimulation && window.audio && window.audio.playTileSound) window.audio.playTileSound();
+          }
+        }
+      }
+      
+      this.ghostPlaybackIndex++;
+      if (this.ghostPlaybackIndex >= this.ghostFrames.length) {
+        this.ghostPlaybackIndex = 0; // Loop the ghost
+      }
+    } else {
+      this.ghost = null;
+    }
+  }
+
   // ── Enemy AI ─────────────────────────────────────────────────────────────
   
   throwBoomerang() {
@@ -1924,6 +2388,26 @@ if (this.player.jumpBufferTimer > 0) {
     });
   }
 
+  dropBomb() {
+    if (!this.player.hasBombs) return;
+    
+    // Calculate current grid cell based on player center
+    const cx = this.player.x + this.player.width / 2;
+    const cy = this.player.y + this.player.height / 2;
+    const col = Math.floor(cx / CONFIG.TILE_SIZE);
+    const row = Math.floor(cy / CONFIG.TILE_SIZE);
+
+    // Ensure we don't drop multiple bombs on the same spot
+    if (this.bombs.some(b => b.col === col && b.row === row)) return;
+
+    if (!this.isSimulation && audio.playPowerupSound) audio.playPowerupSound();
+
+    this.bombs.push({
+      col,
+      row,
+      timer: 120 // 2 seconds at 60fps
+    });
+  }
   
   updateShadowClone() {
     if (!this.shadowClone) return;
@@ -1932,7 +2416,8 @@ if (this.player.jumpBufferTimer > 0) {
     const cloneKeys = {
       left: this.keys.right,
       right: this.keys.left,
-      up: this.keys.up
+      up: this.keys.up,
+      down: this.keys.down
     };
 
     const clone = this.shadowClone;
@@ -2003,6 +2488,327 @@ if (this.player.jumpBufferTimer > 0) {
             clone.y = (r + 1) * CONFIG.TILE_SIZE;
           }
           clone.vy = 0;
+        }
+      }
+    }
+  }
+  updateGravityWells() {
+    if (!this.gravityWells || this.gravityWells.length === 0) return;
+
+    const pullRadius = 180;
+    const maxPullForce = 0.5;
+
+    for (const gw of this.gravityWells) {
+      // 1. Pull Player
+      if (!this.isDead && !this.hasWon) {
+        const px = this.player.x + this.player.width / 2;
+        const py = this.player.y + this.player.height / 2;
+        const dx = gw.x - px;
+        const dy = gw.y - py;
+        const dist = Math.hypot(dx, dy);
+        if (dist < pullRadius) {
+          const force = (pullRadius - dist) / pullRadius * maxPullForce;
+          this.player.vx += (dx / dist) * force;
+          this.player.vy += (dy / dist) * force;
+        }
+      }
+
+      // 2. Pull Enemies
+      if (this.enemies) {
+        for (const e of this.enemies) {
+          if (e.dead) continue;
+          if (e.type === 'lazer' || e.type === 'thwomp') continue; // Static enemies
+          if (e.type === 'mimic' && e.state === 'hidden') continue; // Hidden mimics
+          const ex = e.x + e.width / 2;
+          const ey = e.y + e.height / 2;
+          const dx = gw.x - ex;
+          const dy = gw.y - ey;
+          const dist = Math.hypot(dx, dy);
+          if (dist < pullRadius) {
+            // Apply a slight pull to enemies (less force)
+            const force = (pullRadius - dist) / pullRadius * maxPullForce * 0.8;
+            e.vx = (e.vx || 0) + (dx / dist) * force;
+            e.vy = (e.vy || 0) + (dy / dist) * force;
+          }
+        }
+      }
+
+      // 3. Pull Projectiles (Turret shots)
+      if (this.turretProjectiles) {
+        for (const p of this.turretProjectiles) {
+          const px = p.x + p.width / 2;
+          const py = p.y + p.height / 2;
+          const dx = gw.x - px;
+          const dy = gw.y - py;
+          const dist = Math.hypot(dx, dy);
+          if (dist < pullRadius) {
+            const force = (pullRadius - dist) / pullRadius * maxPullForce * 0.4;
+            p.vx += (dx / dist) * force;
+            p.vy += (dy / dist) * force;
+          }
+        }
+      }
+    }
+  }
+
+  updateTurrets() {
+    if (!this.turrets) return;
+
+    // Update turret firing cooldowns
+    for (const t of this.turrets) {
+      t.timer++;
+      if (t.timer >= t.interval) {
+        t.timer = 0;
+        // Fire projectile to the left
+        this.turretProjectiles.push({
+          x: t.col * CONFIG.TILE_SIZE, // Spawn on left edge
+          y: t.row * CONFIG.TILE_SIZE + 10,
+          vx: -3,
+          vy: 0,
+          width: 8,
+          height: 8,
+          isDeadly: true
+        });
+        if (typeof audio !== 'undefined' && audio.playTileSound) {
+          audio.playTileSound();
+        }
+      }
+    }
+
+    // Update projectiles
+    if (!this.turretProjectiles) return;
+    for (let i = this.turretProjectiles.length - 1; i >= 0; i--) {
+      const p = this.turretProjectiles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // Check collision with walls
+      const col = Math.floor(p.x / CONFIG.TILE_SIZE);
+      const row = Math.floor(p.y / CONFIG.TILE_SIZE);
+      const rightCol = Math.floor((p.x + p.width) / CONFIG.TILE_SIZE);
+      const bottomRow = Math.floor((p.y + p.height) / CONFIG.TILE_SIZE);
+
+      if (this.isSolid(col, row) || this.isSolid(rightCol, row) || this.isSolid(col, bottomRow) || this.isSolid(rightCol, bottomRow) || p.x < 0 || p.x > CONFIG.GRID_COLS * CONFIG.TILE_SIZE) {
+        if (this.getTile(col, row) === 59 || this.getTile(rightCol, row) === 59 || this.getTile(col, bottomRow) === 59 || this.getTile(rightCol, bottomRow) === 59) {
+          p.vx *= -1;
+          p.reflected = true;
+          p.isDeadly = false; // Harmless to player now
+          p.x += p.vx * 2; // Bump out of wall to prevent getting stuck
+          if (!this.isSimulation && window.audio && window.audio.playTileSound) window.audio.playTileSound();
+          continue;
+        }
+
+        this.turretProjectiles.splice(i, 1);
+        continue;
+      }
+
+      // Check collision with player
+      if (p.isDeadly && !this.isDead && !this.hasWon && this.checkCollision(p, this.player)) {
+        this.die(); // Or whatever it was before
+        this.turretProjectiles.splice(i, 1);
+        continue;
+      }
+
+      // Check collision with enemies
+      if (p.reflected) {
+        let hitEnemy = false;
+        for (let j = this.liveEnemies.length - 1; j >= 0; j--) {
+          const enemy = this.liveEnemies[j];
+          if (this.checkCollision(p, enemy)) {
+            this.liveEnemies.splice(j, 1);
+            if (!this.isSimulation && window.audio && window.audio.playEnemyDeathSound) window.audio.playEnemyDeathSound();
+            // Visual explosion
+            this.explosions.push({ col: Math.floor((enemy.x + enemy.width/2)/CONFIG.TILE_SIZE), row: Math.floor((enemy.y + enemy.height/2)/CONFIG.TILE_SIZE), timer: 15 });
+            hitEnemy = true;
+            break;
+          }
+        }
+        if (hitEnemy) {
+          this.turretProjectiles.splice(i, 1);
+          continue;
+        }
+      }
+    }
+  }
+
+  updateMinecarts() {
+    if (!this.minecarts) return;
+
+    for (let i = this.minecarts.length - 1; i >= 0; i--) {
+      const m = this.minecarts[i];
+
+      // Gravity
+      m.vy += CONFIG.GRAVITY;
+      if (m.vy > 12) m.vy = 12;
+
+      // Apply horizontal velocity
+      if (m.isOccupied) {
+        if (this.keys.up) {
+          // Player jumps out
+          m.isOccupied = false;
+          this.player.isInsideMinecart = false;
+          this.player.vy = -CONFIG.JUMP_FORCE;
+          this.player.vx = m.vx;
+          this.keys.up = false;
+          if (window.audio && window.audio.playJumpSound) window.audio.playJumpSound();
+        } else {
+          // Lock player to cart
+          this.player.x = m.x;
+          this.player.y = m.y - this.player.height + 10; // Sit inside it
+          this.player.vx = 0;
+          this.player.vy = 0;
+          this.player.isGrounded = true;
+          this.player.isSwinging = false; // Just in case
+          
+          // Apply continuous rolling force based on player's facing direction
+          const maxSpeed = CONFIG.MOVE_SPEED * 1.5;
+          const targetVx = this.player.facing === 'left' ? -maxSpeed : maxSpeed;
+          m.vx += (targetVx - m.vx) * 0.1;
+        }
+      } else {
+        // Friction when unoccupied
+        m.vx *= 0.95;
+        if (Math.abs(m.vx) < 0.1) m.vx = 0;
+      }
+
+      // Move X
+      m.x += m.vx;
+
+      // Check wall collisions
+      let mCol = Math.floor((m.x + m.width / 2) / CONFIG.TILE_SIZE);
+      let mRow = Math.floor((m.y + m.height / 2) / CONFIG.TILE_SIZE);
+      
+      if (m.vx > 0) {
+        const rightTileCol = Math.floor((m.x + m.width) / CONFIG.TILE_SIZE);
+        if (this.isSolid(rightTileCol, mRow)) {
+          m.x = rightTileCol * CONFIG.TILE_SIZE - m.width;
+          m.vx = 0;
+        }
+      } else if (m.vx < 0) {
+        const leftTileCol = Math.floor(m.x / CONFIG.TILE_SIZE);
+        if (this.isSolid(leftTileCol, mRow)) {
+          m.x = leftTileCol * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE;
+          m.vx = 0;
+        }
+      }
+
+      // Move Y
+      m.y += m.vy;
+      mCol = Math.floor((m.x + m.width / 2) / CONFIG.TILE_SIZE);
+      const bottomRow = Math.floor((m.y + m.height) / CONFIG.TILE_SIZE);
+      const bottomTile = this.getTile(mCol, bottomRow);
+
+      if (this.isSolid(mCol, bottomRow) || bottomTile === 52 || bottomTile === 57 || bottomTile === 58) {
+        // Floor collision
+        m.y = bottomRow * CONFIG.TILE_SIZE - m.height;
+        m.vy = 0;
+        m.isGrounded = true;
+
+        // Ramp logic
+        if (bottomTile === 57 && m.vx > 2) { // RAMP RIGHT
+          m.vy = -16;
+          m.y -= 10;
+          m.isGrounded = false;
+        } else if (bottomTile === 58 && m.vx < -2) { // RAMP LEFT
+          m.vy = -16;
+          m.y -= 10;
+          m.isGrounded = false;
+        }
+      } else {
+        m.isGrounded = false;
+      }
+
+      // Player enter check
+      if (!m.isOccupied && !this.player.isInsideMinecart && !this.isDead && !this.hasWon) {
+        if (this.checkCollision(m, this.player) && this.player.vy >= 0 && this.player.y < m.y) {
+          // Jumped into it from above
+          m.isOccupied = true;
+          this.player.isInsideMinecart = m;
+          // Kickstart it
+          m.vx = this.player.vx;
+          if (Math.abs(m.vx) < CONFIG.MOVE_SPEED) m.vx = this.player.facing === 'left' ? -CONFIG.MOVE_SPEED : CONFIG.MOVE_SPEED;
+        }
+      }
+
+      // Destroy if it falls off screen
+      if (m.y > CONFIG.GRID_ROWS * CONFIG.TILE_SIZE + 200) {
+        if (m.isOccupied) {
+          this.die(); // Player dies with it
+        }
+        this.minecarts.splice(i, 1);
+      }
+    }
+  }
+
+  updateRopes() {
+    if (!this.ropes) return;
+    const gravityAccel = 0.005;
+    const damping = 0.99;
+
+    for (const r of this.ropes) {
+      // Calculate angular acceleration from gravity
+      const angularAccel = -gravityAccel * Math.sin(r.angle);
+      r.velocity += angularAccel;
+      
+      // Add player momentum if swinging on this rope
+      if (this.player.isSwinging && this.player.swingAnchor === r) {
+        if (this.keys.left) {
+          r.velocity -= 0.002;
+        } else if (this.keys.right) {
+          r.velocity += 0.002;
+        }
+      }
+
+      r.velocity *= damping;
+      r.angle += r.velocity;
+
+      // Cap maximum swing angle
+      if (r.angle > Math.PI / 2.2) r.angle = Math.PI / 2.2;
+      if (r.angle < -Math.PI / 2.2) r.angle = -Math.PI / 2.2;
+
+      // Calculate end position of rope
+      const anchorX = r.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+      const anchorY = r.row * CONFIG.TILE_SIZE + 10;
+      const endX = anchorX + Math.sin(r.angle) * r.length;
+      const endY = anchorY + Math.cos(r.angle) * r.length;
+
+      // Check if player grabs it
+      if (!this.player.isSwinging && !this.isDead && !this.hasWon) {
+        const pCenterX = this.player.x + this.player.width / 2;
+        const pCenterY = this.player.y + this.player.height / 2;
+        const dist = Math.hypot(pCenterX - endX, pCenterY - endY);
+        
+        if (dist < 20 && this.player.vy >= 0 && !this.player.isInsideCannon) { // Only grab if falling or touching
+          this.player.isSwinging = true;
+          this.player.swingAnchor = r;
+          this.player.isGrounded = false;
+          // transfer momentum
+          r.velocity += (this.player.vx * 0.005);
+          if (typeof audio !== 'undefined' && audio.playJumpSound) {
+            audio.playJumpSound();
+          }
+        }
+      }
+
+      // If player is swinging on this rope
+      if (this.player.isSwinging && this.player.swingAnchor === r) {
+        this.player.vx = 0;
+        this.player.vy = 0;
+        this.player.x = endX - this.player.width / 2;
+        this.player.y = endY - this.player.height / 2;
+
+        // Jump to release
+        if (this.keys.up && !this.player.isDashing) {
+          this.player.isSwinging = false;
+          this.player.swingAnchor = null;
+          this.player.isGrounded = false;
+          this.keys.up = false; // consume jump
+          // Launch velocity
+          this.player.vx = r.velocity * 50 + (Math.sin(r.angle) * 5);
+          this.player.vy = -CONFIG.JUMP_FORCE;
+          if (typeof audio !== 'undefined' && audio.playJumpSound) {
+            audio.playJumpSound();
+          }
         }
       }
     }
@@ -2184,17 +2990,46 @@ if (this.player.jumpBufferTimer > 0) {
           enemy.beams = { up: 0, down: 0, left: 0, right: 0 };
           const eCol = Math.floor(enemy.x / CONFIG.TILE_SIZE);
           const eRow = Math.floor(enemy.y / CONFIG.TILE_SIZE);
-          const isSolid = (c, r) => {
-            const t = this.getTile(c, r);
-            return t === 1 || t === 2 || t === 7 || t === 10 || t === 11 ||
-                   (t === 12 && this.level.switchState === 'red') || 
-                   (t === 13 && this.level.switchState === 'blue');
-          };
+          let hitReflector = false;
 
-          for (let r = eRow - 1; r >= 0; r--) { if (isSolid(eCol, r)) break; enemy.beams.up++; }
-          for (let r = eRow + 1; r < CONFIG.GRID_ROWS; r++) { if (isSolid(eCol, r)) break; enemy.beams.down++; }
-          for (let c = eCol - 1; c >= 0; c--) { if (isSolid(c, eRow)) break; enemy.beams.left++; }
-          for (let c = eCol + 1; c < CONFIG.GRID_COLS; c++) { if (isSolid(c, eRow)) break; enemy.beams.right++; }
+          for (let r = eRow - 1; r >= 0; r--) { 
+            if (this.isSolid(eCol, r)) {
+              if (this.getTile(eCol, r) === 59) hitReflector = true;
+              break; 
+            } 
+            enemy.beams.up++; 
+          }
+          for (let r = eRow + 1; r < CONFIG.GRID_ROWS; r++) { 
+            if (this.isSolid(eCol, r)) {
+              if (this.getTile(eCol, r) === 59) hitReflector = true;
+              break; 
+            } 
+            enemy.beams.down++; 
+          }
+          for (let c = eCol - 1; c >= 0; c--) { 
+            if (this.isSolid(c, eRow)) {
+              if (this.getTile(c, eRow) === 59) hitReflector = true;
+              break; 
+            } 
+            enemy.beams.left++; 
+          }
+          for (let c = eCol + 1; c < CONFIG.GRID_COLS; c++) { 
+            if (this.isSolid(c, eRow)) {
+              if (this.getTile(c, eRow) === 59) hitReflector = true;
+              break; 
+            } 
+            enemy.beams.right++; 
+          }
+
+          if (hitReflector && enemy.state === 'fire') {
+            // Instantly destroyed by reflected laser!
+            this.liveEnemies.splice(i, 1);
+            if (!this.isSimulation && window.audio && window.audio.playEnemyDeathSound) window.audio.playEnemyDeathSound();
+            
+            // Visual explosion
+            this.explosions.push({ col: eCol, row: eRow, timer: 15 });
+            continue;
+          }
 
           if (enemy.state === 'fire' && !this.isDead) {
             const pxBox = {
@@ -2643,7 +3478,7 @@ if (this.player.jumpBufferTimer > 0) {
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const tileVal = this.getTile(c, r);
-        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7 || tileVal === 8 || tileVal === 10 || tileVal === 11 || tileVal === 17 || tileVal === 19 || tileVal === 20 || tileVal === 22 || tileVal === 40) {
+        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7 || tileVal === 8 || tileVal === 10 || tileVal === 11 || tileVal === 17 || tileVal === 19 || tileVal === 20 || tileVal === 22 || tileVal === 23 || tileVal === 24 || tileVal === 40 || tileVal === 52) {
           tiles.push({ col: c, row: r, type: tileVal });
         } else if (tileVal === 12 && this.level.switchState === 'red') {
           tiles.push({ col: c, row: r, type: 12 });
@@ -2657,6 +3492,11 @@ if (this.player.jumpBufferTimer > 0) {
           tiles.push({ col: c, row: r, type: 25 });
         } else if (tileVal === 27) {
           tiles.push({ col: c, row: r, type: 27 });
+        } else if (tileVal === 53) {
+          tiles.push({ col: c, row: r, type: 53 });
+        } else if (tileVal >= 100 && tileVal <= 110) {
+          // Catch-all for new powerups (100-110)
+          tiles.push({ col: c, row: r, type: tileVal });
         }
       }
     }
@@ -2704,6 +3544,17 @@ if (this.player.jumpBufferTimer > 0) {
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
         continue;
       }
+      if (tile.type === 104) {
+        this.level.setTile(tile.col, tile.row, 0);
+        this.player.isShrunk = true;
+        // Shrink player
+        this.player.width = Math.max(10, this.player.baseWidth * 0.5);
+        this.player.height = Math.max(10, this.player.baseHeight * 0.5);
+        this.player.y += this.player.baseHeight - this.player.height;
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        continue;
+      }
       if (tile.type === 25) {
         // Collect checkpoint
         this.level.playerSpawn = { col: tile.col, row: tile.row };
@@ -2744,11 +3595,19 @@ if (this.player.jumpBufferTimer > 0) {
       }
       if (tile.type === 45) {
         this.level.setTile(tile.col, tile.row, 0);
-        this.timeFreezeTimer = CONFIG.STOPWATCH_DURATION;
+        this.timeFreezeTimer = 180; // 3 seconds
         this.spawnJumpDust();
-        if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
+        if (!this.isSimulation && audio.playPowerupSound) audio.playPowerupSound();
         continue;
       }
+      if (tile.type === 49) {
+        this.level.setTile(tile.col, tile.row, 0);
+        this.player.hasBombs = true;
+        this.spawnJumpDust();
+        if (!this.isSimulation && audio.playPowerupSound) audio.playPowerupSound();
+        continue;
+      }
+
       if (tile.type === 10) {
         if (this.player.vx > 0) {
           if (this.getTile(tile.col + 1, tile.row) === 0) {
@@ -2770,6 +3629,22 @@ if (this.player.jumpBufferTimer > 0) {
       }
       const tileLeft = tile.col * CONFIG.TILE_SIZE;
       const tileRight = tileLeft + CONFIG.TILE_SIZE;
+
+      if (tile.type === 53) {
+        if (!this.player.isInsideCannon && this.player.cannonCooldown <= 0) {
+          this.player.isInsideCannon = true;
+          this.player.cannonAngle = Math.PI / 2; // Pointing up
+          this.player.cannonDir = 1;
+          this.player.x = tile.col * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.width) / 2;
+          this.player.y = tile.row * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.height) / 2;
+          this.player.vx = 0;
+          this.player.vy = 0;
+          if (!this.isSimulation && window.audio && audio.playTileSound) audio.playTileSound();
+        }
+        continue;
+      }
+
+      if (tile.type === 52) continue; // Jump-through platforms don't block horizontally
 
       if (this.player.vx > 0) {
         // Moving right
@@ -2821,8 +3696,26 @@ if (this.player.jumpBufferTimer > 0) {
       const tileTop = tile.row * CONFIG.TILE_SIZE;
       const tileBottom = tileTop + CONFIG.TILE_SIZE;
 
+      if (tile.type === 53) {
+        if (!this.player.isInsideCannon && this.player.cannonCooldown <= 0) {
+          this.player.isInsideCannon = true;
+          this.player.cannonAngle = Math.PI / 2; // Pointing up
+          this.player.cannonDir = 1;
+          this.player.x = tile.col * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.width) / 2;
+          this.player.y = tile.row * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.height) / 2;
+          this.player.vx = 0;
+          this.player.vy = 0;
+          if (!this.isSimulation && window.audio && audio.playTileSound) audio.playTileSound();
+        }
+        continue;
+      }
+
       if (this.player.vy > 0) {
         // Falling down
+        if (tile.type === 52) {
+          if (this.keys && this.keys.down) continue; // Drop down
+          if (playerBox.bottom - this.player.vy > tileTop + 0.1) continue; // Was already below top of tile
+        }
         if (playerBox.bottom > tileTop && playerBox.top < tileTop) {
           // If we weren't grounded before, trigger a land squish!
           if (!this.player.isGrounded && this.player.vy > 1.5) {
@@ -2849,6 +3742,18 @@ if (this.player.jumpBufferTimer > 0) {
         }
         if (groundTile === 20) this.player.x -= 2;
         if (groundTile === 21) this.player.x += 2;
+        
+        // Dash Panels (23: Left, 24: Right)
+        if (groundTile === 23) {
+          this.player.vx = -15;
+          this.spawnJumpDust(); // Visual feedback
+          if (!this.isSimulation && window.audio && audio.playJumpSound) audio.playJumpSound();
+        }
+        if (groundTile === 24) {
+          this.player.vx = 15;
+          this.spawnJumpDust(); // Visual feedback
+          if (!this.isSimulation && window.audio && audio.playJumpSound) audio.playJumpSound();
+        }
         
         // Crumbling block (22)
         if (groundTile === 22) {
@@ -2887,6 +3792,7 @@ if (this.player.jumpBufferTimer > 0) {
           }
         }
       } else if (this.player.vy < 0) {
+        if (tile.type === 52) continue; // Don't block jumping up through platforms
         // Jumping up
         if (playerBox.top < tileBottom && playerBox.bottom > tileBottom) {
           this.player.y = tileBottom;
@@ -2896,6 +3802,43 @@ if (this.player.jumpBufferTimer > 0) {
 
           if (tile.type === 6) {
             this.breakBlock(tile.col, tile.row);
+          } else if (tile.type === 105) {
+            // Paint Block hit from below!
+            this.setTile(tile.col, tile.row, 0); // Destroy the paint block
+            if (!this.isSimulation && window.audio && audio.playBreakSound) audio.playBreakSound();
+            
+            // Explosion particles
+            if (!this.isSimulation) {
+              const colors = ['#06b6d4', '#d946ef', '#eab308', '#f8fafc'];
+              for (let i = 0; i < 20; i++) {
+                this.dustParticles.push({
+                  x: tile.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2 + (Math.random() - 0.5) * 10,
+                  y: tile.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2 + (Math.random() - 0.5) * 10,
+                  vx: (Math.random() - 0.5) * 8,
+                  vy: (Math.random() - 0.5) * 8,
+                  radius: 3 + Math.random() * 4,
+                  alpha: 1.0,
+                  decay: 0.02 + Math.random() * 0.02,
+                  color: colors[Math.floor(Math.random() * colors.length)],
+                  isSquare: false,
+                });
+              }
+            }
+
+            // Reveal invisible blocks within a 4-tile radius
+            const radius = 4;
+            const cx = tile.col;
+            const cy = tile.row;
+            for (let r = Math.max(0, cy - radius); r <= Math.min(CONFIG.GRID_ROWS - 1, cy + radius); r++) {
+              for (let c = Math.max(0, cx - radius); c <= Math.min(CONFIG.GRID_COLS - 1, cx + radius); c++) {
+                if (this.getTile(c, r) === 106) {
+                  const dist = Math.sqrt(Math.pow(c - cx, 2) + Math.pow(r - cy, 2));
+                  if (dist <= radius) {
+                    this.setTile(c, r, 107); // Turn into Revealed Block
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2936,6 +3879,33 @@ if (this.player.jumpBufferTimer > 0) {
     const now = Date.now();
     // Clear Canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Draw Parallax Backgrounds (only for default theme)
+    if (this.theme === 'default') {
+      const drawBgLayer = (img, pX, customOffsetY = 0) => {
+        if (!img || !img.width) return;
+        
+        // Stretch the image horizontally by 2x to reduce repetition, but keep height matched to canvas
+        const scaleX = (this.canvas.height / img.height) * 2.0;
+        const scaleY = (this.canvas.height / img.height);
+        
+        const scaledWidth = img.width * scaleX;
+        const scaledHeight = img.height * scaleY;
+        const offsetY = customOffsetY;
+        
+        let offsetX = (this.camera.x * pX) % scaledWidth;
+        if (offsetX < 0) offsetX += scaledWidth;
+        
+        for (let x = -offsetX; x < this.canvas.width; x += scaledWidth) {
+          this.ctx.drawImage(img, x, offsetY, scaledWidth, scaledHeight);
+        }
+      };
+
+      const p = this.level.parallax || { skyY: 0, mountainsY: 0, hillsY: 0 };
+      drawBgLayer(this.assets.bg_layer_sky, 0.05, p.skyY || 0);
+      drawBgLayer(this.assets.bg_layer_mountains, 0.2, p.mountainsY || 0);
+      drawBgLayer(this.assets.bg_layer_hills, 0.4, p.hillsY || 0);
+    }
 
     this.ctx.save();
     let shakeX = 0;
@@ -3013,6 +3983,65 @@ if (this.player.jumpBufferTimer > 0) {
           this.ctx.arc(8, -18, 2.5, 0, Math.PI*2);
           this.ctx.fill();
           this.ctx.restore();
+        } else if (tileVal === 52) {
+          this.ctx.fillStyle = '#8b5cf6';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 10);
+          this.ctx.fillStyle = '#6d28d9';
+          this.ctx.fillRect(x, y + 10, CONFIG.TILE_SIZE, 4);
+          this.ctx.fillStyle = 'rgba(139, 92, 246, 0.3)';
+          this.ctx.fillRect(x, y + 14, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE - 14);
+        } else if (tileVal === 53) {
+          this.ctx.save();
+          // Draw standard cannon base
+          this.ctx.fillStyle = '#475569';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE/2, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          // Check if player is inside THIS cannon
+          const pCol = Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE);
+          const pRow = Math.floor((this.player.y + this.player.height/2)/CONFIG.TILE_SIZE);
+          if (this.player.isInsideCannon && pCol === c && pRow === r) {
+            // Draw rotating barrel with opening
+            this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+            // player cannonAngle is standard 0=right, PI/2=up. Canvas rotate expects 0=right, but y is down.
+            // Math.cos(angle), -Math.sin(angle) is used for velocity.
+            // So visual rotation is -angle.
+            this.ctx.rotate(-this.player.cannonAngle);
+            this.ctx.translate(-(x + CONFIG.TILE_SIZE/2), -(y + CONFIG.TILE_SIZE/2));
+          }
+
+          this.ctx.fillStyle = '#0f172a'; // Inner black hole
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE/3, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          // Draw opening indicator (right side visually if unrotated, but since player angle starts at PI/2, it will point up)
+          this.ctx.fillStyle = '#f59e0b';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2 + 10, y + CONFIG.TILE_SIZE/2, 4, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.restore();
+        } else if (tileVal === 54) {
+          // Render Turret Shooter
+          this.ctx.fillStyle = '#ef4444'; // Base red color
+          this.ctx.beginPath();
+          // Draw a futuristic angled base
+          this.ctx.moveTo(x + CONFIG.TILE_SIZE / 2, y + 5);
+          this.ctx.lineTo(x + 5, y + CONFIG.TILE_SIZE - 5);
+          this.ctx.lineTo(x + CONFIG.TILE_SIZE - 5, y + CONFIG.TILE_SIZE - 5);
+          this.ctx.fill();
+          
+          // Draw the central glowing orb/eye
+          this.ctx.fillStyle = '#f87171';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE / 2, y + 20, 6, 0, Math.PI * 2);
+          this.ctx.fill();
+          
+          // Draw the barrel pointing left
+          this.ctx.fillStyle = '#991b1b';
+          this.ctx.fillRect(x, y + 16, CONFIG.TILE_SIZE / 2, 8);
         } else if (tileVal === 3) {
           // Render Fire
           this.ctx.save();
@@ -3157,6 +4186,80 @@ if (this.player.jumpBufferTimer > 0) {
           this.ctx.textBaseline = 'middle';
           this.ctx.fillText('K', 0, 0);
           this.ctx.restore();
+        } else if (tileVal === 59) {
+          // Reflector Shield
+          this.ctx.fillStyle = '#06b6d4'; // Cyan shield
+          this.ctx.fillRect(x + 5, y + 5, CONFIG.TILE_SIZE - 10, CONFIG.TILE_SIZE - 10);
+          this.ctx.strokeStyle = '#cffafe';
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 10, y + 20);
+          this.ctx.lineTo(x + 20, y + 10);
+          this.ctx.lineTo(x + 30, y + 20);
+          this.ctx.stroke();
+        } else if (tileVal === 60) {
+          // Gravity Well
+          this.ctx.save();
+          this.ctx.translate(x + 20, y + 20);
+          // Slowly rotate the aura
+          this.ctx.rotate(Date.now() / 500);
+          
+          this.ctx.fillStyle = '#1e1b4b'; // Deep dark purple background
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, 16, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#7c3aed'; // Purple aura
+          this.ctx.lineWidth = 3;
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, 12, 0, Math.PI * 2);
+          this.ctx.stroke();
+          
+          // Little swirling bits
+          this.ctx.fillStyle = '#c4b5fd';
+          this.ctx.beginPath();
+          this.ctx.arc(10, 0, 2, 0, Math.PI * 2);
+          this.ctx.arc(-10, 0, 2, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.fillStyle = '#000000'; // Black center
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.restore();
+        } else if (tileVal === 105) {
+          // Paint Block
+          this.ctx.fillStyle = '#f8fafc';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.strokeStyle = '#cbd5e1';
+          this.ctx.strokeRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#06b6d4'; // Cyan
+          this.ctx.beginPath(); this.ctx.arc(x + 10, y + 10, 4, 0, Math.PI * 2); this.ctx.fill();
+          this.ctx.fillStyle = '#d946ef'; // Magenta
+          this.ctx.beginPath(); this.ctx.arc(x + 30, y + 15, 5, 0, Math.PI * 2); this.ctx.fill();
+          this.ctx.fillStyle = '#eab308'; // Yellow
+          this.ctx.beginPath(); this.ctx.arc(x + 15, y + 30, 4, 0, Math.PI * 2); this.ctx.fill();
+        } else if (tileVal === 106) {
+          // Invisible Block (only visible in edit mode)
+          if (this.mode === CONFIG.MODE_EDIT) {
+            this.ctx.strokeStyle = '#94a3b8';
+            this.ctx.setLineDash([4, 4]);
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(x + 2, y + 2, CONFIG.TILE_SIZE - 4, CONFIG.TILE_SIZE - 4);
+            this.ctx.setLineDash([]);
+            this.ctx.fillStyle = 'rgba(148, 163, 184, 0.2)';
+            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          }
+        } else if (tileVal === 107) {
+          // Revealed Block
+          this.ctx.fillStyle = '#334155'; // Dark slate base
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          // Splatters on it
+          this.ctx.fillStyle = '#06b6d4';
+          this.ctx.beginPath(); this.ctx.arc(x + 8, y + 12, 6, 0, Math.PI * 2); this.ctx.fill();
+          this.ctx.fillStyle = '#d946ef';
+          this.ctx.beginPath(); this.ctx.arc(x + 32, y + 25, 7, 0, Math.PI * 2); this.ctx.fill();
+          this.ctx.fillStyle = '#eab308';
+          this.ctx.beginPath(); this.ctx.arc(x + 20, y + 8, 5, 0, Math.PI * 2); this.ctx.fill();
         } else if (tileVal === 10) {
           // Moveable block
           this.ctx.fillStyle = '#a87a51';
@@ -3285,6 +4388,33 @@ if (this.player.jumpBufferTimer > 0) {
           this.ctx.closePath();
           this.ctx.fill();
           this.ctx.restore();
+        } else if (tileVal === 103) {
+          // Jetpack icon
+          this.ctx.fillStyle = '#ef4444'; // Red pack
+          this.ctx.fillRect(x + 10, y + 15, 20, 20);
+          this.ctx.fillStyle = '#9ca3af'; // Grey nozzles
+          this.ctx.fillRect(x + 12, y + 35, 6, 4);
+          this.ctx.fillRect(x + 22, y + 35, 6, 4);
+          this.ctx.fillStyle = '#fbbf24'; // Yellow flame
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 15, y + 39);
+          this.ctx.lineTo(x + 12, y + 43);
+          this.ctx.lineTo(x + 18, y + 43);
+          this.ctx.fill();
+        } else if (tileVal === 104) {
+          // Shrink Potion Icon
+          this.ctx.fillStyle = '#e879f9'; // Pinkish purple fluid
+          this.ctx.beginPath();
+          this.ctx.arc(x + 20, y + 25, 8, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#fdf4ff'; // Glass highlight
+          this.ctx.beginPath();
+          this.ctx.arc(x + 18, y + 23, 3, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#d8b4fe'; // Potion neck
+          this.ctx.fillRect(x + 17, y + 10, 6, 10);
+          this.ctx.fillStyle = '#78716c'; // Cork
+          this.ctx.fillRect(x + 16, y + 6, 8, 4);
         } else if (tileVal === 27) {
           // Speed Boost Powerup
           this.ctx.save();
@@ -3425,6 +4555,25 @@ if (this.player.jumpBufferTimer > 0) {
             this.ctx.lineTo(x + 15 + offset, y + 25);
           }
           this.ctx.fill();
+        } else if (tileVal === 23 || tileVal === 24) {
+          // Dash Panels
+          this.ctx.fillStyle = '#eab308'; // Yellow base
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#ca8a04';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 6);
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.beginPath();
+          const offset = (now * 0.15) % 10; // Fast animation
+          if (tileVal === 23) {
+            // Dash Left
+            this.ctx.moveTo(x + 22 - offset, y + 12); this.ctx.lineTo(x + 12 - offset, y + 20); this.ctx.lineTo(x + 22 - offset, y + 28);
+            this.ctx.moveTo(x + 30 - offset, y + 12); this.ctx.lineTo(x + 20 - offset, y + 20); this.ctx.lineTo(x + 30 - offset, y + 28);
+          } else {
+            // Dash Right
+            this.ctx.moveTo(x + 18 + offset, y + 12); this.ctx.lineTo(x + 28 + offset, y + 20); this.ctx.lineTo(x + 18 + offset, y + 28);
+            this.ctx.moveTo(x + 10 + offset, y + 12); this.ctx.lineTo(x + 20 + offset, y + 20); this.ctx.lineTo(x + 10 + offset, y + 28);
+          }
+          this.ctx.fill();
         } else if (tileVal === 21) {
           // Tripwire
           this.ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
@@ -3510,6 +4659,75 @@ if (this.player.jumpBufferTimer > 0) {
           }
           this.ctx.stroke();
           this.ctx.restore();
+        } else if (tileVal >= 46 && tileVal <= 48) {
+          // Teleportation Doors
+          let color = '#ef4444'; // Red
+          let darkColor = '#b91c1c';
+          if (tileVal === 47) { color = '#3b82f6'; darkColor = '#1d4ed8'; } // Blue
+          else if (tileVal === 48) { color = '#22c55e'; darkColor = '#15803d'; } // Green
+
+          this.ctx.fillStyle = color;
+          this.ctx.fillRect(x + 4, y + 4, CONFIG.TILE_SIZE - 8, CONFIG.TILE_SIZE - 4);
+          this.ctx.fillStyle = darkColor;
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE - 10, y + CONFIG.TILE_SIZE / 2, 3, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          // Draw a glowing portal inside
+          this.ctx.save();
+          this.ctx.globalAlpha = 0.5 + Math.sin(now * 0.005) * 0.2;
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.fillRect(x + 8, y + 8, CONFIG.TILE_SIZE - 16, CONFIG.TILE_SIZE - 8);
+          this.ctx.restore();
+        } else if (tileVal === 49) {
+          // Bomb Powerup
+          this.ctx.fillStyle = '#1c1917';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2, 8, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#78716c';
+          this.ctx.fillRect(x + CONFIG.TILE_SIZE / 2 - 3, y + CONFIG.TILE_SIZE / 2 - 11, 6, 4);
+          this.ctx.strokeStyle = '#ef4444';
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2 - 11);
+          this.ctx.quadraticCurveTo(x + CONFIG.TILE_SIZE / 2 + 5, y + 4, x + CONFIG.TILE_SIZE / 2 + 8, y + 6);
+          this.ctx.stroke();
+        } else if (tileVal === 50) {
+          // Cracked Block
+          if (this.editor && this.editor.earthCache) {
+            this.ctx.drawImage(this.editor.earthCache.get(`${c}_${r}_${this.theme}_0000`) || this.editor.earthCache.get(Array.from(this.editor.earthCache.keys())[0]), x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          } else {
+            this.ctx.fillStyle = '#8c6239';
+            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          }
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.strokeStyle = '#44403c';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 5, y + 5);
+          this.ctx.lineTo(x + 12, y + 14);
+          this.ctx.lineTo(x + 8, y + 25);
+          this.ctx.moveTo(x + 12, y + 14);
+          this.ctx.lineTo(x + 25, y + 18);
+          this.ctx.stroke();
+        } else if (tileVal === 57) {
+          // Ramp Right
+          this.ctx.fillStyle = '#71717a';
+          this.ctx.beginPath();
+          this.ctx.moveTo(x, y + CONFIG.TILE_SIZE);
+          this.ctx.lineTo(x + CONFIG.TILE_SIZE, y);
+          this.ctx.lineTo(x + CONFIG.TILE_SIZE, y + CONFIG.TILE_SIZE);
+          this.ctx.fill();
+        } else if (tileVal === 58) {
+          // Ramp Left
+          this.ctx.fillStyle = '#71717a';
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + CONFIG.TILE_SIZE, y + CONFIG.TILE_SIZE);
+          this.ctx.lineTo(x, y);
+          this.ctx.lineTo(x, y + CONFIG.TILE_SIZE);
+          this.ctx.fill();
         }
       }
     }
@@ -3562,6 +4780,99 @@ if (this.player.jumpBufferTimer > 0) {
 
     if (this.level.portal1) renderPortal(this.level.portal1, 'rgba(6, 182, 212, 0.9)', 'rgba(14, 165, 233, 0.6)'); // Blue/Cyan
     if (this.level.portal2) renderPortal(this.level.portal2, 'rgba(236, 72, 153, 0.9)', 'rgba(244, 63, 94, 0.6)'); // Pink/Magenta
+
+    // Render Turret Projectiles
+    if (this.turretProjectiles) {
+      this.turretProjectiles.forEach(p => {
+        this.ctx.save();
+        if (p.reflected) {
+          this.ctx.fillStyle = '#06b6d4'; // Cyan
+          this.ctx.shadowColor = '#0891b2';
+        } else {
+          this.ctx.fillStyle = '#f87171'; // Glowing red
+          this.ctx.shadowColor = '#ef4444';
+        }
+        this.ctx.shadowBlur = 10;
+        this.ctx.beginPath();
+        this.ctx.arc(p.x + p.width / 2, p.y + p.height / 2, p.width / 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        // Inner white core
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.shadowBlur = 0;
+        this.ctx.beginPath();
+        this.ctx.arc(p.x + p.width / 2, p.y + p.height / 2, p.width / 4, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+      });
+    }
+
+
+
+    // Render Minecarts
+    if (this.minecarts) {
+      this.minecarts.forEach(m => {
+        this.ctx.fillStyle = '#52525b'; // Zinc-600
+        this.ctx.beginPath();
+        this.ctx.moveTo(m.x + 5, m.y + 15);
+        this.ctx.lineTo(m.x + m.width - 5, m.y + 15);
+        this.ctx.lineTo(m.x + m.width - 10, m.y + m.height - 10);
+        this.ctx.lineTo(m.x + 10, m.y + m.height - 10);
+        this.ctx.fill();
+
+        // Wheels
+        this.ctx.fillStyle = '#3f3f46'; // Zinc-700
+        const wheelSpin = m.x * 0.1;
+        this.ctx.save();
+        this.ctx.translate(m.x + 12, m.y + m.height - 8);
+        this.ctx.rotate(wheelSpin);
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#a1a1aa';
+        this.ctx.fillRect(-2, -2, 4, 4);
+        this.ctx.restore();
+
+        this.ctx.save();
+        this.ctx.translate(m.x + m.width - 12, m.y + m.height - 8);
+        this.ctx.rotate(wheelSpin);
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#a1a1aa';
+        this.ctx.fillRect(-2, -2, 4, 4);
+        this.ctx.restore();
+
+        // If occupied, render player inside! Actually, player renders separately, 
+        // but let's draw a front lip over the player to give depth
+        if (m.isOccupied) {
+          this.ctx.fillStyle = '#3f3f46';
+          this.ctx.fillRect(m.x + 5, m.y + 20, m.width - 10, 10);
+        }
+      });
+    }
+
+    // Render Ropes
+    if (this.ropes) {
+      this.ropes.forEach(r => {
+        const anchorX = r.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+        const anchorY = r.row * CONFIG.TILE_SIZE + 10;
+        const endX = anchorX + Math.sin(r.angle) * r.length;
+        const endY = anchorY + Math.cos(r.angle) * r.length;
+
+        this.ctx.strokeStyle = '#22c55e'; // Bright green vine
+        this.ctx.lineWidth = 4;
+        this.ctx.beginPath();
+        this.ctx.moveTo(anchorX, anchorY);
+        this.ctx.lineTo(endX, endY);
+        this.ctx.stroke();
+
+        // Draw a knot at the end
+        this.ctx.fillStyle = '#16a34a';
+        this.ctx.beginPath();
+        this.ctx.arc(endX, endY, 6, 0, Math.PI * 2);
+        this.ctx.fill();
+      });
+    }
 
     // Render Teleport Particles
     this.teleportParticles.forEach(p => {
@@ -3653,7 +4964,7 @@ if (this.player.jumpBufferTimer > 0) {
         this.dustParticles.forEach(p => {
           this.ctx.save();
           this.ctx.globalAlpha = p.alpha;
-          this.ctx.fillStyle = this.theme === 'spooky' ? 'rgba(0, 255, 204, 0.4)' : 'rgba(235, 230, 225, 0.55)';
+          this.ctx.fillStyle = p.color || (this.theme === 'spooky' ? 'rgba(0, 255, 204, 0.4)' : 'rgba(235, 230, 225, 0.55)');
           this.ctx.beginPath();
           if (p.isSquare) {
             this.ctx.fillRect(p.x - p.radius, p.y - p.radius, p.radius * 2, p.radius * 2);
@@ -3665,7 +4976,33 @@ if (this.player.jumpBufferTimer > 0) {
         });
       }
 
-      if (renderCharId === 'classic') {
+      if (this.ghostActive && this.ghost) {
+        const gx = Math.round(this.ghost.x - this.camera.x);
+        const gy = Math.round(this.ghost.y - this.camera.y);
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.5;
+        this.ctx.filter = 'hue-rotate(270deg) brightness(1.5)';
+        
+        if (renderCharId === 'classic') {
+          this.drawClassicBox(this.ctx, gx, gy, this.ghost.width, this.ghost.height, this.ghost.facing, 1, 1, 0, 0.5);
+        } else if (renderCharId === 'ball') {
+          this.ctx.translate(gx + this.ghost.width / 2, gy + this.ghost.height / 2);
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, this.ghost.width / 2, 0, Math.PI * 2);
+          this.ctx.fillStyle = '#ff9800';
+          this.ctx.fill();
+        } else if (renderCharId === 'topdown' || renderCharId === 'paddle_h' || renderCharId === 'paddle_v') {
+          this.ctx.fillStyle = renderCharId === 'topdown' ? '#9c27b0' : '#009688';
+          this.ctx.fillRect(gx, gy, this.ghost.width, this.ghost.height);
+        } else {
+          this.drawForestKid(this.ctx, gx, gy, this.ghost.width, this.ghost.height, this.ghost.facing, 1, 1, 0, 0.5);
+        }
+        this.ctx.restore();
+      }
+
+      if (this.player.isInsideCannon && !this.isDead) {
+        // Player is hidden inside the cannon barrel
+      } else if (renderCharId === 'classic') {
         this.drawClassicBox(
           this.ctx,
           px,
@@ -4137,6 +5474,74 @@ if (this.player.jumpBufferTimer > 0) {
       }
     }
 
+    // Draw Bombs
+    for (const b of this.bombs) {
+      const bx = b.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+      const by = b.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+      
+      // Pulsate based on timer
+      const scale = 1 + Math.sin(b.timer * 0.5) * 0.1;
+      
+      this.ctx.save();
+      this.ctx.translate(bx, by);
+      this.ctx.scale(scale, scale);
+      
+      this.ctx.fillStyle = '#1c1917'; // Black bomb body
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      this.ctx.fillStyle = '#78716c'; // Fuse cap
+      this.ctx.fillRect(-4, -14, 8, 5);
+      
+      this.ctx.strokeStyle = '#ef4444'; // Red fuse
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, -14);
+      this.ctx.quadraticCurveTo(6, -20, 10, -16);
+      this.ctx.stroke();
+
+      // Spark
+      if (b.timer % 10 < 5) {
+        this.ctx.fillStyle = '#fef08a';
+        this.ctx.beginPath();
+        this.ctx.arc(10, -16, 3, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
+
+      this.ctx.restore();
+    }
+
+    // Draw Explosions
+    for (const e of this.explosions) {
+      const ex = e.col * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+      const ey = e.row * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+      
+      // e.timer goes from 15 down to 0
+      const progress = 1 - (e.timer / 15);
+      const radius = progress * CONFIG.TILE_SIZE * 2;
+      
+      this.ctx.save();
+      this.ctx.translate(ex, ey);
+      this.ctx.globalAlpha = 1 - progress;
+      
+      this.ctx.fillStyle = '#ef4444'; // Red
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      this.ctx.fillStyle = '#f97316'; // Orange
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, radius * 0.7, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      this.ctx.fillStyle = '#fef08a'; // Yellow
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, radius * 0.4, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      this.ctx.restore();
+    }
 
     // Draw Grappling Hook Line
     if (this.player.hasGrapple && this.player.grappleHook) {

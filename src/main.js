@@ -94,6 +94,38 @@ function loadAndRemoveWhiteBg(src, previewSelector, callback) {
   img.src = src;
 }
 
+function loadParallaxBg(src, callback) {
+  const img = new Image();
+  img.onerror = () => callback(null);
+  img.onload = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      // Remove white-ish background without cropping
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) {
+          data[i + 3] = 0; // Make transparent
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      const processedImg = new Image();
+      processedImg.onload = () => callback(processedImg);
+      processedImg.src = canvas.toDataURL();
+    } catch (e) {
+      callback(img);
+    }
+  };
+  img.src = src;
+}
+
 function updateCharacterIcons(engine, editor) {
   if (!engine || !engine.player) return;
 
@@ -381,6 +413,10 @@ window.addEventListener('DOMContentLoaded', () => {
       assets.slime = img;
     }
   });
+  loadParallaxBg('assets/bg_layer_sky.png', (img) => { if (img) assets.bg_layer_sky = img; });
+  loadParallaxBg('assets/bg_layer_mountains.png', (img) => { if (img) assets.bg_layer_mountains = img; });
+  loadParallaxBg('assets/bg_layer_hills.png', (img) => { if (img) assets.bg_layer_hills = img; });
+  loadParallaxBg('assets/bg_layer_foreground.png', (img) => { if (img) assets.bg_layer_foreground = img; });
 
   const menuView = document.getElementById('menu-view');
   const editorView = document.getElementById('editor-view');
@@ -396,6 +432,13 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnRenameLevel = document.getElementById('btn-rename-level');
   const btnSaveName = document.getElementById('btn-save-name');
   const btnCancelName = document.getElementById('btn-cancel-name');
+
+  const btnParallax = document.getElementById('btn-parallax');
+  const parallaxOverlay = document.getElementById('parallax-overlay');
+  const parallaxSkyY = document.getElementById('parallax-sky-y');
+  const parallaxMountainsY = document.getElementById('parallax-mountains-y');
+  const parallaxHillsY = document.getElementById('parallax-hills-y');
+  const btnSaveParallax = document.getElementById('btn-save-parallax');
 
   const btnMenuPlay = document.getElementById('btn-menu-play');
   const btnMenuEdit = document.getElementById('btn-menu-edit');
@@ -668,6 +711,35 @@ window.addEventListener('DOMContentLoaded', () => {
   btnCancelName.addEventListener('click', () => {
     renameOverlay.classList.add('hidden');
   });
+
+  if (btnParallax) {
+    btnParallax.addEventListener('click', () => {
+      parallaxOverlay.classList.remove('hidden');
+      const p = level.parallax || { skyY: 0, mountainsY: 0, hillsY: 0 };
+      parallaxSkyY.value = p.skyY || 0;
+      parallaxMountainsY.value = p.mountainsY || 0;
+      parallaxHillsY.value = p.hillsY || 0;
+    });
+
+    const updateParallax = () => {
+      level.parallax = {
+        skyY: parseInt(parallaxSkyY.value, 10),
+        mountainsY: parseInt(parallaxMountainsY.value, 10),
+        hillsY: parseInt(parallaxHillsY.value, 10)
+      };
+      if (engine) engine.render();
+    };
+
+    parallaxSkyY.addEventListener('input', updateParallax);
+    parallaxMountainsY.addEventListener('input', updateParallax);
+    parallaxHillsY.addEventListener('input', updateParallax);
+
+    btnSaveParallax.addEventListener('click', () => {
+      parallaxOverlay.classList.add('hidden');
+      // Save changes by triggering editor modify logic
+      if (editor) editor.onModified();
+    });
+  }
 
   // Toast Alert Helper
   const toastContainer = document.getElementById('toast-container');

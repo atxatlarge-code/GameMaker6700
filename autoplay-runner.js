@@ -10,7 +10,7 @@ const SCREENSHOT_DIR = path.join(__dirname, 'screenshots_autoplay');
 // Parse CLI Arguments
 const args = process.argv.slice(2);
 const levelArg = args.find(a => a.startsWith('--level='));
-const levelName = levelArg ? levelArg.split('=')[1] : 'Mushroom Forest (Custom)';
+const levelName = levelArg ? levelArg.split('=')[1] : 'Mushroom Forest';
 const headful = args.includes('--headful');
 
 async function run() {
@@ -41,7 +41,10 @@ async function run() {
   try {
     console.log(`Navigating to http://localhost:${PORT}...`);
     page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
-    page.on('pageerror', err => console.log('BROWSER ERROR:', err.toString()));
+    page.on('pageerror', err => {
+    console.error('BROWSER ERROR:', err.message);
+    console.error(err.stack);
+  });
     await page.goto(`http://localhost:${PORT}`, { waitUntil: 'networkidle2' });
 
     // Check if custom_levels.json exists locally and inject it into localStorage
@@ -161,14 +164,7 @@ async function run() {
       })) : [];
 
       const saveEngine = () => ({
-        x: e.player.x,
-        y: e.player.y,
-        vx: e.player.vx,
-        vy: e.player.vy,
-        isGrounded: e.player.isGrounded,
-        facing: e.player.facing,
-        coyoteTimer: e.player.coyoteTimer,
-        jumpBufferTimer: e.player.jumpBufferTimer,
+        player: { ...e.player, grappleHook: e.player.grappleHook ? { ...e.player.grappleHook } : null },
         isDead: e.isDead,
         deathTimer: e.deathTimer,
         portalCooldown: e.portalCooldown,
@@ -180,20 +176,18 @@ async function run() {
       });
       
       const restoreEngine = (s) => {
-        e.player.x = s.x;
-        e.player.y = s.y;
-        e.player.vx = s.vx;
-        e.player.vy = s.vy;
-        e.player.isGrounded = s.isGrounded;
-        e.player.facing = s.facing;
-        e.player.coyoteTimer = s.coyoteTimer;
-        e.player.jumpBufferTimer = s.jumpBufferTimer;
+        Object.assign(e.player, s.player);
+        if (s.player.grappleHook) {
+          e.player.grappleHook = { ...s.player.grappleHook };
+        } else {
+          e.player.grappleHook = null;
+        }
+        
         e.isDead = s.isDead;
         e.deathTimer = s.deathTimer;
         e.portalCooldown = s.portalCooldown;
         e.hasWon = s.hasWon;
-        e.liveEnemies = s.enemies.map(se => ({ ...se }));
-        // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
+        e.liveEnemies = s.enemies.map(en => ({ ...en }));
         e.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
         e.coinsCollected = s.coinsCollected;
       };
@@ -215,14 +209,14 @@ async function run() {
       const visited = new Set();
       
       const getDiscretizedKey = (s) => {
-        const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer > 0 ? 1 : 0},${s.jumpBufferTimer > 0 ? 1 : 0}`;
+        const playerPart = `${Math.round(s.player.x / 5)},${Math.round(s.player.y / 5)},${Math.round(s.player.vx * 2)},${Math.round(s.player.vy * 2)},${s.player.isGrounded ? 1 : 0},${s.player.coyoteTimer > 0 ? 1 : 0},${s.player.jumpBufferTimer > 0 ? 1 : 0}`;
         const enemyPart = s.enemies.map(en => `${Math.round(en.x / 10)},${Math.round(en.y / 10)}`).join('|');
         return `${playerPart}|${enemyPart}`;
       };
       
       const getHeuristic = (s) => {
-        const dx = goalX - s.x;
-        const dy = goalY - s.y;
+        const dx = goalX - s.player.x;
+        const dy = goalY - s.player.y;
         return Math.sqrt(dx * dx + dy * dy);
       };
       

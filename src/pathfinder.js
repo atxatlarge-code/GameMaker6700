@@ -90,7 +90,15 @@ export function solveLevel(engine) {
     playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
     coinsCollected: engine.coinsCollected,
     stalactites: engine.stalactites ? engine.stalactites.map(s => ({ ...s })) : [],
-    slidingIceBlocks: engine.slidingIceBlocks ? engine.slidingIceBlocks.map(b => ({ ...b, toggledSwitches: b.toggledSwitches ? new Set(b.toggledSwitches) : new Set() })) : []
+    slidingIceBlocks: engine.slidingIceBlocks ? engine.slidingIceBlocks.map(b => ({ ...b, toggledSwitches: b.toggledSwitches ? new Set(b.toggledSwitches) : new Set() })) : [],
+    hasBombs: engine.player.hasBombs,
+    bombs: engine.bombs ? engine.bombs.map(b => ({ ...b })) : [],
+    ghostRecording: engine.ghostRecording,
+    ghostRecordTimer: engine.ghostRecordTimer,
+    ghostFrames: engine.ghostFrames ? [...engine.ghostFrames] : [],
+    ghostActive: engine.ghostActive,
+    ghostPlaybackIndex: engine.ghostPlaybackIndex,
+    ghostData: engine.ghost ? { ...engine.ghost } : null
   });
 
   // Helper to restore the exact state of the engine
@@ -129,6 +137,14 @@ export function solveLevel(engine) {
     engine.coinsCollected = s.coinsCollected;
     engine.stalactites = s.stalactites ? s.stalactites.map(st => ({ ...st })) : [];
     engine.slidingIceBlocks = s.slidingIceBlocks ? s.slidingIceBlocks.map(b => ({ ...b, toggledSwitches: b.toggledSwitches ? new Set(b.toggledSwitches) : new Set() })) : [];
+    engine.player.hasBombs = s.hasBombs;
+    engine.bombs = s.bombs ? s.bombs.map(b => ({ ...b })) : [];
+    engine.ghostRecording = s.ghostRecording;
+    engine.ghostRecordTimer = s.ghostRecordTimer;
+    engine.ghostFrames = s.ghostFrames ? [...s.ghostFrames] : [];
+    engine.ghostActive = s.ghostActive;
+    engine.ghostPlaybackIndex = s.ghostPlaybackIndex;
+    engine.ghost = s.ghostData ? { ...s.ghostData } : null;
   };
 
   const startState = {
@@ -142,16 +158,22 @@ export function solveLevel(engine) {
 
   const getDiscretizedKey = (s) => {
     // Round positions to nearest 5px and velocities to nearest 0.5 to allow state aggregation
-    const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer || 0},${s.jumpBufferTimer || 0},${s.gravityDir || 1},${s.hasDash ? 1 : 0},${s.dashAvailable ? 1 : 0},${s.isDashing ? 1 : 0},${s.magneticState || 'none'},${s.grappleHook ? `${Math.round(s.grappleHook.x/5)},${Math.round(s.grappleHook.y/5)},${s.grappleHook.attached?1:0}` : '0'},${s.timeFreezeTimer > 0 ? 1 : 0}`;
+    const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer || 0},${s.jumpBufferTimer || 0},${s.gravityDir || 1},${s.hasDash ? 1 : 0},${s.dashAvailable ? 1 : 0},${s.isDashing ? 1 : 0},${s.hasBombs ? 1 : 0},${s.magneticState || 'none'},${s.grappleHook ? `${Math.round(s.grappleHook.x/5)},${Math.round(s.grappleHook.y/5)},${s.grappleHook.attached?1:0}` : '0'},${s.timeFreezeTimer > 0 ? 1 : 0},${s.portalCooldown > 0 ? 1 : 0},${s.lastDoorExited ? `${s.lastDoorExited.col},${s.lastDoorExited.row}` : '0'},${s.lastPortalExited || 0}`;
     const levelPart = `${s.coinsCollected},${s.switchState}`;
     
+    // Include bomb positions and timers
+    const bombPart = s.bombs ? s.bombs.map(b => `${b.col},${b.row},${Math.round(b.timer/10)}`).join('|') : '';
+
     // Include enemy positions rounded to nearest 10px to prevent pruning valid stomp/patrol paths
     const enemyPart = s.enemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
     
     // Include sliding ice blocks positions rounded to 5px
     const icePart = s.slidingIceBlocks ? s.slidingIceBlocks.map(b => `${Math.round(b.x / 5)},${Math.round(b.y / 5)}`).join('|') : '';
     
-    return `${playerPart}|${enemyPart}|${icePart}`;
+    // Include ghost state
+    const ghostPart = `${s.ghostRecording?1:0},${s.ghostActive?1:0},${s.ghostPlaybackIndex||0}`;
+    
+    return `${playerPart}_${levelPart}_${bombPart}_${enemyPart}_${icePart}_${ghostPart}`;
   };
 
   const getHeuristic = (s) => {
@@ -167,7 +189,10 @@ export function solveLevel(engine) {
     { right: false, left: true, jump: false, dash: false, down: false, up: false },
     { right: false, left: true, jump: true, dash: false, down: false, up: false },
     { right: false, left: false, jump: false, dash: false, down: false, up: false },
-    { right: false, left: false, jump: true, dash: false, down: false, up: false }
+    { right: false, left: false, jump: true, dash: false, down: false, up: false },
+    { right: true, left: false, jump: false, dash: false, down: true, up: false },
+    { right: false, left: true, jump: false, dash: false, down: true, up: false },
+    { right: false, left: false, jump: false, dash: false, down: true, up: false }
   ];
 
   let iterations = 0;
@@ -203,6 +228,11 @@ export function solveLevel(engine) {
         { right: false, left: false, jump: true, dash: false, down: false, up: false } // Jump off the wall
       ]);
     }
+    if (curr.hasBombs) {
+      currentActions = currentActions.concat([
+        { right: false, left: false, jump: false, dash: false, down: false, up: false, bomb: true }
+      ]);
+    }
 
     for (const act of currentActions) {
       restoreEngine(curr);
@@ -215,6 +245,9 @@ export function solveLevel(engine) {
       if (act.jump) {
         engine.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
         engine.keys.up = true; // Ensure up is set for jump logic
+      }
+      if (act.bomb) {
+        engine.dropBomb();
       }
 
       // Step physics 5 frames for this action
@@ -304,7 +337,7 @@ export class AsyncPathfinder {
     ];
 
     this.getDiscretizedKey = (s) => {
-      const playerPart = `${Math.round(s.player.x / 5)},${Math.round(s.player.y / 5)},${Math.round(s.player.vx * 2)},${Math.round(s.player.vy * 2)},${s.player.isGrounded ? 1 : 0},${s.player.coyoteTimer || 0},${s.player.jumpBufferTimer || 0},${s.player.magneticState || 'none'}`;
+      const playerPart = `${Math.round(s.player.x / 5)},${Math.round(s.player.y / 5)},${Math.round(s.player.vx * 2)},${Math.round(s.player.vy * 2)},${s.player.isGrounded ? 1 : 0},${s.player.coyoteTimer || 0},${s.player.jumpBufferTimer || 0},${s.player.magneticState || 'none'},${s.portalCooldown > 0 ? 1 : 0},${s.lastDoorExited ? `${s.lastDoorExited.col},${s.lastDoorExited.row}` : '0'},${s.lastPortalExited || 0}`;
       const enemyPart = s.liveEnemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
       return `${playerPart}|${enemyPart}`;
     };

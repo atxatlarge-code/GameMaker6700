@@ -805,6 +805,30 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_PUSHABLE_ICE_BLOCK:
+        if (this.level.getTile(col, row) !== 42) {
+          this.level.setTile(col, row, 42);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_MAGNETIC_BOOTS:
+        if (this.level.getTile(col, row) !== 43) {
+          this.level.setTile(col, row, 43);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_GRAPPLE:
+        if (this.level.getTile(col, row) !== 44) {
+          this.level.setTile(col, row, 44);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_STOPWATCH:
+        if (this.level.getTile(col, row) !== 45) {
+          this.level.setTile(col, row, 45);
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_PORTAL_GRAVITY:
         if (this.level.getTile(col, row) !== 18) {
           this.level.setTile(col, row, 18);
@@ -820,6 +844,18 @@ export class Editor {
       case CONFIG.TOOL_CONVEYOR_RIGHT:
         if (this.level.getTile(col, row) !== 20) {
           this.level.setTile(col, row, 20);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_DASH_PANEL_LEFT:
+        if (this.level.getTile(col, row) !== 23) {
+          this.level.setTile(col, row, 23);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_DASH_PANEL_RIGHT:
+        if (this.level.getTile(col, row) !== 24) {
+          this.level.setTile(col, row, 24);
           audio.playTileSound();
         }
         break;
@@ -847,6 +883,12 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_DASH_POWERUP:
+        if (this.level.getTile(col, row) !== 41) {
+          this.level.setTile(col, row, 41);
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_BUMPER:
         if (this.level.getTile(col, row) !== 28) {
           this.level.setTile(col, row, 28);
@@ -860,8 +902,26 @@ export class Editor {
         }
         break;
       case CONFIG.TOOL_JETPACK:
-        if (this.level.getTile(col, row) !== 30) {
-          this.level.setTile(col, row, 30);
+        if (this.level.getTile(col, row) !== 103) {
+          this.level.setTile(col, row, 103);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_SHRINK_POTION:
+        if (this.level.getTile(col, row) !== 104) {
+          this.level.setTile(col, row, 104);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_PAINT_BLOCK:
+        if (this.level.getTile(col, row) !== 105) {
+          this.level.setTile(col, row, 105);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_INVISIBLE_BLOCK:
+        if (this.level.getTile(col, row) !== 106) {
+          this.level.setTile(col, row, 106);
           audio.playTileSound();
         }
         break;
@@ -936,6 +996,60 @@ export class Editor {
           audio.playTileSound();
         }
         break;
+      case CONFIG.TOOL_JUMP_THROUGH:
+        if (this.level.getTile(col, row) !== 52) {
+          this.level.setTile(col, row, 52);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_CANNON_BARREL:
+        if (this.level.getTile(col, row) !== 53) {
+          this.level.setTile(col, row, 53);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_ROPE:
+        if (this.level.getTile(col, row) !== 55) {
+          this.level.setTile(col, row, 55);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_TURRET:
+        if (this.level.getTile(col, row) !== 54) {
+          this.level.setTile(col, row, 54);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_MINECART:
+        if (this.level.getTile(col, row) !== 56) {
+          this.level.setTile(col, row, 56);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_RAMP_RIGHT:
+        if (this.level.getTile(col, row) !== 57) {
+          this.level.setTile(col, row, 57);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_RAMP_LEFT:
+        if (this.level.getTile(col, row) !== 58) {
+          this.level.setTile(col, row, 58);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_REFLECTOR:
+        if (this.level.getTile(col, row) !== 59) {
+          this.level.setTile(col, row, 59);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_GRAVITY_WELL:
+        if (this.level.getTile(col, row) !== 60) {
+          this.level.setTile(col, row, 60);
+          audio.playTileSound();
+        }
+        break;
       case CONFIG.TOOL_ENEMY:
         if (this.level.addEnemy(col, row, CONFIG.ENEMY_SPEED, CONFIG.ENEMY_PATROL_RANGE)) {
           audio.playTileSound();
@@ -989,6 +1103,42 @@ export class Editor {
       case CONFIG.TOOL_PORTAL_SIZE:
         if (this.level.getTile(col, row) !== 14) {
           this.level.setTile(col, row, 14);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_DOOR_RED:
+        if (this.level.getTile(col, row) !== 46) {
+          this.level.setTile(col, row, 46);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_DOOR_BLUE:
+        if (this.level.getTile(col, row) !== 47) {
+          this.level.setTile(col, row, 47);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_DOOR_GREEN:
+        if (this.level.getTile(col, row) !== 48) {
+          this.level.setTile(col, row, 48);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_BOMB_POWERUP:
+        if (this.level.getTile(col, row) !== 49) {
+          this.level.setTile(col, row, 49);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_CRACKED_BLOCK:
+        if (this.level.getTile(col, row) !== 50) {
+          this.level.setTile(col, row, 50);
+          audio.playTileSound();
+        }
+        break;
+      case CONFIG.TOOL_GHOST_SWITCH:
+        if (this.level.getTile(col, row) !== 51) {
+          this.level.setTile(col, row, 51);
           audio.playTileSound();
         }
         break;
@@ -1269,16 +1419,56 @@ export class Editor {
           this.ctx.fillText("G", x + CONFIG.TILE_SIZE/2 - 4, y + CONFIG.TILE_SIZE/2 + 4);
           break;
         case CONFIG.TOOL_JETPACK:
-          this.ctx.fillStyle = '#ef4444'; // Red backpack
+          // Jetpack icon
+          this.ctx.fillStyle = '#ef4444'; // Red pack
+          this.ctx.fillRect(x + 10, y + 15, 20, 20);
+          this.ctx.fillStyle = '#9ca3af'; // Grey nozzles
+          this.ctx.fillRect(x + 12, y + 35, 6, 4);
+          this.ctx.fillRect(x + 22, y + 35, 6, 4);
+          this.ctx.fillStyle = '#fbbf24'; // Yellow flame
           this.ctx.beginPath();
-          this.ctx.roundRect(x + 8, y + 4, 16, 20, 4);
+          this.ctx.moveTo(x + 15, y + 39);
+          this.ctx.lineTo(x + 12, y + 43);
+          this.ctx.lineTo(x + 18, y + 43);
           this.ctx.fill();
-          this.ctx.fillStyle = '#fb923c'; // Orange nozzles
-          this.ctx.fillRect(x + 10, y + 24, 4, 4);
-          this.ctx.fillRect(x + 18, y + 24, 4, 4);
-          this.ctx.fillStyle = '#64748b'; // Straps
-          this.ctx.fillRect(x + 4, y + 8, 4, 12);
-          this.ctx.fillRect(x + 24, y + 8, 4, 12);
+          break;
+        case CONFIG.TOOL_SHRINK_POTION:
+          // Shrink Potion Icon
+          this.ctx.fillStyle = '#e879f9'; // Pinkish purple fluid
+          this.ctx.beginPath();
+          this.ctx.arc(x + 20, y + 25, 8, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#fdf4ff'; // Glass highlight
+          this.ctx.beginPath();
+          this.ctx.arc(x + 18, y + 23, 3, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#d8b4fe'; // Potion neck
+          this.ctx.fillRect(x + 17, y + 10, 6, 10);
+          this.ctx.fillStyle = '#78716c'; // Cork
+          this.ctx.fillRect(x + 16, y + 6, 8, 4);
+          break;
+        case CONFIG.TOOL_PAINT_BLOCK:
+          // Paint Block preview (white block with colored dots)
+          this.ctx.fillStyle = '#f8fafc';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.strokeStyle = '#cbd5e1';
+          this.ctx.strokeRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#06b6d4'; // Cyan
+          this.ctx.beginPath(); this.ctx.arc(x + 10, y + 10, 4, 0, Math.PI * 2); this.ctx.fill();
+          this.ctx.fillStyle = '#d946ef'; // Magenta
+          this.ctx.beginPath(); this.ctx.arc(x + 30, y + 15, 5, 0, Math.PI * 2); this.ctx.fill();
+          this.ctx.fillStyle = '#eab308'; // Yellow
+          this.ctx.beginPath(); this.ctx.arc(x + 15, y + 30, 4, 0, Math.PI * 2); this.ctx.fill();
+          break;
+        case CONFIG.TOOL_INVISIBLE_BLOCK:
+          // Invisible Block preview (semi-transparent dashed box)
+          this.ctx.strokeStyle = '#94a3b8';
+          this.ctx.setLineDash([4, 4]);
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeRect(x + 2, y + 2, CONFIG.TILE_SIZE - 4, CONFIG.TILE_SIZE - 4);
+          this.ctx.setLineDash([]);
+          this.ctx.fillStyle = 'rgba(148, 163, 184, 0.2)';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           break;
         case CONFIG.TOOL_WIND_UP:
           this.drawWindPreview(x, y, 0, -1);
@@ -1362,6 +1552,23 @@ export class Editor {
           }
           this.ctx.fill();
           break;
+        case CONFIG.TOOL_DASH_PANEL_LEFT:
+        case CONFIG.TOOL_DASH_PANEL_RIGHT:
+          this.ctx.fillStyle = '#eab308'; // Yellow base
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = '#ca8a04';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 6);
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.beginPath();
+          if (this.currentTool === CONFIG.TOOL_DASH_PANEL_LEFT) {
+            this.ctx.moveTo(x + 22, y + 12); this.ctx.lineTo(x + 12, y + 20); this.ctx.lineTo(x + 22, y + 28);
+            this.ctx.moveTo(x + 30, y + 12); this.ctx.lineTo(x + 20, y + 20); this.ctx.lineTo(x + 30, y + 28);
+          } else {
+            this.ctx.moveTo(x + 18, y + 12); this.ctx.lineTo(x + 28, y + 20); this.ctx.lineTo(x + 18, y + 28);
+            this.ctx.moveTo(x + 10, y + 12); this.ctx.lineTo(x + 20, y + 20); this.ctx.lineTo(x + 10, y + 28);
+          }
+          this.ctx.fill();
+          break;
         case CONFIG.TOOL_TRIPWIRE:
           this.ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
           this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
@@ -1399,6 +1606,107 @@ export class Editor {
           this.ctx.lineTo(x + 35, y + 20);
           this.ctx.stroke();
           break;
+        case CONFIG.TOOL_JUMP_THROUGH:
+          this.ctx.fillStyle = '#8b5cf6';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 10);
+          this.ctx.fillStyle = '#6d28d9';
+          this.ctx.fillRect(x, y + 10, CONFIG.TILE_SIZE, 4);
+          this.ctx.fillStyle = 'rgba(139, 92, 246, 0.3)';
+          this.ctx.fillRect(x, y + 14, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE - 14);
+          break;
+        case CONFIG.TOOL_TURRET:
+          this.ctx.fillStyle = '#ef4444';
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + CONFIG.TILE_SIZE / 2, y + 5);
+          this.ctx.lineTo(x + 5, y + CONFIG.TILE_SIZE - 5);
+          this.ctx.lineTo(x + CONFIG.TILE_SIZE - 5, y + CONFIG.TILE_SIZE - 5);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#f87171';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE / 2, y + 20, 6, 0, Math.PI * 2);
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_CANNON_BARREL:
+          this.ctx.fillStyle = '#475569'; // Dark Slate
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE/2, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#0f172a'; // Inner black hole
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE/3, 0, Math.PI * 2);
+          this.ctx.fill();
+          // Draw a small orange dot to indicate the "opening" direction (facing up)
+          this.ctx.fillStyle = '#f59e0b';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2, y + 6, 4, 0, Math.PI * 2);
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_ROPE:
+          this.ctx.fillStyle = '#14532d'; // Dark green anchor
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 10);
+          this.ctx.strokeStyle = '#22c55e'; // Bright green vine
+          this.ctx.lineWidth = 4;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + CONFIG.TILE_SIZE/2, y + 10);
+          this.ctx.lineTo(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE);
+          this.ctx.stroke();
+          break;
+        case CONFIG.TOOL_MINECART:
+          this.ctx.fillStyle = '#52525b';
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 5, y + 15);
+          this.ctx.lineTo(x + 35, y + 15);
+          this.ctx.lineTo(x + 30, y + 30);
+          this.ctx.lineTo(x + 10, y + 30);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#3f3f46';
+          this.ctx.beginPath();
+          this.ctx.arc(x + 12, y + 32, 6, 0, Math.PI * 2);
+          this.ctx.arc(x + 28, y + 32, 6, 0, Math.PI * 2);
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_RAMP_RIGHT:
+          this.ctx.fillStyle = '#71717a';
+          this.ctx.beginPath();
+          this.ctx.moveTo(x, y + CONFIG.TILE_SIZE);
+          this.ctx.lineTo(x + CONFIG.TILE_SIZE, y);
+          this.ctx.lineTo(x + CONFIG.TILE_SIZE, y + CONFIG.TILE_SIZE);
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_RAMP_LEFT:
+          this.ctx.fillStyle = '#71717a';
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + CONFIG.TILE_SIZE, y + CONFIG.TILE_SIZE);
+          this.ctx.lineTo(x, y);
+          this.ctx.lineTo(x, y + CONFIG.TILE_SIZE);
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_REFLECTOR:
+          this.ctx.fillStyle = '#06b6d4'; // Cyan shield
+          this.ctx.fillRect(x + 5, y + 5, CONFIG.TILE_SIZE - 10, CONFIG.TILE_SIZE - 10);
+          this.ctx.strokeStyle = '#cffafe';
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 10, y + 20);
+          this.ctx.lineTo(x + 20, y + 10);
+          this.ctx.lineTo(x + 30, y + 20);
+          this.ctx.stroke();
+          break;
+        case CONFIG.TOOL_GRAVITY_WELL:
+          this.ctx.fillStyle = '#1e1b4b'; // Deep dark purple background
+          this.ctx.beginPath();
+          this.ctx.arc(x + 20, y + 20, 16, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#7c3aed'; // Purple aura
+          this.ctx.lineWidth = 3;
+          this.ctx.beginPath();
+          this.ctx.arc(x + 20, y + 20, 12, 0, Math.PI * 2);
+          this.ctx.stroke();
+          this.ctx.fillStyle = '#000000'; // Black center
+          this.ctx.beginPath();
+          this.ctx.arc(x + 20, y + 20, 8, 0, Math.PI * 2);
+          this.ctx.fill();
+          break;
         case CONFIG.TOOL_KEY:
           this.ctx.fillStyle = '#ffeb3b';
           this.ctx.fillRect(x + 10, y + 15, 20, 10);
@@ -1432,6 +1740,69 @@ export class Editor {
           this.ctx.fillStyle = (!this.level.portal1 || (this.level.portal1 && this.level.portal2 && this.level._nextPortal === 1)) ? '#06b6d4' : '#ec4899';
           this.ctx.beginPath();
           this.ctx.ellipse(cx, cy, CONFIG.TILE_SIZE * 0.4, CONFIG.TILE_SIZE * 0.45, 0, 0, Math.PI * 2);
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_DOOR_RED:
+          this.ctx.fillStyle = '#ef4444';
+          this.ctx.fillRect(x + 4, y + 4, CONFIG.TILE_SIZE - 8, CONFIG.TILE_SIZE - 4);
+          this.ctx.fillStyle = '#b91c1c';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE - 10, y + CONFIG.TILE_SIZE / 2, 3, 0, Math.PI * 2);
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_DOOR_BLUE:
+          this.ctx.fillStyle = '#3b82f6';
+          this.ctx.fillRect(x + 4, y + 4, CONFIG.TILE_SIZE - 8, CONFIG.TILE_SIZE - 4);
+          this.ctx.fillStyle = '#1d4ed8';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE - 10, y + CONFIG.TILE_SIZE / 2, 3, 0, Math.PI * 2);
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_DOOR_GREEN:
+          this.ctx.fillStyle = '#22c55e';
+          this.ctx.fillRect(x + 4, y + 4, CONFIG.TILE_SIZE - 8, CONFIG.TILE_SIZE - 4);
+          this.ctx.fillStyle = '#15803d';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE - 10, y + CONFIG.TILE_SIZE / 2, 3, 0, Math.PI * 2);
+          this.ctx.fill();
+          break;
+        case CONFIG.TOOL_BOMB_POWERUP:
+          this.ctx.fillStyle = '#1c1917'; // Black bomb body
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2, 8, 0, Math.PI * 2);
+          this.ctx.fill();
+          this.ctx.fillStyle = '#78716c'; // Fuse cap
+          this.ctx.fillRect(x + CONFIG.TILE_SIZE / 2 - 3, y + CONFIG.TILE_SIZE / 2 - 11, 6, 4);
+          this.ctx.strokeStyle = '#ef4444'; // Red fuse
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2 - 11);
+          this.ctx.quadraticCurveTo(x + CONFIG.TILE_SIZE / 2 + 5, y + 4, x + CONFIG.TILE_SIZE / 2 + 8, y + 6);
+          this.ctx.stroke();
+          break;
+        case CONFIG.TOOL_CRACKED_BLOCK:
+          // Draw standard earth block but with a dark overlay and cracks
+          this.ctx.drawImage(this.earthCache.get(`${c}_${r}_${this.theme}_0000`) || this.earthCache.get(Array.from(this.earthCache.keys())[0]), x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          this.ctx.strokeStyle = '#44403c';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.beginPath();
+          this.ctx.moveTo(x + 5, y + 5);
+          this.ctx.lineTo(x + 12, y + 14);
+          this.ctx.lineTo(x + 8, y + 25);
+          this.ctx.moveTo(x + 12, y + 14);
+          this.ctx.lineTo(x + 25, y + 18);
+          this.ctx.stroke();
+          break;
+        case CONFIG.TOOL_GHOST_SWITCH:
+          this.ctx.fillStyle = '#1e1b4b'; // Deep purple base
+          this.ctx.fillRect(x + 4, y + 26, CONFIG.TILE_SIZE - 8, 14);
+          this.ctx.fillStyle = '#a855f7'; // Purple button
+          this.ctx.fillRect(x + 8, y + 18, CONFIG.TILE_SIZE - 16, 8);
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE / 2, y + 22, 3, 0, Math.PI * 2);
           this.ctx.fill();
           break;
         case CONFIG.TOOL_PORTAL_SIZE:

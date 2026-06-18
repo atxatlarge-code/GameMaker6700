@@ -145,6 +145,9 @@
               <option value="ladygaga">👑 Bad Romance</option>
             </select>
           </div>
+          <button id="btn-parallax" class="nav-menu-btn" title="Adjust Parallax Background Layers">
+            <i class="fa-solid fa-layer-group"></i> Parallax
+          </button>
           <button id="btn-mobile-editor" class="nav-menu-btn" title="Play on Mobile Arcade">
             <i class="fa-solid fa-mobile-screen-button"></i> Mobile
           </button>
@@ -266,6 +269,9 @@
                 </button>
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ghibli" title="Forest Kid (Ghibli)">
                   <img src="assets/player_ghibli.png" class="tool-icon-img" alt="Forest Kid (Ghibli)" style="border-radius: 4px;">
+                </button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_robot" title="Robot">
+                  <img src="assets/player_robot.png" class="tool-icon-img" alt="Robot" style="border-radius: 4px;">
                 </button>
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_topdown" title="Top Down Player">
                   <i class="fa-solid fa-user-astronaut" style="font-size: 1.4rem; color: #9c27b0;"></i>
@@ -392,11 +398,32 @@
                 <button class="popup-item-btn" data-tool="moveable"><i class="fa-solid fa-box" style="color:#a87a51"></i> Moveable block</button>
                 <button class="popup-item-btn" data-tool="block_crumble"><i class="fa-solid fa-cookie-bite" style="color:#b45309"></i> Crumble Block</button>
                 <button class="popup-item-btn" data-tool="block_ice"><i class="fa-solid fa-cube" style="color:#a5f3fc"></i> Ice Block</button>
+                <button class="popup-item-btn" data-tool="cracked_block"><i class="fa-solid fa-cube" style="color:#78716c"></i> Cracked Block</button>
                 <button class="popup-item-btn" data-tool="slime"><i class="fa-solid fa-square-virus" style="color:#4ade80"></i> Slime Wall</button>
+                <button class="popup-item-btn" data-tool="jump_through"><i class="fa-solid fa-minus" style="color:#8b5cf6"></i> Jump-Through</button>
+                <button class="popup-item-btn" data-tool="reflector"><i class="fa-solid fa-shield-halved" style="color:#06b6d4"></i> Reflector Shield</button>
+                <button class="popup-item-btn" data-tool="ramp_right"><i class="fa-solid fa-play" style="color:#71717a; transform: rotate(-45deg);"></i> Ramp Right</button>
+                <button class="popup-item-btn" data-tool="ramp_left"><i class="fa-solid fa-play" style="color:#71717a; transform: rotate(225deg);"></i> Ramp Left</button>
+              </div>
+            </div>
+
+            <!-- Group 2.5: Movers -->
+            <div class="action-group" id="group-movers">
+              <button class="action-group-btn" title="Movers">
+                <i class="fa-solid fa-wind"></i>
+                <span>Movers</span>
+              </button>
+              <div class="group-popup" id="popup-movers">
                 <button class="popup-item-btn" data-tool="conveyor_left"><i class="fa-solid fa-angles-left" style="color:#94a3b8"></i> Conveyor Left</button>
                 <button class="popup-item-btn" data-tool="conveyor_right"><i class="fa-solid fa-forward-step" style="color:#94a3b8"></i> Conveyor Right</button>
+                <button class="popup-item-btn" data-tool="dash_panel_left"><i class="fa-solid fa-backward-fast" style="color:#eab308"></i> Dash Panel Left</button>
+                <button class="popup-item-btn" data-tool="dash_panel_right"><i class="fa-solid fa-forward-fast" style="color:#eab308"></i> Dash Panel Right</button>
                 <button class="popup-item-btn" data-tool="bumper"><i class="fa-solid fa-life-ring" style="color:#ec4899"></i> Bumper</button>
                 <button class="popup-item-btn" data-tool="moving_platform"><i class="fa-solid fa-window-minimize" style="color:#f59e0b"></i> Moving Platform</button>
+                <button class="popup-item-btn" data-tool="cannon_barrel"><i class="fa-solid fa-crosshairs" style="color:#d97706"></i> Cannon Barrel</button>
+                <button class="popup-item-btn" data-tool="rope"><i class="fa-solid fa-link" style="color:#84cc16"></i> Swinging Rope</button>
+                <button class="popup-item-btn" data-tool="gravity_well"><i class="fa-solid fa-circle-dot" style="color:#7c3aed"></i> Gravity Well</button>
+                <button class="popup-item-btn" data-tool="minecart"><i class="fa-solid fa-cart-shopping" style="color:#52525b"></i> Minecart</button>
                 <button class="popup-item-btn" data-tool="wind_up"><i class="fa-solid fa-wind" style="color:#94a3b8; transform: rotate(-90deg);"></i> Wind Up</button>
                 <button class="popup-item-btn" data-tool="wind_down"><i class="fa-solid fa-wind" style="color:#94a3b8; transform: rotate(90deg);"></i> Wind Down</button>
                 <button class="popup-item-btn" data-tool="wind_left"><i class="fa-solid fa-wind" style="color:#94a3b8; transform: scaleX(-1);"></i> Wind Left</button>
@@ -413,18 +440,17 @@
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="goal" title="Goal flag">
                   <img id="img-tool-goal" src="assets/goal.png" class="tool-icon-img" alt="Goal flag">
                 </button>
+                <button class="popup-item-btn" data-tool="door_red"><i class="fa-solid fa-door-closed" style="color:#ef4444"></i> Red Door</button>
+                <button class="popup-item-btn" data-tool="door_blue"><i class="fa-solid fa-door-closed" style="color:#3b82f6"></i> Blue Door</button>
+                <button class="popup-item-btn" data-tool="door_green"><i class="fa-solid fa-door-closed" style="color:#22c55e"></i> Green Door</button>
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="trampoline" title="Powerup">
                   <img id="img-tool-trampoline" src="assets/trampoline.png" class="tool-icon-img" alt="Powerup">
                 </button>
-                <button class="popup-item-btn" data-tool="spring_boots"><i class="fa-solid fa-shoe-prints" style="color:#4ade80"></i> Spring Boots</button>
-                <button class="popup-item-btn" data-tool="bouncy_mushroom"><i class="fa-solid fa-mushroom" style="color:#ef4444"></i> Bouncy Mushroom</button>
-                <button class="popup-item-btn" data-tool="double_jump"><i class="fa-solid fa-feather-pointed" style="color:#0ea5e9"></i> Double Jump</button>
-                <button class="popup-item-btn" data-tool="jetpack"><i class="fa-solid fa-rocket" style="color:#ef4444"></i> Jetpack</button>
-                <button class="popup-item-btn" data-tool="speed_boost"><i class="fa-solid fa-bolt" style="color:#f59e0b"></i> Speed Boost</button>
-                <button class="popup-item-btn" data-tool="boomerang"><i class="fa-solid fa-sync" style="color:#a855f7"></i> Boomerang</button>
                 <button class="popup-item-btn" data-tool="water"><i class="fa-solid fa-water" style="color:#3b82f6"></i> Water Zone</button>
                 <button class="popup-item-btn" data-tool="checkpoint"><i class="fa-solid fa-flag" style="color:#ef4444"></i> Save flag</button>
                 <button class="popup-item-btn" data-tool="key"><i class="fa-solid fa-key" style="color:#ffeb3b"></i> Key</button>
+                <button class="popup-item-btn" data-tool="paint_block"><i class="fa-solid fa-paint-roller" style="color:#06b6d4"></i> Paint Block</button>
+                <button class="popup-item-btn" data-tool="invisible_block"><i class="fa-regular fa-square" style="color:#94a3b8"></i> Invisible Block</button>
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="coin" title="Coin">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <defs>
@@ -439,6 +465,24 @@
                     <text x="16" y="21.5" font-family="sans-serif" font-weight="bold" font-size="14" fill="#ffab00" text-anchor="middle">$</text>
                   </svg>
                 </button>
+              </div>
+            </div>
+
+            <!-- Group 3.5: Powerups -->
+            <div class="action-group" id="group-powerups">
+              <button class="action-group-btn" title="Powerups">
+                <i class="fa-solid fa-star" style="color:#fbbf24;"></i>
+                <span>Powerups</span>
+              </button>
+              <div class="group-popup" id="popup-powerups">
+                <button class="popup-item-btn" data-tool="spring_boots"><i class="fa-solid fa-shoe-prints" style="color:#4ade80"></i> Spring Boots</button>
+                <button class="popup-item-btn" data-tool="bouncy_mushroom"><i class="fa-solid fa-mushroom" style="color:#ef4444"></i> Bouncy Mushroom</button>
+                <button class="popup-item-btn" data-tool="double_jump"><i class="fa-solid fa-feather-pointed" style="color:#0ea5e9"></i> Double Jump</button>
+                <button class="popup-item-btn" data-tool="jetpack"><i class="fa-solid fa-rocket" style="color:#ef4444"></i> Jetpack</button>
+                <button class="popup-item-btn" data-tool="speed_boost"><i class="fa-solid fa-bolt" style="color:#f59e0b"></i> Speed Boost</button>
+                <button class="popup-item-btn" data-tool="shrink_potion"><i class="fa-solid fa-flask" style="color:#e879f9"></i> Shrinking Potion</button>
+                <button class="popup-item-btn" data-tool="boomerang"><i class="fa-solid fa-sync" style="color:#a855f7"></i> Boomerang</button>
+                <button class="popup-item-btn" data-tool="bomb_powerup"><i class="fa-solid fa-bomb" style="color:#000000"></i> Bomb Powerup</button>
               </div>
             </div>
 
@@ -486,6 +530,7 @@
                 <button class="popup-item-btn" data-tool="enemy_bat" title="Bat Swarm"><i class="fa-solid fa-bat" style="color:#71717a;"></i> Bat Swarm</button>
                 <button class="popup-item-btn" data-tool="enemy_mimic" title="Mimic Block"><i class="fa-solid fa-box" style="color:#eab308;"></i> Mimic Block</button>
                 <button class="popup-item-btn" data-tool="lazer"><i class="fa-solid fa-bullseye" style="color:#e91e63"></i> 4 Way Lazer</button>
+                <button class="popup-item-btn" data-tool="turret"><i class="fa-solid fa-crosshairs" style="color:#dc2626"></i> Turret Shooter</button>
               </div>
             </div>
 
@@ -550,6 +595,7 @@
                 <button class="popup-item-btn" data-tool="block_red"><i class="fa-solid fa-square" style="color:#f44336"></i> Red Block</button>
                 <button class="popup-item-btn" data-tool="block_blue"><i class="fa-solid fa-square" style="color:#2196f3"></i> Blue Block</button>
                 <button class="popup-item-btn" data-tool="block_ghost"><i class="fa-regular fa-square" style="color:#9ca3af"></i> Ghost Block</button>
+                <button class="popup-item-btn" data-tool="ghost_switch"><i class="fa-solid fa-video" style="color:#9c27b0"></i> Ghost Switch</button>
               </div>
             </div>
 
@@ -595,6 +641,26 @@
         <div class="toast-content">
           <i class="fa-solid fa-triangle-exclamation"></i>
           <span id="toast-message">Item coming soon!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PARALLAX OVERLAY MODAL -->
+    <div id="parallax-overlay" class="overlay hidden">
+      <div class="overlay-modal">
+        <h2><i class="fa-solid fa-layer-group"></i> Parallax Settings</h2>
+        <div style="margin-top: 10px;">
+          <label style="display:block; text-align:left; margin-bottom: 5px;">Sky Y-Offset</label>
+          <input type="range" id="parallax-sky-y" min="-500" max="500" value="0" style="width:100%; margin-bottom: 15px;" />
+          
+          <label style="display:block; text-align:left; margin-bottom: 5px;">Mountains Y-Offset</label>
+          <input type="range" id="parallax-mountains-y" min="-500" max="500" value="0" style="width:100%; margin-bottom: 15px;" />
+          
+          <label style="display:block; text-align:left; margin-bottom: 5px;">Hills Y-Offset</label>
+          <input type="range" id="parallax-hills-y" min="-500" max="500" value="0" style="width:100%; margin-bottom: 15px;" />
+        </div>
+        <div class="modal-buttons" style="margin-top: 20px;">
+          <button id="btn-save-parallax" class="primary-btn"><i class="fa-solid fa-check"></i> Close & Save</button>
         </div>
       </div>
     </div>

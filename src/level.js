@@ -14,6 +14,7 @@ export class Level {
     this.platforms = []; // [{ id, col, row, distance, axis }]
     this.isPreset = true;
     this.isDark = false;
+    this.parallax = { skyY: 0, mountainsY: 0, hillsY: 0 };
     this.onModify = null;
     this.history = [];
     this.initDefaultGrid();
@@ -33,6 +34,7 @@ export class Level {
     this.platforms = levelData.platforms ? levelData.platforms.map(p => ({ ...p })) : [];
     this.isPreset = levelData.isPreset || false;
     this.isDark = levelData.isDark || false;
+    this.parallax = levelData.parallax ? { ...levelData.parallax } : { skyY: 0, mountainsY: 0, hillsY: 0 };
     this.history = [];
   }
 
@@ -50,6 +52,7 @@ export class Level {
       platforms: this.platforms.map(p => ({ ...p })),
       isPreset: this.isPreset,
       isDark: this.isDark,
+      parallax: { ...this.parallax },
     };
   }
 
@@ -65,6 +68,7 @@ export class Level {
       enemies: this.enemies.map(e => ({ ...e })),
       platforms: this.platforms.map(p => ({ ...p })),
       isDark: this.isDark,
+      parallax: { ...this.parallax },
     });
     if (this.history.length > 30) {
       this.history.shift();
@@ -83,6 +87,7 @@ export class Level {
       this.enemies = state.enemies ? state.enemies.map(e => ({ ...e })) : [];
       this.platforms = state.platforms ? state.platforms.map(p => ({ ...p })) : [];
       this.isDark = state.isDark || false;
+      this.parallax = state.parallax ? { ...state.parallax } : { skyY: 0, mountainsY: 0, hillsY: 0 };
       if (this.onModify) this.onModify();
       return true;
     }

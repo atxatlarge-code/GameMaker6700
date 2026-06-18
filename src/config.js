@@ -33,6 +33,9 @@ export const CONFIG = {
   TOOL_TRAMPOLINE: 'trampoline',
   TOOL_FIRE: 'fire',
   TOOL_SPIKES: 'spikes',
+  TOOL_MIMIC: 'mimic',
+  TOOL_ROPE: 'rope',
+  TOOL_TURRET: 'turret_shooter',
   TOOL_PORTAL: 'portal',
   TOOL_PORTAL_SIZE: 'portal_size',
   TOOL_ERASE: 'erase',
@@ -40,7 +43,7 @@ export const CONFIG = {
   TOOL_COIN: 'coin',
   TOOL_BREAKABLE: 'breakable',
   // Wind
-  WIND_FORCE: 0.35,
+  WIND_FORCE: 0.48,
 
   // Tool Selection Constants
   TOOL_EARTH: 'earth',
@@ -58,6 +61,8 @@ export const CONFIG = {
   TOOL_PORTAL_GRAVITY: 'portal_gravity',
   TOOL_CONVEYOR_LEFT: 'conveyor_left',
   TOOL_CONVEYOR_RIGHT: 'conveyor_right',
+  TOOL_DASH_PANEL_RIGHT: 'dash_panel_right',
+  TOOL_DASH_PANEL_LEFT: 'dash_panel_left',
   TOOL_TRIPWIRE: 'tripwire',
   TOOL_BLOCK_CRUMBLE: 'block_crumble',
   TOOL_MOVING_PLATFORM: 'moving_platform',
@@ -82,6 +87,42 @@ export const CONFIG = {
   TOOL_ENEMY_WORM: 'enemy_worm',
   TOOL_ENEMY_BAT: 'enemy_bat',
   TOOL_ENEMY_MIMIC: 'enemy_mimic',
+  TOOL_DASH_POWERUP: 'dash_powerup',
+  TOOL_PUSHABLE_ICE_BLOCK: 'pushable_ice_block',
+  TOOL_MAGNETIC_BOOTS: 'magnetic_boots',
+  TOOL_GRAPPLE: 'grapple',
+  TOOL_STOPWATCH: 'stopwatch',
+  TOOL_DOOR_RED: 'door_red',
+  TOOL_DOOR_BLUE: 'door_blue',
+  TOOL_DOOR_GREEN: 'door_green',
+  TOOL_BOMB_POWERUP: 'bomb_powerup',
+  TOOL_CRACKED_BLOCK: 'cracked_block',
+  TOOL_GHOST_SWITCH: 'ghost_switch',
+  TOOL_JUMP_THROUGH: 'jump_through',
+  TOOL_CANNON_BARREL: 'cannon_barrel',
+  TOOL_TURRET: 'turret',
+  TOOL_MINECART: 'minecart',
+  TOOL_RAMP_RIGHT: 'ramp_right',
+  TOOL_RAMP_LEFT: 'ramp_left',
+  TOOL_REFLECTOR: 'reflector',
+  TOOL_GRAVITY_WELL: 'gravity_well',
+  
+  // Powerups (Starting from 100)
+  TOOL_DOUBLE_JUMP: 'double_jump', // 100
+  TOOL_SPEED_BOOST: 'speed_boost', // 101
+  TOOL_SPRING_BOOTS: 'spring_boots', // 102
+  TOOL_JETPACK: 'jetpack', // 103
+  TOOL_SHRINK_POTION: 'shrink_potion', // 104
+  TOOL_PAINT_BLOCK: 'paint_block', // 105
+  TOOL_INVISIBLE_BLOCK: 'invisible_block', // 106
+  TOOL_REVEALED_BLOCK: 'revealed_block', // 107
+  
+  // Grapple Physics
+  GRAPPLE_SPEED: 25,
+  GRAPPLE_STIFFNESS: 0.1,
+
+  // Stopwatch
+  STOPWATCH_DURATION: 180,
 
   // Enemy defaults
   ENEMY_SPEED: 1.8,
