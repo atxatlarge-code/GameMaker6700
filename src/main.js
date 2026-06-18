@@ -617,6 +617,15 @@ window.addEventListener('DOMContentLoaded', () => {
     renameOverlay.classList.remove('hidden');
     inputLevelName.value = level.name;
     inputLevelName.focus();
+    inputLevelName.select();
+  });
+
+  inputLevelName.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      btnSaveName.click();
+    } else if (e.key === 'Escape') {
+      btnCancelName.click();
+    }
   });
 
   btnSaveName.addEventListener('click', () => {
