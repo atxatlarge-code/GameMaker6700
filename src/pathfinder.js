@@ -2,19 +2,56 @@ import { CONFIG } from './config.js';
 import { audio } from './audio.js';
 
 // Helper for binary search insertion to maintain sorted order in A* open set
-function insertSorted(array, item, compareFn) {
-  let low = 0;
-  let high = array.length;
-  while (low < high) {
-    const mid = (low + high) >>> 1;
-    if (compareFn(array[mid], item) < 0) {
-      low = mid + 1;
-    } else {
-      high = mid;
+
+// ⚡ Bolt: Use a Min-Heap for O(log N) insertions instead of O(N) splice
+class MinHeap {
+  constructor(compareFn) {
+    this.data = [];
+    this.compare = compareFn;
+    this.counter = 0;
+  }
+  push(val) {
+    this.data.push({ val, c: this.counter++ });
+    let i = this.data.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >>> 1;
+      const cmp = this.compare(this.data[p].val, this.data[i].val);
+      if (cmp < 0 || (cmp === 0 && this.data[p].c > this.data[i].c)) break;
+      const tmp = this.data[i];
+      this.data[i] = this.data[p];
+      this.data[p] = tmp;
+      i = p;
     }
   }
-  array.splice(low, 0, item);
+  pop() {
+    if (this.data.length === 0) return undefined;
+    const top = this.data[0];
+    const bottom = this.data.pop();
+    if (this.data.length > 0) {
+      this.data[0] = bottom;
+      let i = 0;
+      const len = this.data.length;
+      while ((i << 1) + 1 < len) {
+        let left = (i << 1) + 1;
+        let right = left + 1;
+        let min = left;
+        let cmpRightLeft = right < len ? this.compare(this.data[right].val, this.data[left].val) : 1;
+        if (right < len && (cmpRightLeft < 0 || (cmpRightLeft === 0 && this.data[right].c > this.data[left].c))) min = right;
+        const cmpIMin = this.compare(this.data[i].val, this.data[min].val);
+        if (cmpIMin < 0 || (cmpIMin === 0 && this.data[i].c > this.data[min].c)) break;
+        const tmp = this.data[i];
+        this.data[i] = this.data[min];
+        this.data[min] = tmp;
+        i = min;
+      }
+    }
+    return top.val;
+  }
+  get length() {
+    return this.data.length;
+  }
 }
+
 
 /**
  * Solves the current level configuration from the player's current starting position.
@@ -105,7 +142,8 @@ export function solveLevel(engine) {
   };
   startState.fScore = getHeuristic(startState);
 
-  const openSet = [startState];
+  const openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+  openSet.push(startState);
   const visited = new Set();
 
   const getDiscretizedKey = (s) => {
@@ -142,7 +180,7 @@ export function solveLevel(engine) {
   while (openSet.length > 0 && iterations < maxIterations) {
     iterations++;
 
-    const curr = openSet.shift();
+    const curr = openSet.pop();
 
     if (curr.hasWon) {
       solution = curr.path;
@@ -180,7 +218,7 @@ export function solveLevel(engine) {
 
       const nextKey = getDiscretizedKey(nextState);
       if (!visited.has(nextKey)) {
-        insertSorted(openSet, nextState, (a, b) => a.fScore - b.fScore);
+        openSet.push(nextState);
       }
     }
   }
@@ -300,7 +338,8 @@ export class AsyncPathfinder {
     };
     startState.fScore = this.getHeuristic(startState);
 
-    this.openSet = [startState];
+    this.openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+    this.openSet.push(startState);
     this.visited = new Set();
     this.exploredPoints = [];
     this.iterations = 0;
@@ -316,7 +355,7 @@ export class AsyncPathfinder {
 
 
 
-      const curr = this.openSet.shift();
+      const curr = this.openSet.pop();
       this.exploredPoints.push({ x: curr.x, y: curr.y });
 
       if (curr.hasWon) {
@@ -354,7 +393,7 @@ export class AsyncPathfinder {
 
         const nextKey = this.getDiscretizedKey(nextState);
         if (!this.visited.has(nextKey)) {
-          insertSorted(this.openSet, nextState, (a, b) => a.fScore - b.fScore);
+          this.openSet.push(nextState);
         }
       }
     }
