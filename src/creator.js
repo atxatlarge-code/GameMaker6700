@@ -137,9 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
     thread.messages.forEach(msg => {
       const b = document.createElement('div');
       b.className = `comment-line ${msg.senderRole}`;
-      const senderName = msg.senderRole === 'creator' ? 'You (Creator)' : (msg.senderName || thread.playerName);
+      const senderName = msg.senderRole === 'creator' ? 'You (Game Maker)' : (msg.senderName || thread.playerName);
       const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const badgeHtml = msg.senderRole === 'creator' ? '<span class="creator-badge">MOD</span>' : '';
+      const badgeHtml = msg.senderRole === 'creator' ? '<span class="creator-badge">MAKER</span>' : '';
       
       b.innerHTML = `
         <div class="comment-meta">

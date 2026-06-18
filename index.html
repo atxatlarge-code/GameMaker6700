@@ -104,8 +104,8 @@
                 </div>
               </div>
               <div class="scroll-buttons">
-                <button id="btn-scroll-up" class="scroll-btn"><i class="fa-solid fa-caret-up"></i></button>
-                <button id="btn-scroll-down" class="scroll-btn"><i class="fa-solid fa-caret-down"></i></button>
+                <button id="btn-scroll-up" class="scroll-btn" aria-label="Scroll up" title="Scroll up"><i class="fa-solid fa-caret-up"></i></button>
+                <button id="btn-scroll-down" class="scroll-btn" aria-label="Scroll down" title="Scroll down"><i class="fa-solid fa-caret-down"></i></button>
               </div>
             </div>
           </div>
@@ -162,28 +162,83 @@
             <button class="pan-btn pan-right" data-dir="right" title="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
           </div>
           <div id="win-overlay" class="overlay hidden">
-            <div class="overlay-modal">
-              <h2>Level Complete!</h2>
+            <div class="overlay-modal win-modal">
+              <h2>
+                <svg viewBox="0 0 40 44" class="soot-sprite-title-icon" style="width: 32px; height: 35px; display: inline-block; vertical-align: middle; margin-right: 8px;">
+                  <!-- Fluffy bumps -->
+                  <circle cx="20" cy="8"  r="5.5" fill="#221c25"/>
+                  <circle cx="29" cy="11" r="5"   fill="#1a141e"/>
+                  <circle cx="33" cy="20" r="5"   fill="#221c25"/>
+                  <circle cx="30" cy="30" r="4.5" fill="#1a141e"/>
+                  <circle cx="10" cy="11" r="5"   fill="#1a141e"/>
+                  <circle cx="7"  cy="20" r="5"   fill="#221c25"/>
+                  <circle cx="10" cy="30" r="4.5" fill="#1a141e"/>
+                  <!-- Main body -->
+                  <circle cx="20" cy="20" r="13" fill="#1e1720"/>
+                  <!-- Eye whites -->
+                  <circle cx="14" cy="19" r="5.5" fill="rgba(245,240,235,0.97)"/>
+                  <circle cx="26" cy="19" r="5.5" fill="rgba(245,240,235,0.97)"/>
+                  <!-- Pupils -->
+                  <circle cx="14.5" cy="19.5" r="3.2" fill="#0d0a0f"/>
+                  <circle cx="26.5" cy="19.5" r="3.2" fill="#0d0a0f"/>
+                  <!-- Catchlights -->
+                  <circle cx="12.8" cy="17.8" r="1.3" fill="white"/>
+                  <circle cx="25.2" cy="17.8" r="1.3" fill="white"/>
+                  <!-- Legs -->
+                  <line x1="13" y1="32" x2="11" y2="40" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="17" y1="33" x2="17" y2="41" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="23" y1="33" x2="23" y2="41" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="27" y1="32" x2="29" y2="40" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+                Level Complete!
+              </h2>
               <p>You successfully guided the kid to the magical doorway!</p>
               <button id="btn-restart" class="primary-btn"><i class="fa-solid fa-rotate-left"></i> Edit Level</button>
             </div>
           </div>
           <div id="pathfinder-overlay" class="overlay hidden">
             <div class="overlay-modal pathfinder-modal">
-              <h2><i class="fa-solid fa-robot"></i> AI Pathfinder</h2>
-              <p id="pathfinder-status">Analyzing Level Dynamics...</p>
-              <div class="solver-progress-container">
-                <div id="solver-progress-bar" class="solver-progress-bar"></div>
-              </div>
-              <div class="solver-stats" id="solver-stats">
-                Iterations: 0 / 20000<br>
-                States explored: 0
+              <h2>
+                <svg viewBox="0 0 40 44" class="soot-sprite-title-icon" style="width: 32px; height: 35px; display: inline-block; vertical-align: middle; margin-right: 8px;">
+                  <!-- Fluffy bumps -->
+                  <circle cx="20" cy="8"  r="5.5" fill="#221c25"/>
+                  <circle cx="29" cy="11" r="5"   fill="#1a141e"/>
+                  <circle cx="33" cy="20" r="5"   fill="#221c25"/>
+                  <circle cx="30" cy="30" r="4.5" fill="#1a141e"/>
+                  <circle cx="10" cy="11" r="5"   fill="#1a141e"/>
+                  <circle cx="7"  cy="20" r="5"   fill="#221c25"/>
+                  <circle cx="10" cy="30" r="4.5" fill="#1a141e"/>
+                  <!-- Main body -->
+                  <circle cx="20" cy="20" r="13" fill="#1e1720"/>
+                  <!-- Eye whites -->
+                  <circle cx="14" cy="19" r="5.5" fill="rgba(245,240,235,0.97)"/>
+                  <circle cx="26" cy="19" r="5.5" fill="rgba(245,240,235,0.97)"/>
+                  <!-- Pupils -->
+                  <circle cx="14.5" cy="19.5" r="3.2" fill="#0d0a0f"/>
+                  <circle cx="26.5" cy="19.5" r="3.2" fill="#0d0a0f"/>
+                  <!-- Catchlights -->
+                  <circle cx="12.8" cy="17.8" r="1.3" fill="white"/>
+                  <circle cx="25.2" cy="17.8" r="1.3" fill="white"/>
+                  <!-- Legs -->
+                  <line x1="13" y1="32" x2="11" y2="40" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="17" y1="33" x2="17" y2="41" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="23" y1="33" x2="23" y2="41" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="27" y1="32" x2="29" y2="40" stroke="#1e1720" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+                <span id="pathfinder-title">Finding Pathway...</span>
+              </h2>
+              <p id="pathfinder-status" style="margin-bottom: 0.5rem;">Consulting the forest spirits...</p>
+              <div class="solver-stats" id="solver-stats" style="margin-top: 1rem;">
+                Paths explored: 0
               </div>
               <div class="modal-buttons" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
                 <button id="btn-cancel-solve" class="secondary-btn"><i class="fa-solid fa-xmark"></i> Cancel</button>
-                <button id="btn-proceed-solve" class="primary-btn hidden" style="background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);"><i class="fa-solid fa-play"></i> Proceed</button>
+                <button id="btn-proceed-solve" class="primary-btn hidden"><i class="fa-solid fa-play"></i> Proceed</button>
               </div>
             </div>
+          </div>
+          <div id="play-hud" class="play-hud hidden">
+            <span class="hud-item"><i class="fa-solid fa-coins gold-coin-icon"></i> <span id="hud-coins-collected">0</span> / <span id="hud-total-coins">0</span></span>
           </div>
           <canvas id="game-canvas" width="1200" height="600"></canvas>
         </div>
@@ -201,8 +256,11 @@
                 <img id="img-group-player" src="assets/player.png" class="tool-icon-img" alt="Player">
               </button>
               <div class="group-popup" id="popup-player">
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player" title="Platform player">
-                  <img id="img-tool-player" src="assets/player.png" class="tool-icon-img" alt="Platform player">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_classic" title="Classic Box Player">
+                  <img src="assets/player_classic.png" class="tool-icon-img" alt="Classic Box Player" style="border-radius: 4px;">
+                </button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ghibli" title="Forest Kid (Ghibli)">
+                  <img src="assets/player_ghibli.png" class="tool-icon-img" alt="Forest Kid (Ghibli)" style="border-radius: 4px;">
                 </button>
                 <button class="popup-item-btn soon" data-name="Top down player"><i class="fa-solid fa-user-astronaut"></i> Top down player</button>
                 <button class="popup-item-btn soon" data-name="Vertical paddle"><i class="fa-solid fa-grip-lines-vertical"></i> Vertical paddle</button>
@@ -210,6 +268,7 @@
                 <button class="popup-item-btn soon" data-name="Bouncing ball"><i class="fa-solid fa-basketball"></i> Bouncing ball</button>
               </div>
             </div>
+
 
             <!-- Group 2: Blocks -->
             <div class="action-group" id="group-blocks">
@@ -235,7 +294,83 @@
                 <button class="tool-btn popup-item-btn icon-only-btn" data-tool="spikes" title="Spikes">
                   <img id="img-tool-spikes" src="assets/spikes.png" class="tool-icon-img" alt="Spikes">
                 </button>
-                <button class="popup-item-btn soon" data-name="Breakable block"><i class="fa-solid fa-border-none"></i> Breakable block</button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="breakable" title="Breakable block">
+                  <svg viewBox="0 0 32 32" class="tool-icon-svg">
+                    <!-- Base background with pillowy gradient -->
+                    <defs>
+                      <linearGradient id="mudBrickGrad" x1="0" y1="1" x2="0" y2="0">
+                        <stop offset="0%" stop-color="#8c6239"/>
+                        <stop offset="100%" stop-color="#ab7a4e"/>
+                      </linearGradient>
+                      <linearGradient id="highlightGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#c69c6d" stop-opacity="0.8"/>
+                        <stop offset="100%" stop-color="#c69c6d" stop-opacity="0"/>
+                      </linearGradient>
+                    </defs>
+                    
+                    <!-- Wobbly soft outer block background -->
+                    <path d="M 2.5 3 C 12 2, 20 2.5, 29.5 3 C 29.8 12, 29.5 20, 29.5 29 C 20 29.5, 12 29.2, 2.5 29 C 2 20, 2.3 12, 2.5 3 Z" fill="url(#mudBrickGrad)" />
+
+                    <!-- Top-Left brick highlights -->
+                    <path d="M 4 5 C 10 4, 14 4.5, 18 5 L 18 19 L 4 19 Z" fill="url(#highlightGrad)" opacity="0.4"/>
+                    
+                    <!-- Horizontal wobbly joint -->
+                    <path d="M 2.5 20 C 10 20.5, 20 19.5, 29.5 20" fill="none" stroke="#754b2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    
+                    <!-- Vertical internal wobbly joints -->
+                    <!-- Top split at x=20 -->
+                    <path d="M 20 3 C 20.2 8, 19.8 14, 20 20" fill="none" stroke="#754b2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Bottom split at x=10 -->
+                    <path d="M 10 20 C 9.8 23, 10.2 27, 10 29" fill="none" stroke="#754b2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    
+                    <!-- Detail pillowy shadows -->
+                    <!-- Top-Left brick shadow -->
+                    <path d="M 18.5 5 C 18.5 12, 18.5 17, 18.5 18.5 C 13 18.5, 9 18.5, 4 18.5" fill="none" stroke="#542e14" stroke-width="1.2" stroke-linecap="round"/>
+                    <!-- Top-Right brick shadow -->
+                    <path d="M 28 5 C 28 12, 28 17, 28 18.5 C 25 18.5, 23 18.5, 20 18.5" fill="none" stroke="#542e14" stroke-width="1.2" stroke-linecap="round"/>
+                    <!-- Bottom-Left brick shadow -->
+                    <path d="M 8.5 21.5 C 8.5 24, 8.5 26, 8.5 27.5 C 6 27.5, 4 27.5, 3 27.5" fill="none" stroke="#542e14" stroke-width="1.2" stroke-linecap="round"/>
+                    <!-- Bottom-Right brick shadow -->
+                    <path d="M 28 21.5 C 28 24, 28 26, 28 27.5 C 20 27.5, 15 27.5, 10 27.5" fill="none" stroke="#542e14" stroke-width="1.2" stroke-linecap="round"/>
+
+                    <!-- Exposed crack/crevice line on bottom-right brick for extra visual flavor -->
+                    <path d="M 16 23 L 13 25 L 15 27" fill="none" stroke="#542e14" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+
+                    <!-- Hand-drawn external outlines (wobbly outline) -->
+                    <path d="M 2.5 3 C 12 2, 20 2.5, 29.5 3 C 29.8 12, 29.5 20, 29.5 29 C 20 29.5, 12 29.2, 2.5 29 C 2 20, 2.3 12, 2.5 3" fill="none" stroke="#754b2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+                    <!-- Yellow straw flecks -->
+                    <!-- Straw 1 -->
+                    <line x1="6" y1="9" x2="9" y2="12" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
+                    <!-- Straw 2 -->
+                    <line x1="24" y1="12" x2="27" y2="10" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
+                    <!-- Straw 3 -->
+                    <line x1="14" y1="24" x2="17" y2="26" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
+                    <!-- Straw 4 -->
+                    <line x1="22" y1="6" x2="25" y2="7" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="earth" title="Grass Earth block">
+                  <svg viewBox="0 0 32 32" class="tool-icon-svg">
+                    <defs>
+                      <linearGradient id="earthBlockGrad" x1="0" y1="1" x2="0" y2="0">
+                        <stop offset="0%" stop-color="#8c6239"/>
+                        <stop offset="100%" stop-color="#ab7a4e"/>
+                      </linearGradient>
+                    </defs>
+                    <!-- Earth base -->
+                    <path d="M 2.5 3 C 12 2, 20 2.5, 29.5 3 C 29.8 12, 29.5 20, 29.5 29 C 20 29.5, 12 29.2, 2.5 29 C 2 20, 2.3 12, 2.5 3 Z" fill="url(#earthBlockGrad)" />
+                    <!-- Strata lines -->
+                    <path d="M 2.5 13 C 10 13.5, 20 12.5, 29.5 13" fill="none" stroke="#754b2d" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M 2.5 22 C 10 22.5, 20 21.5, 29.5 22" fill="none" stroke="#754b2d" stroke-width="1.5" stroke-linecap="round"/>
+                    <!-- Grass on Top -->
+                    <path d="M 2.5 3 C 10 2.5, 20 2.8, 29.5 3 L 29.5 9 C 25 7.5, 20 9.5, 15 8 C 10 9, 6 7.5, 2.5 9 Z" fill="#689f38"/>
+                    <!-- Grass on Left side -->
+                    <path d="M 2.5 3 C 2.8 10, 2.5 20, 2.5 29 L 8.5 29 C 7 24, 9 18, 7.5 13 C 8.5 8, 7 5, 8.5 3 Z" fill="#689f38"/>
+                    <!-- Hand-drawn wobbly outline -->
+                    <path d="M 2.5 3 C 12 2, 20 2.5, 29.5 3 C 29.8 12, 29.5 20, 29.5 29 C 20 29.5, 12 29.2, 2.5 29 C 2 20, 2.3 12, 2.5 3" fill="none" stroke="#542e14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
                 <button class="popup-item-btn soon" data-name="Moveable block"><i class="fa-solid fa-arrows-up-down-left-right"></i> Moveable block</button>
               </div>
             </div>
@@ -253,7 +388,20 @@
                   <img id="img-tool-trampoline" src="assets/trampoline.png" class="tool-icon-img" alt="Powerup">
                 </button>
                 <button class="popup-item-btn soon" data-name="Save flag"><i class="fa-solid fa-flag"></i> Save flag</button>
-                <button class="popup-item-btn soon" data-name="Coin"><i class="fa-solid fa-coins"></i> Coin</button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="coin" title="Coin">
+                  <svg viewBox="0 0 32 32" class="tool-icon-svg">
+                    <defs>
+                      <radialGradient id="coinGrad" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#ffe57f"/>
+                        <stop offset="70%" stop-color="#ffd60a"/>
+                        <stop offset="100%" stop-color="#ffab00"/>
+                      </radialGradient>
+                    </defs>
+                    <circle cx="16" cy="16" r="13" fill="url(#coinGrad)" stroke="#d4a359" stroke-width="2"/>
+                    <circle cx="16" cy="16" r="9" fill="none" stroke="#ffe57f" stroke-width="1"/>
+                    <text x="16" y="21.5" font-family="sans-serif" font-weight="bold" font-size="14" fill="#ffab00" text-anchor="middle">$</text>
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -411,7 +559,7 @@
     <div id="rename-overlay" class="overlay hidden">
       <div class="overlay-modal">
         <h2>Level Name</h2>
-        <input type="text" id="input-level-name" class="modal-input" maxlength="28" placeholder="Enter level name..." />
+        <input type="text" id="input-level-name" class="modal-input" aria-label="Enter level name" maxlength="28" placeholder="Enter level name..." />
         <div class="modal-buttons">
           <button id="btn-save-name" class="primary-btn"><i class="fa-solid fa-check"></i> Save</button>
           <button id="btn-cancel-name" class="secondary-btn"><i class="fa-solid fa-xmark"></i> Cancel</button>
@@ -430,7 +578,7 @@
           <div class="persona-switcher" style="display: none;">
             <span>Chatting as:</span>
             <button id="persona-player" class="persona-pill active"><i class="fa-solid fa-gamepad"></i> Player</button>
-            <button id="persona-creator" class="persona-pill"><i class="fa-solid fa-wand-magic-sparkles"></i> Creator</button>
+            <button id="persona-creator" class="persona-pill"><i class="fa-solid fa-wand-magic-sparkles"></i> Game Maker</button>
           </div>
           <div class="modal-right-actions">
             <button id="btn-cloud-settings" class="icon-btn-subtle" title="Cloud Database Settings" style="display: none;"><i class="fa-solid fa-cloud"></i></button>
@@ -456,9 +604,9 @@
             <div id="chat-empty-state" class="chat-view-panel">
               <i class="fa-solid fa-envelope-open-text empty-chat-icon"></i>
               <h3>Select a conversation</h3>
-              <p>Choose a discussion from the left or start a new one to chat with the creator!</p>
+              <p>Choose a discussion from the left or start a new one to leave feedback for the Game Maker!</p>
             </div>
-
+ 
             <!-- Active Conversation State -->
             <div id="chat-active-state" class="chat-view-panel hidden">
               <div class="chat-header">
@@ -473,32 +621,32 @@
                 <!-- Dynamically populated chat bubbles -->
               </div>
               <div class="chat-input-area">
-                <input type="text" id="input-comment-author" class="comment-author-input" placeholder="Nickname / Handle" maxlength="24" />
-                <input type="text" id="input-reply-text" class="chat-input" placeholder="Leave a comment..." />
+                <input type="text" id="input-comment-author" class="comment-author-input" aria-label="Comment author nickname" placeholder="Nickname / Handle" maxlength="24" />
+                <input type="text" id="input-reply-text" class="chat-input" aria-label="Comment text" placeholder="Leave a comment..." />
                 <button id="btn-send-reply" class="send-btn" title="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
               </div>
             </div>
-
+ 
             <!-- New Thread Form State -->
             <div id="new-thread-state" class="chat-view-panel new-thread-form hidden">
               <h3>Start a Conversation</h3>
-              <p>Found a bug, have a question, or want to share feedback? Leave a message for the game creator!</p>
+              <p>Found a bug, have a question, or want to share feedback? Leave a message for the Game Maker!</p>
               <div class="form-group">
-                <label>Your Nickname / Handle</label>
+                <label for="input-player-name">Your Nickname / Handle</label>
                 <input type="text" id="input-player-name" class="modal-input form-input" placeholder="e.g. MarioFan99" maxlength="24" />
               </div>
               <div class="form-group">
-                <label>Game Level</label>
+                <label for="select-thread-level">Game Level</label>
                 <select id="select-thread-level" class="modal-select form-input">
                   <!-- Dynamically populated levels -->
                 </select>
               </div>
               <div class="form-group">
-                <label>Subject / Topic</label>
+                <label for="input-thread-title">Subject / Topic</label>
                 <input type="text" id="input-thread-title" class="modal-input form-input" placeholder="e.g. High jump trampoline bug" maxlength="60" />
               </div>
               <div class="form-group">
-                <label>Message</label>
+                <label for="input-thread-msg">Message</label>
                 <textarea id="input-thread-msg" class="modal-textarea form-input" placeholder="Explain your feedback or question..." rows="4"></textarea>
               </div>
               <div class="modal-buttons form-actions">
@@ -518,11 +666,11 @@
         <p>Connect your game to Supabase so you can receive player messages instantly across the internet!</p>
         
         <div class="form-group text-left">
-          <label>Supabase REST URL</label>
+          <label for="input-supabase-url">Supabase REST URL</label>
           <input type="text" id="input-supabase-url" class="modal-input form-input" placeholder="https://your-project.supabase.co" />
         </div>
         <div class="form-group text-left">
-          <label>Supabase Anon Key / API Key</label>
+          <label for="input-supabase-key">Supabase Anon Key / API Key</label>
           <input type="password" id="input-supabase-key" class="modal-input form-input" placeholder="eyJhbGciOiJIUzI1NiIsIn..." />
         </div>
 

@@ -1,4 +1,57 @@
 import { CONFIG } from './config.js';
+import { audio } from './audio.js';
+
+// Helper for binary search insertion to maintain sorted order in A* open set
+
+// ⚡ Bolt: Use a Min-Heap for O(log N) insertions instead of O(N) splice
+class MinHeap {
+  constructor(compareFn) {
+    this.data = [];
+    this.compare = compareFn;
+    this.counter = 0;
+  }
+  push(val) {
+    this.data.push({ val, c: this.counter++ });
+    let i = this.data.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >>> 1;
+      const cmp = this.compare(this.data[p].val, this.data[i].val);
+      if (cmp < 0 || (cmp === 0 && this.data[p].c > this.data[i].c)) break;
+      const tmp = this.data[i];
+      this.data[i] = this.data[p];
+      this.data[p] = tmp;
+      i = p;
+    }
+  }
+  pop() {
+    if (this.data.length === 0) return undefined;
+    const top = this.data[0];
+    const bottom = this.data.pop();
+    if (this.data.length > 0) {
+      this.data[0] = bottom;
+      let i = 0;
+      const len = this.data.length;
+      while ((i << 1) + 1 < len) {
+        let left = (i << 1) + 1;
+        let right = left + 1;
+        let min = left;
+        let cmpRightLeft = right < len ? this.compare(this.data[right].val, this.data[left].val) : 1;
+        if (right < len && (cmpRightLeft < 0 || (cmpRightLeft === 0 && this.data[right].c > this.data[left].c))) min = right;
+        const cmpIMin = this.compare(this.data[i].val, this.data[min].val);
+        if (cmpIMin < 0 || (cmpIMin === 0 && this.data[i].c > this.data[min].c)) break;
+        const tmp = this.data[i];
+        this.data[i] = this.data[min];
+        this.data[min] = tmp;
+        i = min;
+      }
+    }
+    return top.val;
+  }
+  get length() {
+    return this.data.length;
+  }
+}
+
 
 /**
  * Solves the current level configuration from the player's current starting position.
@@ -8,9 +61,19 @@ import { CONFIG } from './config.js';
  * @returns {{ solution: Array<Object>|null, iterations: number }}
  */
 export function solveLevel(engine) {
+  const originalMode = engine.mode;
+  const originalAutoplay = engine.isAutoplay;
+  engine.mode = CONFIG.MODE_PLAY;
+  engine.isAutoplay = false;
   engine.resetPlayer();
+  engine.hasWon = false;
+
   const goalX = engine.level.goalPos.col * CONFIG.TILE_SIZE;
   const goalY = engine.level.goalPos.row * CONFIG.TILE_SIZE;
+
+  // Set simulation flags
+  audio.isSimulation = true;
+  engine.isSimulation = true;
 
   // Temporarily initialize live enemies for the simulation if they aren't already initialized
   const originalEnemies = engine.liveEnemies;
@@ -39,11 +102,16 @@ export function solveLevel(engine) {
     vy: engine.player.vy,
     isGrounded: engine.player.isGrounded,
     facing: engine.player.facing,
+    coyoteTimer: engine.player.coyoteTimer,
+    jumpBufferTimer: engine.player.jumpBufferTimer,
     isDead: engine.isDead,
     deathTimer: engine.deathTimer,
     portalCooldown: engine.portalCooldown,
     hasWon: engine.hasWon,
-    enemies: engine.liveEnemies.map(e => ({ ...e }))
+    enemies: engine.liveEnemies.map(e => ({ ...e })),
+    // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
+    playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
+    coinsCollected: engine.coinsCollected
   });
 
   // Helper to restore the exact state of the engine
@@ -54,6 +122,8 @@ export function solveLevel(engine) {
     engine.player.vy = s.vy;
     engine.player.isGrounded = s.isGrounded;
     engine.player.facing = s.facing;
+    engine.player.coyoteTimer = s.coyoteTimer;
+    engine.player.jumpBufferTimer = s.jumpBufferTimer;
     engine.isDead = s.isDead;
     engine.deathTimer = s.deathTimer;
     engine.portalCooldown = s.portalCooldown;
@@ -61,19 +131,24 @@ export function solveLevel(engine) {
 
     // Restore enemies to their exact stored positions and states
     engine.liveEnemies = s.enemies.map(se => ({ ...se }));
+    // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
+    engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
+    engine.coinsCollected = s.coinsCollected;
   };
 
   const startState = {
     ...saveEngine(),
     path: []
   };
+  startState.fScore = getHeuristic(startState);
 
-  const openSet = [startState];
+  const openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+  openSet.push(startState);
   const visited = new Set();
 
   const getDiscretizedKey = (s) => {
-    // Round positions to nearest 5px and velocities to nearest 0.1 to allow state aggregation
-    const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 10)},${Math.round(s.vy * 10)},${s.isGrounded}`;
+    // Round positions to nearest 5px and velocities to nearest 0.5 to allow state aggregation
+    const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer || 0},${s.jumpBufferTimer || 0}`;
     
     // Include enemy positions rounded to nearest 10px to prevent pruning valid stomp/patrol paths
     const enemyPart = s.enemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
@@ -105,14 +180,7 @@ export function solveLevel(engine) {
   while (openSet.length > 0 && iterations < maxIterations) {
     iterations++;
 
-    // Sort openSet by f(n) = g(n) + h(n)
-    openSet.sort((a, b) => {
-      const fA = a.path.length * 5 + getHeuristic(a);
-      const fB = b.path.length * 5 + getHeuristic(b);
-      return fA - fB;
-    });
-
-    const curr = openSet.shift();
+    const curr = openSet.pop();
 
     if (curr.hasWon) {
       solution = curr.path;
@@ -128,9 +196,8 @@ export function solveLevel(engine) {
 
       engine.keys.left = act.left;
       engine.keys.right = act.right;
-      if (act.jump && engine.player.isGrounded) {
-        engine.player.vy = -CONFIG.JUMP_FORCE;
-        engine.player.isGrounded = false;
+      if (act.jump) {
+        engine.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
       }
 
       // Step physics 5 frames for this action
@@ -142,20 +209,12 @@ export function solveLevel(engine) {
       // If this action leads to death, discard it
       if (engine.isDead) continue;
 
+      // ⚡ Bolt: Cache fScore on state to prevent recomputing heuristic in sort loop
       const nextState = {
-        x: engine.player.x,
-        y: engine.player.y,
-        vx: engine.player.vx,
-        vy: engine.player.vy,
-        isGrounded: engine.player.isGrounded,
-        facing: engine.player.facing,
-        isDead: engine.isDead,
-        deathTimer: engine.deathTimer,
-        portalCooldown: engine.portalCooldown,
-        hasWon: engine.hasWon,
-        enemies: engine.liveEnemies.map(e => ({ ...e })),
+        ...saveEngine(),
         path: [...curr.path, act]
       };
+      nextState.fScore = nextState.path.length * 5 + getHeuristic(nextState);
 
       const nextKey = getDiscretizedKey(nextState);
       if (!visited.has(nextKey)) {
@@ -166,15 +225,32 @@ export function solveLevel(engine) {
 
   engine.liveEnemies = originalEnemies;
 
+  // Reset simulation flags
+  audio.isSimulation = false;
+  engine.isSimulation = false;
+
+  // Restore mode and autoplay
+  engine.mode = originalMode;
+  engine.isAutoplay = originalAutoplay;
+
   return { solution, iterations };
 }
 
 export class AsyncPathfinder {
   constructor(engine) {
+    this.originalMode = engine.mode;
+    this.originalAutoplay = engine.isAutoplay;
+    engine.mode = CONFIG.MODE_PLAY;
+    engine.isAutoplay = false;
     engine.resetPlayer();
+    engine.hasWon = false;
     this.engine = engine;
     this.goalX = engine.level.goalPos.col * CONFIG.TILE_SIZE;
     this.goalY = engine.level.goalPos.row * CONFIG.TILE_SIZE;
+
+    // Set simulation flags
+    audio.isSimulation = true;
+    engine.isSimulation = true;
 
     // Temporarily initialize live enemies for the simulation if they aren't already initialized
     this.originalEnemies = engine.liveEnemies;
@@ -202,11 +278,16 @@ export class AsyncPathfinder {
       vy: engine.player.vy,
       isGrounded: engine.player.isGrounded,
       facing: engine.player.facing,
+      coyoteTimer: engine.player.coyoteTimer,
+      jumpBufferTimer: engine.player.jumpBufferTimer,
       isDead: engine.isDead,
       deathTimer: engine.deathTimer,
       portalCooldown: engine.portalCooldown,
       hasWon: engine.hasWon,
-      enemies: engine.liveEnemies.map(e => ({ ...e }))
+      enemies: engine.liveEnemies.map(e => ({ ...e })),
+      // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
+      playGrid: engine.playGrid ? engine.playGrid.map(row => row.slice()) : null,
+      coinsCollected: engine.coinsCollected
     });
 
     this.restoreEngine = (s) => {
@@ -216,11 +297,16 @@ export class AsyncPathfinder {
       engine.player.vy = s.vy;
       engine.player.isGrounded = s.isGrounded;
       engine.player.facing = s.facing;
+      engine.player.coyoteTimer = s.coyoteTimer;
+      engine.player.jumpBufferTimer = s.jumpBufferTimer;
       engine.isDead = s.isDead;
       engine.deathTimer = s.deathTimer;
       engine.portalCooldown = s.portalCooldown;
       engine.hasWon = s.hasWon;
       engine.liveEnemies = s.enemies.map(se => ({ ...se }));
+      // ⚡ Bolt: Fast 2D array cloning instead of expensive JSON serialization
+      engine.playGrid = s.playGrid ? s.playGrid.map(row => row.slice()) : null;
+      engine.coinsCollected = s.coinsCollected;
     };
 
     this.originalState = this.saveEngine();
@@ -235,7 +321,7 @@ export class AsyncPathfinder {
     ];
 
     this.getDiscretizedKey = (s) => {
-      const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 10)},${Math.round(s.vy * 10)},${s.isGrounded}`;
+      const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer || 0},${s.jumpBufferTimer || 0}`;
       const enemyPart = s.enemies.map(e => `${Math.round(e.x / 10)},${Math.round(e.y / 10)}`).join('|');
       return `${playerPart}|${enemyPart}`;
     };
@@ -250,8 +336,10 @@ export class AsyncPathfinder {
       ...this.saveEngine(),
       path: []
     };
+    startState.fScore = this.getHeuristic(startState);
 
-    this.openSet = [startState];
+    this.openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+    this.openSet.push(startState);
     this.visited = new Set();
     this.exploredPoints = [];
     this.iterations = 0;
@@ -265,13 +353,9 @@ export class AsyncPathfinder {
       this.iterations++;
       stepsCount++;
 
-      this.openSet.sort((a, b) => {
-        const fA = a.path.length * 5 + this.getHeuristic(a);
-        const fB = b.path.length * 5 + this.getHeuristic(b);
-        return fA - fB;
-      });
 
-      const curr = this.openSet.shift();
+
+      const curr = this.openSet.pop();
       this.exploredPoints.push({ x: curr.x, y: curr.y });
 
       if (curr.hasWon) {
@@ -289,9 +373,8 @@ export class AsyncPathfinder {
 
         this.engine.keys.left = act.left;
         this.engine.keys.right = act.right;
-        if (act.jump && this.engine.player.isGrounded) {
-          this.engine.player.vy = -CONFIG.JUMP_FORCE;
-          this.engine.player.isGrounded = false;
+        if (act.jump) {
+          this.engine.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
         }
 
         for (let f = 0; f < 5; f++) {
@@ -301,20 +384,12 @@ export class AsyncPathfinder {
 
         if (this.engine.isDead) continue;
 
+        // ⚡ Bolt: Cache fScore on state to prevent recomputing heuristic in sort loop
         const nextState = {
-          x: this.engine.player.x,
-          y: this.engine.player.y,
-          vx: this.engine.player.vx,
-          vy: this.engine.player.vy,
-          isGrounded: this.engine.player.isGrounded,
-          facing: this.engine.player.facing,
-          isDead: this.engine.isDead,
-          deathTimer: this.engine.deathTimer,
-          portalCooldown: this.engine.portalCooldown,
-          hasWon: this.engine.hasWon,
-          enemies: this.engine.liveEnemies.map(e => ({ ...e })),
+          ...this.saveEngine(),
           path: [...curr.path, act]
         };
+        nextState.fScore = nextState.path.length * 5 + this.getHeuristic(nextState);
 
         const nextKey = this.getDiscretizedKey(nextState);
         if (!this.visited.has(nextKey)) {
@@ -334,6 +409,49 @@ export class AsyncPathfinder {
   cleanup() {
     this.restoreEngine(this.originalState);
     this.engine.liveEnemies = this.originalEnemies;
+
+    // Reset simulation flags
+    audio.isSimulation = false;
+    this.engine.isSimulation = false;
+
+    // Restore mode and autoplay
+    this.engine.mode = this.originalMode;
+    this.engine.isAutoplay = this.originalAutoplay;
+  }
+
+  getWinningPathPoints() {
+    if (!this.solution) return [];
+    const points = [];
+    
+    // Temporarily set simulation flags
+    const wasSimulation = audio.isSimulation;
+    audio.isSimulation = true;
+    this.engine.isSimulation = true;
+    const prevMode = this.engine.mode;
+    this.engine.mode = CONFIG.MODE_PLAY;
+    
+    const originalState = this.saveEngine();
+    this.restoreEngine(this.originalState);
+    
+    points.push({ x: this.engine.player.x, y: this.engine.player.y });
+    for (const act of this.solution) {
+      this.engine.keys.left = act.left;
+      this.engine.keys.right = act.right;
+      if (act.jump) {
+        this.engine.player.jumpBufferTimer = CONFIG.JUMP_BUFFER;
+      }
+      for (let f = 0; f < 5; f++) {
+        this.engine.update();
+      }
+      points.push({ x: this.engine.player.x, y: this.engine.player.y });
+    }
+    
+    this.restoreEngine(originalState);
+    audio.isSimulation = wasSimulation;
+    this.engine.isSimulation = wasSimulation;
+    this.engine.mode = prevMode;
+    
+    return points;
   }
 }
 

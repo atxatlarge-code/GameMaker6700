@@ -1,0 +1,29 @@
+--- src/engine.js
++++ src/engine.js
+@@ -3785,7 +3785,7 @@
+ 
+         if (squishTimer > 0) {
+           // Squished eyes: > <
+-          ctx.strokeStyle = '#1e1720';
++          ctx.strokeStyle = isChaseType ? '#ffab00' : 'rgba(245,240,235,0.96)';
+           ctx.lineWidth = 3.0;
+           ctx.beginPath();
+           if (side === -1) { // Left eye >
+@@ -3802,7 +3802,7 @@
+         }
+ 
+         if (isBlinking && squishTimer <= 0) {
+-          ctx.strokeStyle = '#1e1720';
++          ctx.strokeStyle = isChaseType ? '#ffab00' : 'rgba(245,240,235,0.96)';
+           ctx.lineWidth = 3.0;
+           ctx.beginPath();
+           ctx.moveTo(ex - eyeR*0.6, ey2);
+@@ -3858,7 +3858,7 @@
+ 
+       // Draw angry eyebrows if alerted
+       if (isAlerted) {
+-        ctx.strokeStyle = '#1e1720';
++        ctx.strokeStyle = isChaseType ? '#ff3b30' : 'rgba(245,240,235,0.96)';
+         ctx.lineWidth = Math.max(1.8, radius * 0.14);
+         ctx.lineCap = 'round';
+         // Left eyebrow: \

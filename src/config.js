@@ -12,6 +12,10 @@ export const CONFIG = {
   TRAMPOLINE_BOUNCE_FORCE: 16.5,
   MOVE_SPEED: 4.5,
   FRICTION: 0.82,
+  ACCELERATION: 0.35,
+  DECELERATION: 0.25,
+  COYOTE_TIME: 6,
+  JUMP_BUFFER: 5,
 
   // Modes
   MODE_EDIT: 'edit',
@@ -19,7 +23,8 @@ export const CONFIG = {
 
   // Tools
   TOOL_WALL: 'wall',
-  TOOL_PLAYER: 'player',
+  TOOL_PLAYER_CLASSIC: 'player_classic',
+  TOOL_PLAYER_GHIBLI: 'player_ghibli',
   TOOL_GOAL: 'goal',
   TOOL_TRAMPOLINE: 'trampoline',
   TOOL_FIRE: 'fire',
@@ -27,6 +32,9 @@ export const CONFIG = {
   TOOL_PORTAL: 'portal',
   TOOL_ERASE: 'erase',
   TOOL_ENEMY: 'enemy',
+  TOOL_COIN: 'coin',
+  TOOL_BREAKABLE: 'breakable',
+  TOOL_EARTH: 'earth',
 
   // Enemy defaults
   ENEMY_SPEED: 1.8,
