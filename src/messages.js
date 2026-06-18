@@ -269,7 +269,7 @@ export class CloudMessageService {
     const newMsg = {
       id: 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
       senderRole: senderRole, // 'player' | 'creator'
-      senderName: senderName || (senderRole === 'creator' ? 'Game Creator' : 'Player'),
+      senderName: senderName || (senderRole === 'creator' ? 'Game Maker' : 'Player'),
       text: text,
       timestamp: Date.now()
     };

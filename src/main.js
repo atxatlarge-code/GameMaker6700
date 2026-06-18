@@ -92,6 +92,93 @@ function loadAndRemoveWhiteBg(src, previewSelector, callback) {
   img.src = src;
 }
 
+function updateCharacterIcons(engine, editor) {
+  if (!engine || !engine.player) return;
+
+  // Backup current player values
+  const backupGrounded = engine.player.isGrounded;
+  const backupVx = engine.player.vx;
+  const backupVy = engine.player.vy;
+  const backupBlink = engine.player.blinkTimer;
+  const backupFacing = engine.player.facing;
+  const backupScaleX = engine.player.scaleX;
+  const backupScaleY = engine.player.scaleY;
+  const backupTilt = engine.player.tiltAngle;
+
+  // Set to clean standing, eyes open state
+  engine.player.isGrounded = true;
+  engine.player.vx = 0;
+  engine.player.vy = 0;
+  engine.player.blinkTimer = 9999;
+  engine.player.facing = 'right';
+  engine.player.scaleX = 1;
+  engine.player.scaleY = 1;
+  engine.player.tiltAngle = 0;
+
+  // Create temporary canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = 40;
+  canvas.height = 40;
+  const ctx = canvas.getContext('2d');
+
+  // 1. Render Classic Box Player
+  ctx.clearRect(0, 0, 40, 40);
+  // Center character horizontally (20) and vertically (base at 36)
+  // Box is 28x28
+  const classicW = 28;
+  const classicH = 28;
+  const classicX = 20 - classicW / 2;
+  const classicY = 36 - classicH;
+  engine.drawClassicBox(ctx, classicX, classicY, classicW, classicH, 'right', 1.0, 1.0, 0, 1.0, false);
+  const classicDataUrl = canvas.toDataURL();
+
+  // 2. Render Forest Kid Ghibli Player
+  ctx.clearRect(0, 0, 40, 40);
+  // Forest kid is 28x32
+  const ghibliW = 28;
+  const ghibliH = 32;
+  const ghibliX = 20 - ghibliW / 2;
+  const ghibliY = 36 - ghibliH;
+  engine.drawForestKid(ctx, ghibliX, ghibliY, ghibliW, ghibliH, 'right', 1.0, 1.0, 0, 1.0, false);
+  const ghibliDataUrl = canvas.toDataURL();
+
+  // Restore engine player states
+  engine.player.isGrounded = backupGrounded;
+  engine.player.vx = backupVx;
+  engine.player.vy = backupVy;
+  engine.player.blinkTimer = backupBlink;
+  engine.player.facing = backupFacing;
+  engine.player.scaleX = backupScaleX;
+  engine.player.scaleY = backupScaleY;
+  engine.player.tiltAngle = backupTilt;
+
+  // Update popup button images
+  const classicImg = document.querySelector('button[data-tool="player_classic"] img');
+  if (classicImg) {
+    classicImg.src = classicDataUrl;
+  }
+  const ghibliImg = document.querySelector('button[data-tool="player_ghibli"] img');
+  if (ghibliImg) {
+    ghibliImg.src = ghibliDataUrl;
+  }
+
+  // Update action group button image if active or if displaying default icon
+  const groupImg = document.querySelector('#group-player .action-group-btn img');
+  if (groupImg && editor) {
+    if (editor.currentTool === 'player_classic') {
+      groupImg.src = classicDataUrl;
+      groupImg.dataset.characterIcon = 'player_classic';
+    } else if (editor.currentTool === 'player_ghibli') {
+      groupImg.src = ghibliDataUrl;
+      groupImg.dataset.characterIcon = 'player_ghibli';
+    } else if (!groupImg.dataset.characterIcon) {
+      // Default to showing ghibli character on the main group button since it's the game default player character
+      groupImg.src = ghibliDataUrl;
+      groupImg.dataset.characterIcon = 'player_ghibli';
+    }
+  }
+}
+
 // Global state for Menu & Editor
 let selectedLevel = null;
 
@@ -123,9 +210,24 @@ function renderLevelPreview(canvas, levelObj) {
       } else if (t === 4) {
         ctx.fillStyle = '#dbe2ef';
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
+      } else if (t === 5) {
+        ctx.fillStyle = '#ffd60a';
+        ctx.beginPath();
+        ctx.arc((c + 0.5) * tileW, (r + 0.5) * tileH, tileW * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (t === 6) {
+        ctx.fillStyle = '#8c6239'; // Brown brick color
+        ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
+      } else if (t === 7) {
+        // Draw mini grass/earth block: bottom 70% brown, top 30% green
+        ctx.fillStyle = '#8c6239'; // Earth brown
+        ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
+        ctx.fillStyle = '#528c46'; // Grass green
+        ctx.fillRect(x, y, tileW + 0.5, (tileH * 0.3) + 0.5);
       }
     }
   }
+
 
   // Draw Goal
   if (levelObj.goalPos) {
@@ -135,8 +237,71 @@ function renderLevelPreview(canvas, levelObj) {
 
   // Draw Player Spawn
   if (levelObj.playerSpawn) {
-    ctx.fillStyle = '#d4a359';
-    ctx.fillRect(levelObj.playerSpawn.col * tileW, levelObj.playerSpawn.row * tileH, tileW * 1.2, tileH * 1.2);
+    if (window.engine) {
+      const charId = levelObj.playerSpawn.charId || 'ghibli';
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 40;
+      tempCanvas.height = 40;
+      const tempCtx = tempCanvas.getContext('2d');
+
+      // Backup current player values
+      const backupGrounded = window.engine.player.isGrounded;
+      const backupVx = window.engine.player.vx;
+      const backupVy = window.engine.player.vy;
+      const backupBlink = window.engine.player.blinkTimer;
+      const backupFacing = window.engine.player.facing;
+      const backupScaleX = window.engine.player.scaleX;
+      const backupScaleY = window.engine.player.scaleY;
+      const backupTilt = window.engine.player.tiltAngle;
+
+      // Set to clean standing, eyes open state
+      window.engine.player.isGrounded = true;
+      window.engine.player.vx = 0;
+      window.engine.player.vy = 0;
+      window.engine.player.blinkTimer = 9999;
+      window.engine.player.facing = 'right';
+      window.engine.player.scaleX = 1;
+      window.engine.player.scaleY = 1;
+      window.engine.player.tiltAngle = 0;
+
+      if (charId === 'classic') {
+        const classicW = 28;
+        const classicH = 28;
+        const classicX = 20 - classicW / 2;
+        const classicY = 36 - classicH;
+        window.engine.drawClassicBox(tempCtx, classicX, classicY, classicW, classicH, 'right', 1.0, 1.0, 0, 1.0, false);
+      } else {
+        const ghibliW = 28;
+        const ghibliH = 32;
+        const ghibliX = 20 - ghibliW / 2;
+        const ghibliY = 36 - ghibliH;
+        window.engine.drawForestKid(tempCtx, ghibliX, ghibliY, ghibliW, ghibliH, 'right', 1.0, 1.0, 0, 1.0, false);
+      }
+
+      // Restore engine player states
+      window.engine.player.isGrounded = backupGrounded;
+      window.engine.player.vx = backupVx;
+      window.engine.player.vy = backupVy;
+      window.engine.player.blinkTimer = backupBlink;
+      window.engine.player.facing = backupFacing;
+      window.engine.player.scaleX = backupScaleX;
+      window.engine.player.scaleY = backupScaleY;
+      window.engine.player.tiltAngle = backupTilt;
+
+      const pCol = levelObj.playerSpawn.col;
+      const pRow = levelObj.playerSpawn.row;
+
+      // Size of the character on the preview canvas
+      const charW = tileW * 1.5;
+      const charH = tileH * 1.8;
+      const charX = pCol * tileW + (tileW - charW) / 2;
+      const charY = pRow * tileH + tileH - charH;
+
+      ctx.drawImage(tempCanvas, 0, 0, 40, 40, charX, charY, charW, charH);
+    } else {
+      ctx.fillStyle = '#d4a359';
+      ctx.fillRect(levelObj.playerSpawn.col * tileW, levelObj.playerSpawn.row * tileH, tileW * 1.2, tileH * 1.2);
+    }
   }
 
   // Draw Portals
@@ -237,6 +402,9 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   window.engine = engine;
 
+  // Initialize custom dynamic character icons
+  updateCharacterIcons(engine, editor);
+
   // Music Selection Setup
   const musicSelect = document.getElementById('music-select');
   const btnToggleMusic = document.getElementById('btn-toggle-music');
@@ -282,6 +450,19 @@ window.addEventListener('DOMContentLoaded', () => {
     const titleEl = document.getElementById('selected-level-title');
     if (titleEl && selectedLevel) {
       titleEl.textContent = selectedLevel.name;
+    }
+
+    const btnDelLevelMenu = document.getElementById('btn-del-level');
+    if (btnDelLevelMenu && selectedLevel) {
+      if (selectedLevel.isPreset) {
+        btnDelLevelMenu.disabled = true;
+        btnDelLevelMenu.title = "Preset levels cannot be deleted";
+        btnDelLevelMenu.setAttribute("aria-label", "Preset levels cannot be deleted");
+      } else {
+        btnDelLevelMenu.disabled = false;
+        btnDelLevelMenu.title = "Delete Level";
+        btnDelLevelMenu.setAttribute("aria-label", "Delete Level");
+      }
     }
 
     const mainCanvas = document.getElementById('selected-level-canvas');
@@ -398,10 +579,6 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   btnDelLevel.addEventListener('click', () => {
-    if (selectedLevel.isPreset) {
-      alert('Preset levels cannot be deleted. Select a custom level to delete.');
-      return;
-    }
     if (confirm(`Are you sure you want to delete '${selectedLevel.name}'?`)) {
       LevelManager.deleteLevel(selectedLevel.id);
       const remaining = LevelManager.getLevels();
@@ -538,15 +715,14 @@ window.addEventListener('DOMContentLoaded', () => {
           groupBtn.classList.add('active');
           // If this is blocks, player, special, or barriers, dynamically update its icon to match the selected item
           if (parentGroup.id === 'group-blocks' || parentGroup.id === 'group-player' || parentGroup.id === 'group-special' || parentGroup.id === 'group-barriers') {
-            const innerImgOrSvg = btn.querySelector('.tool-icon-img, .tool-icon-svg');
+            const innerImgOrSvg = btn.querySelector('.tool-icon-img, .tool-icon-svg, .fa-solid');
             if (innerImgOrSvg) {
               const clone = innerImgOrSvg.cloneNode(true);
-              if (clone.classList.contains('tool-icon-img')) {
+              if (clone.classList.contains('tool-icon-img') || clone.classList.contains('tool-icon-svg')) {
                 clone.style.width = '40px';
                 clone.style.height = '40px';
-              } else if (clone.classList.contains('tool-icon-svg')) {
-                clone.style.width = '40px';
-                clone.style.height = '40px';
+              } else if (clone.classList.contains('fa-solid')) {
+                clone.style.fontSize = '32px';
               }
               groupBtn.innerHTML = '';
               groupBtn.appendChild(clone);
@@ -593,6 +769,7 @@ window.addEventListener('DOMContentLoaded', () => {
         editorView.classList.add(`theme-${theme}`);
       }
       engine.setTheme(theme);
+      updateCharacterIcons(engine, editor);
       actionGroups.forEach(g => g.classList.remove('open'));
     });
   });
@@ -639,6 +816,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   const pathfinderOverlay = document.getElementById('pathfinder-overlay');
+  const pathfinderTitle = document.getElementById('pathfinder-title');
   const pathfinderStatus = document.getElementById('pathfinder-status');
   const solverProgressBar = document.getElementById('solver-progress-bar');
   const solverStats = document.getElementById('solver-stats');
@@ -712,18 +890,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Show pathfinder overlay UI
     pathfinderOverlay.classList.remove('hidden');
-    pathfinderStatus.innerHTML = 'Initializing Pathfinder...';
-    solverProgressBar.style.width = '0%';
-    solverProgressBar.style.background = 'linear-gradient(90deg, #3b82f6, #06b6d4)';
-    solverStats.innerHTML = 'Iterations: 0 / 20000<br>States explored: 0';
+    if (pathfinderTitle) pathfinderTitle.textContent = 'Finding Pathway...';
+    pathfinderStatus.innerHTML = 'Consulting the forest spirits...';
+    pathfinderStatus.style.display = 'block';
+    if (solverProgressBar) {
+      solverProgressBar.style.width = '0%';
+      solverProgressBar.style.background = 'linear-gradient(90deg, #6ba462, #4a7c59)';
+    }
+    solverStats.innerHTML = 'Paths explored: 0';
 
     // Instantiate Async Pathfinder
     const solver = new AsyncPathfinder(engine);
 
-    // Register real-time search tree drawing hook
+    // Register real-time search tree drawing hook (Warm golden firefly particles)
     engine.onPostRender = (ctx) => {
-      // Draw explored cloud points
-      ctx.fillStyle = 'rgba(6, 182, 212, 0.35)';
+      ctx.fillStyle = 'rgba(212, 163, 89, 0.25)';
       for (const pt of solver.exploredPoints) {
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
@@ -734,6 +915,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // Run the step loop using requestAnimationFrame
     const runSolveStep = () => {
       if (isSolveCancelled) {
+        solver.cleanup();
         btnSolveMode.innerHTML = originalHTML;
         btnSolveMode.style.pointerEvents = 'auto';
         return;
@@ -744,57 +926,40 @@ window.addEventListener('DOMContentLoaded', () => {
 
       // Update progress UI
       const progress = Math.min(100, (solver.iterations / solver.maxIterations) * 100);
-      solverProgressBar.style.width = `${progress}%`;
-      solverStats.innerHTML = `
-        Iterations: ${solver.iterations} / ${solver.maxIterations}<br>
-        States explored: ${solver.exploredPoints.length}
-      `;
-      pathfinderStatus.innerHTML = 'Simulating physics in parallel universes...';
+      if (solverProgressBar) solverProgressBar.style.width = `${progress}%`;
+      solverStats.innerHTML = `Paths explored: ${solver.iterations}`;
+      pathfinderStatus.innerHTML = 'Following the path of the wind...';
 
       if (stepRes.done) {
         if (stepRes.success) {
           // Success! Confirmed path found
-          pathfinderStatus.innerHTML = `<span style="color: #10b981; font-weight: bold;"><i class="fa-solid fa-circle-check"></i> PATH CONFIRMED!</span>`;
-          solverProgressBar.style.width = '100%';
-          solverProgressBar.style.background = '#10b981';
+          if (pathfinderTitle) pathfinderTitle.textContent = 'Pathway Confirmed';
+          pathfinderStatus.innerHTML = '';
+          pathfinderStatus.style.display = 'none';
+          if (solverProgressBar) {
+            solverProgressBar.style.width = '100%';
+            solverProgressBar.style.background = '#4a7c59';
+          }
 
           // Trace winning path coordinates for glowing visualization
-          const winningPathPoints = [];
-          const originalState = solver.saveEngine();
-          
-          solver.restoreEngine(solver.originalState);
-          winningPathPoints.push({ x: engine.player.x, y: engine.player.y });
-          
-          for (const act of stepRes.solution) {
-            engine.keys.left = act.left;
-            engine.keys.right = act.right;
-            if (act.jump && engine.player.isGrounded) {
-              engine.player.vy = -CONFIG.JUMP_FORCE;
-              engine.player.isGrounded = false;
-            }
-            for (let f = 0; f < 5; f++) {
-              engine.update();
-            }
-            winningPathPoints.push({ x: engine.player.x, y: engine.player.y });
-          }
-          solver.restoreEngine(originalState);
+          const winningPathPoints = solver.getWinningPathPoints();
 
-          // Update drawing hook to display the winning glowing neon line on top of the search cloud
+          // Update drawing hook to display the winning glowing golden thread on top of the search cloud
           engine.onPostRender = (ctx) => {
             // 1. Draw cloud
-            ctx.fillStyle = 'rgba(6, 182, 212, 0.15)';
+            ctx.fillStyle = 'rgba(212, 163, 89, 0.12)';
             for (const pt of solver.exploredPoints) {
               ctx.beginPath();
               ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
               ctx.fill();
             }
 
-            // 2. Draw winning path
-            ctx.strokeStyle = 'rgba(236, 72, 153, 0.95)';
+            // 2. Draw winning path (Glowing golden thread)
+            ctx.strokeStyle = 'rgba(212, 163, 89, 0.95)';
             ctx.lineWidth = 4;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.shadowColor = 'rgba(236, 72, 153, 0.8)';
+            ctx.shadowColor = 'rgba(212, 163, 89, 0.8)';
             ctx.shadowBlur = 10;
             ctx.beginPath();
             ctx.moveTo(winningPathPoints[0].x, winningPathPoints[0].y);
@@ -816,8 +981,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
         } else {
           // No solution found
-          pathfinderStatus.innerHTML = `<span style="color: #ef4444; font-weight: bold;"><i class="fa-solid fa-triangle-exclamation"></i> NO PATH FOUND!</span>`;
-          solverProgressBar.style.background = '#ef4444';
+          if (pathfinderTitle) pathfinderTitle.textContent = 'Pathway Blocked';
+          pathfinderStatus.innerHTML = '';
+          pathfinderStatus.style.display = 'none';
+          if (solverProgressBar) {
+            solverProgressBar.style.background = '#b85450';
+          }
           
           btnSolveMode.innerHTML = '<i class="fa-solid fa-robot"></i> Solve';
           btnSolveMode.style.pointerEvents = 'auto';
@@ -986,11 +1155,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const inputCommentAuthor = document.getElementById('input-comment-author');
     if (inputCommentAuthor) {
       if (currentPersona === 'creator') {
-        inputCommentAuthor.value = 'Game Creator';
+        inputCommentAuthor.value = 'Game Maker';
         inputCommentAuthor.disabled = true;
       } else {
         inputCommentAuthor.disabled = false;
-        if (!inputCommentAuthor.value || inputCommentAuthor.value === 'Game Creator') {
+        if (!inputCommentAuthor.value || inputCommentAuthor.value === 'Game Creator' || inputCommentAuthor.value === 'Game Maker') {
           inputCommentAuthor.value = localStorage.getItem('gm6700_last_handle') || '';
         }
       }
@@ -999,10 +1168,10 @@ window.addEventListener('DOMContentLoaded', () => {
     chatMessagesContainer.innerHTML = '';
     thread.messages.forEach(msg => {
       const b = document.createElement('div');
-      b.className = `comment-line ${msg.senderRole}`;
-      const senderName = msg.senderRole === 'creator' ? 'Game Creator' : (msg.senderName || thread.playerName);
+      b.className = `comment-line ${msg.senderRole === 'creator' ? 'maker-comment' : 'player-comment'}`;
+      const senderName = msg.senderRole === 'creator' ? 'Game Maker' : (msg.senderName || thread.playerName);
       const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const badgeHtml = msg.senderRole === 'creator' ? '<span class="creator-badge">MOD</span>' : '';
+      const badgeHtml = msg.senderRole === 'creator' ? '<span class="creator-badge">MAKER</span>' : '';
       
       b.innerHTML = `
         <div class="comment-meta">
@@ -1016,7 +1185,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => {
       if (wasAtBottom || chatMessagesContainer.scrollTop === 0) {
-        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        chatMessagesContainer.scrollTo({
+          top: chatMessagesContainer.scrollHeight,
+          behavior: 'smooth'
+        });
       }
     }, 50);
   }

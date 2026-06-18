@@ -1,0 +1,13 @@
+{
+  "levels": [
+    { "id": "preset-1", "name": "Mushroom Forest", "expected": "SOLVABLE" },
+    { "id": "preset-2", "name": "Platformer Basics", "expected": "SOLVABLE" },
+    { "id": "preset-3", "name": "Sky Climb", "expected": "SOLVABLE" },
+    { "id": "preset-4", "name": "Speed Run", "expected": "SOLVABLE" },
+    { "id": "preset-5", "name": "Portal Chamber", "expected": "SOLVABLE" },
+    { "id": "preset-6", "name": "Lava Caverns", "expected": "SOLVABLE" },
+    { "id": "preset-7", "name": "Bouncy Castle", "expected": "UNSOLVABLE" },
+    { "id": "preset-8", "name": "Tower of Peril", "expected": "UNSOLVABLE" },
+    { "id": "custom-1779279116149", "name": "Unsolvable Forest", "expected": "SOLVABLE" }
+  ]
+}
