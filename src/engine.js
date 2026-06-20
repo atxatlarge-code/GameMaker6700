@@ -1196,6 +1196,28 @@ if (this.player.jumpBufferTimer > 0) {
       this.player.vx = 0;
       this.player.vy = 0;
       this.player.isGrounded = true;
+
+        // Ice block (18) and Conveyor (20, 21)
+        var groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
+        if (groundTile === 18) {
+          this.player.friction = 0.98;
+        } else {
+          this.player.friction = CONFIG.FRICTION;
+        }
+        if (groundTile === 20) this.player.x -= 2;
+        if (groundTile === 21) this.player.x += 2;
+        
+        // Crumbling block (22)
+        if (groundTile === 22) {
+          const col = Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE);
+          const row = Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE);
+          let found = false;
+          for (const b of this.crumblingBlocks) {
+            if (b.col === col && b.row === row) { found = true; break; }
+          }
+          if (!found) this.crumblingBlocks.push({col, row, timer: 30});
+        }
+
       this.player.isWallSliding = false;
       this.player.isDashing = false;
     }
@@ -1238,7 +1260,29 @@ if (this.player.jumpBufferTimer > 0) {
       
       this.player.magneticState = isTouchingMagnet ? 'attached' : 'none';
       if (this.player.magneticState === 'attached') {
-        this.player.isGrounded = true; // allow jumping off ceiling
+        this.player.isGrounded = true;
+
+        // Ice block (18) and Conveyor (20, 21)
+        var groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
+        if (groundTile === 18) {
+          this.player.friction = 0.98;
+        } else {
+          this.player.friction = CONFIG.FRICTION;
+        }
+        if (groundTile === 20) this.player.x -= 2;
+        if (groundTile === 21) this.player.x += 2;
+        
+        // Crumbling block (22)
+        if (groundTile === 22) {
+          const col = Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE);
+          const row = Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE);
+          let found = false;
+          for (const b of this.crumblingBlocks) {
+            if (b.col === col && b.row === row) { found = true; break; }
+          }
+          if (!found) this.crumblingBlocks.push({col, row, timer: 30});
+        }
+ // allow jumping off ceiling
       }
     }
 
@@ -1270,6 +1314,18 @@ if (this.player.jumpBufferTimer > 0) {
 
     // Update boomerangs
     this.updateBoomerangs();
+
+    // Update crumbling blocks
+    for (let i = this.crumblingBlocks.length - 1; i >= 0; i--) {
+      const b = this.crumblingBlocks[i];
+      b.timer--;
+      if (b.timer <= 0) {
+        this.setTile(b.col, b.row, 0);
+        this.crumblingBlocks.splice(i, 1);
+        if (audio.playBreakSound && !this.isSimulation) audio.playBreakSound();
+      }
+    }
+
 
     // Update bombs
     this.updateBombs();
@@ -1510,7 +1566,29 @@ if (this.player.jumpBufferTimer > 0) {
             this.player.isGrounded = true;
 
         // Ice block (18) and Conveyor (20, 21)
-        const groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
+        var groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
+        if (groundTile === 18) {
+          this.player.friction = 0.98;
+        } else {
+          this.player.friction = CONFIG.FRICTION;
+        }
+        if (groundTile === 20) this.player.x -= 2;
+        if (groundTile === 21) this.player.x += 2;
+        
+        // Crumbling block (22)
+        if (groundTile === 22) {
+          const col = Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE);
+          const row = Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE);
+          let found = false;
+          for (const b of this.crumblingBlocks) {
+            if (b.col === col && b.row === row) { found = true; break; }
+          }
+          if (!found) this.crumblingBlocks.push({col, row, timer: 30});
+        }
+
+
+        // Ice block (18) and Conveyor (20, 21)
+        var groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
         if (groundTile === 18) {
           this.player.friction = 0.98;
         } else {
@@ -2203,8 +2281,6 @@ if (this.player.jumpBufferTimer > 0) {
             if (audio.playTileSound && !this.isSimulation) audio.playTileSound();
           }
 
-          if (tileVal === 19) continue;
-
           if (tileVal === 34 && !this.shadowClone) {
             this.shadowClone = {
               x: c * CONFIG.TILE_SIZE + (CONFIG.TILE_SIZE - this.player.width)/2,
@@ -2215,6 +2291,7 @@ if (this.player.jumpBufferTimer > 0) {
             if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
           }
 
+          if (tileVal === 19 || tileVal === 34) continue;
           if (tileVal === 5 || tileVal === 9) {
             this.setTile(c, r, 0);
             
@@ -2760,6 +2837,28 @@ if (this.player.jumpBufferTimer > 0) {
           this.player.vx = 0;
           this.player.vy = 0;
           this.player.isGrounded = true;
+
+        // Ice block (18) and Conveyor (20, 21)
+        var groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
+        if (groundTile === 18) {
+          this.player.friction = 0.98;
+        } else {
+          this.player.friction = CONFIG.FRICTION;
+        }
+        if (groundTile === 20) this.player.x -= 2;
+        if (groundTile === 21) this.player.x += 2;
+        
+        // Crumbling block (22)
+        if (groundTile === 22) {
+          const col = Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE);
+          const row = Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE);
+          let found = false;
+          for (const b of this.crumblingBlocks) {
+            if (b.col === col && b.row === row) { found = true; break; }
+          }
+          if (!found) this.crumblingBlocks.push({col, row, timer: 30});
+        }
+
           this.player.isSwinging = false; // Just in case
           
           // Apply continuous rolling force based on player's facing direction
@@ -3858,7 +3957,29 @@ if (this.player.jumpBufferTimer > 0) {
             this.player.isGrounded = true;
 
         // Ice block (18) and Conveyor (20, 21)
-        const groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
+        var groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
+        if (groundTile === 18) {
+          this.player.friction = 0.98;
+        } else {
+          this.player.friction = CONFIG.FRICTION;
+        }
+        if (groundTile === 20) this.player.x -= 2;
+        if (groundTile === 21) this.player.x += 2;
+        
+        // Crumbling block (22)
+        if (groundTile === 22) {
+          const col = Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE);
+          const row = Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE);
+          let found = false;
+          for (const b of this.crumblingBlocks) {
+            if (b.col === col && b.row === row) { found = true; break; }
+          }
+          if (!found) this.crumblingBlocks.push({col, row, timer: 30});
+        }
+
+
+        // Ice block (18) and Conveyor (20, 21)
+        var groundTile = this.getTile(Math.floor((this.player.x + this.player.width/2)/CONFIG.TILE_SIZE), Math.floor((this.player.y + this.player.height + 1)/CONFIG.TILE_SIZE));
         if (groundTile === 18) {
           this.player.friction = 0.98;
         } else {
