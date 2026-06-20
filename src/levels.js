@@ -575,163 +575,141 @@ function createDashCityGrid() {
 }
 
 
-function createLevel4Grid() {
-  const grid = createBlankGrid();
-  
-  // Starting platform
-  for(let c=0; c<10; c++) {
-    for(let r=25; r<=29; r++) { grid[r][c] = 7; }
-  }
-  // Gap
-  for(let c=10; c<20; c++) {
-    grid[28][c] = 0; grid[29][c] = 0;
-    // Spikes at bottom
-    grid[29][c] = 4;
-  }
-  // Middle platform (Worm will be here)
-  for(let c=20; c<30; c++) {
-    for(let r=25; r<=29; r++) { grid[r][c] = 7; }
-  }
-  // Gap 2
-  for(let c=30; c<40; c++) {
-    grid[28][c] = 0; grid[29][c] = 0;
-    grid[29][c] = 4;
-  }
-  // High platforms for Bats
-  grid[20][34] = 7; grid[20][35] = 7;
-  
-  // Platform 3 (Chaser enemy will be here)
-  for(let c=40; c<50; c++) {
-    for(let r=25; r<=29; r++) { grid[r][c] = 7; }
-  }
-  // Gap 3
-  for(let c=50; c<55; c++) {
-    grid[28][c] = 0; grid[29][c] = 0;
-    grid[29][c] = 4;
-  }
-  // Goal
-  for(let c=55; c<60; c++) {
-    for(let r=25; r<=29; r++) { grid[r][c] = 7; }
-  }
-  
-  return grid;
-}
+
 
 function createBallLevelGrid() {
   const grid = Array.from({ length: 30 }, () => Array(60).fill(0));
   
-  // Floor and ceiling
+  // Outer walls
   for(let c=0; c<60; c++) {
     grid[0][c] = 1;
     grid[29][c] = 1;
   }
-  // Left and Right walls
   for(let r=0; r<30; r++) {
     grid[r][0] = 1;
     grid[r][59] = 1;
   }
 
-  // Giant funnel towards the center
-  for(let i=0; i<15; i++) {
-    // left stairs
-    grid[28 - i][1 + i] = 1;
-    // right stairs
-    grid[28 - i][58 - i] = 1;
+  // --- Plunger Lane (Right Side) ---
+  for(let r=1; r<29; r++) {
+    grid[r][56] = 1; // inner wall of plunger lane
   }
+  grid[28][57] = 2; // Trampoline to launch up
+  grid[28][58] = 2;
   
-  // Trampolines at the bottom funnel to bounce you back up!
-  for(let c=16; c<=20; c++) {
-    grid[28][c] = 2; // Trampoline
-  }
-  for(let c=39; c<=43; c++) {
-    grid[28][c] = 2; // Trampoline
-  }
-  
-  // The central pit of spikes
-  for(let c=21; c<=38; c++) {
-    grid[29][c] = 4; // Spikes
-    grid[28][c] = 4; // Spikes
-  }
-  
-  // A safety island in the middle of the pit with a big trampoline
-  for(let c=28; c<=31; c++) {
-    grid[28][c] = 1;
-    grid[27][c] = 2; // Mega bounce
-  }
-  
-  // Bumpers scattered to create chaotic bounces
-  grid[20][10] = 28;
-  grid[22][15] = 28;
-  grid[15][20] = 28;
-  grid[18][30] = 28;
-  grid[15][40] = 28;
-  grid[22][45] = 28;
-  grid[20][50] = 28;
-  grid[10][25] = 28;
-  grid[10][35] = 28;
+  // Top of plunger lane directs left
+  grid[2][56] = 0; // open a hole
+  grid[3][56] = 0;
+  grid[4][56] = 0;
+  grid[1][58] = 58; // Ramp Left
+  grid[2][58] = 58;
+  grid[3][58] = 58;
+  grid[4][57] = 58; // Ramp Left pushing into the main area
 
-  // Some floating platforms to land on
-  grid[12][10] = 1; grid[12][11] = 1;
-  grid[12][48] = 1; grid[12][49] = 1;
+  // --- Main Area Funnels (Bottom) ---
+  // Left funnel
+  for(let i=0; i<15; i++) {
+    grid[28 - Math.floor(i/2)][1 + i] = 57; // Ramp Right (shallower)
+    grid[28 - Math.floor(i/2) + 1][1 + i] = 1; // Support under ramp
+  }
+  // Right funnel
+  for(let i=0; i<15; i++) {
+    grid[28 - Math.floor(i/2)][55 - i] = 58; // Ramp Left
+    grid[28 - Math.floor(i/2) + 1][55 - i] = 1; 
+  }
   
-  // Gravity Wells (60) to pull the ball in crazy directions
-  grid[8][15] = 60;
-  grid[8][45] = 60;
-  
-  // Wind blowing up in the center column
-  for(let r=5; r<=24; r++) {
-    for(let c=29; c<=30; c++) {
+  // Pit in the middle
+  for(let c=16; c<=40; c++) {
+    grid[28][c] = 4; // Spikes!
+  }
+  // Wind saving you from the pit
+  for(let c=24; c<=32; c++) {
+    for(let r=20; r<=27; r++) {
       grid[r][c] = 36; // Wind Up
     }
+    grid[28][c] = 2; // Trampolines right above spikes in the very center
   }
 
-  // Goal platform at the top middle
-  for(let c=28; c<=31; c++) {
-    grid[4][c] = 1;
+  // --- Mid-Level Flippers / Ramps ---
+  // Left mid ramp
+  for(let i=0; i<8; i++) {
+    grid[20 - i][10 + i] = 57; 
+    grid[21 - i][10 + i] = 1;
+  }
+  // Right mid ramp
+  for(let i=0; i<8; i++) {
+    grid[20 - i][46 - i] = 58; 
+    grid[21 - i][46 - i] = 1;
+  }
+
+  // --- Bumper Clusters ---
+  // Top center cluster
+  grid[8][28] = 28;
+  grid[10][25] = 28;
+  grid[10][31] = 28;
+  grid[12][28] = 28;
+  grid[12][20] = 28;
+  grid[12][36] = 28;
+
+  // --- Cannons ---
+  // Cannons shooting across the middle
+  grid[15][1] = 53; // Cannon pointing right? Well, cannon spins or shoots automatically.
+  grid[10][55] = 53;
+
+  // --- High Ramps ---
+  for(let i=0; i<10; i++) {
+    grid[12 - Math.floor(i/2)][1 + i] = 57; 
+    grid[13 - Math.floor(i/2)][1 + i] = 1; 
   }
   
-  // Slime on the upper walls to catch you
-  for(let r=1; r<15; r++) {
+  // --- Gravity Wells ---
+  grid[15][15] = 60;
+  grid[15][41] = 60;
+  grid[5][10] = 60;
+  grid[5][46] = 60;
+
+  // --- Upper Goal Platform ---
+  // Locked door blocking goal
+  grid[4][28] = 1;
+  grid[4][30] = 1;
+  grid[4][29] = 8; // Lock
+  grid[3][28] = 1;
+  grid[3][30] = 1;
+  grid[2][28] = 1;
+  grid[2][30] = 1;
+  
+  // Key location
+  grid[5][5] = 9; // Key in top left corner
+  
+  // Goal platform floor
+  for(let c=27; c<=31; c++) {
+    grid[5][c] = 1;
+  }
+
+  // --- Slime Walls to catch and drop ---
+  for(let r=1; r<10; r++) {
     grid[r][1] = 32;
-    grid[r][58] = 32;
+    grid[r][55] = 32;
   }
 
   return grid;
 }
 
-
 function createLevel1Grid() {
   const grid = createBlankGrid();
-  // Floor
-  for(let c=0; c<60; c++) {
-    grid[28][c] = 1;
-    grid[29][c] = 1;
-  }
-  // Hurdle
+  for(let c=0; c<60; c++) { grid[28][c] = 7; grid[29][c] = 7; }
   grid[27][10] = 1;
-  // Gap
   grid[28][20] = 0; grid[29][20] = 0;
-  // Spikes
   grid[28][30] = 4;
-  // Small ledge
-  for(let r=25; r<=29; r++) {
-    grid[r][40] = 1;
-    grid[r][41] = 1;
-  }
-  grid[27][38] = 2; // Trampoline
-  // Goal platform
-  for(let c=50; c<60; c++) {
-    grid[25][c] = 1;
-  }
+  for(let r=25; r<=29; r++) { grid[r][40] = 1; grid[r][41] = 1; }
+  grid[27][38] = 2; 
+  for(let c=50; c<60; c++) { grid[25][c] = 7; }
   return grid;
 }
 
 function createLevel2Grid() {
   const grid = createBlankGrid();
-  for(let c=0; c<60; c++) {
-    grid[28][c] = 1;
-    grid[29][c] = 1;
-  }
+  for(let c=0; c<60; c++) { grid[28][c] = 1; grid[29][c] = 1; }
   for(let r=25; r<=27; r++) { grid[r][10] = 6; }
   for(let r=24; r<=27; r++) { grid[r][25] = 1; }
   grid[27][20] = 10;
@@ -742,23 +720,284 @@ function createLevel2Grid() {
   for(let r=25; r<=27; r++) { grid[r][50] = 12; }
   return grid;
 }
-const PRESETS = [
-  {
-    id: 'level-1',
-    name: 'The Fundamentals',
-    grid: createLevel1Grid(),
-    playerSpawn: { col: 2, row: 27 },
-    goalPos: { col: 55, row: 24 },
-    isPreset: true,
-  },
-  {
-    id: 'level-2',
-    name: 'Puzzles & Pathways',
-    grid: createLevel2Grid(),
-    playerSpawn: { col: 2, row: 27 },
-    goalPos: { col: 55, row: 27 },
-    isPreset: true,
+
+function createLevel3Grid() {
+  const grid = createBlankGrid();
+  grid[27][10] = 49;
+  for(let r=24; r<=27; r++) { grid[r][15] = 50; }
+  for(let c=25; c<=35; c++) {
+    grid[28][c] = 0; grid[29][c] = 0;
+    grid[27][c] = 22; grid[29][c] = 4;
   }
+  grid[27][45] = 7;
+  for(let r=25; r<=29; r++) { grid[r][55] = 7; }
+  return grid;
+}
+
+function createLevel4Grid() {
+  const grid = createBlankGrid();
+  for(let c=0; c<=10; c++) { for(let r=25; r<=29; r++) { grid[r][c] = 7; } }
+  for(let c=11; c<=13; c++) { grid[28][c] = 0; grid[29][c] = 0; grid[29][c] = 4; }
+  for(let c=14; c<=24; c++) { for(let r=25; r<=29; r++) { grid[r][c] = 7; } }
+  for(let c=25; c<=27; c++) { grid[28][c] = 0; grid[29][c] = 0; grid[29][c] = 4; }
+  for(let c=28; c<=48; c++) { for(let r=25; r<=29; r++) { grid[r][c] = 7; } }
+  grid[20][33] = 7; grid[20][34] = 7;
+  for(let c=49; c<=51; c++) { grid[28][c] = 0; grid[29][c] = 0; grid[29][c] = 4; }
+  for(let c=52; c<60; c++) { for(let r=25; r<=29; r++) { grid[r][c] = 7; } }
+  return grid;
+}
+
+function createLevel5Grid() {
+  const grid = createBlankGrid();
+  for(let c=0; c<=5; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  for(let c=6; c<=12; c++) { grid[28][c] = 17; grid[29][c] = 7; }
+  for(let c=13; c<=15; c++) { grid[28][c] = 0; grid[29][c] = 3; }
+  for(let c=16; c<=20; c++) { grid[25][c] = 17; }
+  for(let c=21; c<=24; c++) { grid[28][c] = 31; grid[29][c] = 4; }
+  for(let c=25; c<=30; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  grid[27][30] = 54;
+  for(let c=33; c<=35; c++) { grid[24][c] = 17; }
+  for(let c=38; c<=40; c++) { grid[20][c] = 17; }
+  for(let c=44; c<=46; c++) { grid[24][c] = 17; }
+  for(let c=49; c<60; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  return grid;
+}
+
+function createLevel6Grid() {
+  const grid = createBlankGrid();
+  
+  // Starting safe ground
+  for(let c=0; c<=4; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  
+  // Conveyor Right over spikes
+  for(let c=5; c<=15; c++) {
+    grid[28][c] = 20; // Conveyor Right
+    grid[29][c] = 4;  // Spikes below
+  }
+  
+  // Wind Up tunnel
+  for(let c=16; c<=18; c++) {
+    for(let r=10; r<=29; r++) {
+      grid[r][c] = 36; // Wind Up
+    }
+  }
+  
+  // Conveyor Left platform high up
+  for(let c=19; c<=25; c++) {
+    grid[15][c] = 19; // Conveyor Left
+  }
+  
+  // Jump through platforms
+  for(let c=28; c<=30; c++) { grid[12][c] = 52; }
+  for(let c=32; c<=34; c++) { grid[16][c] = 52; }
+  for(let c=28; c<=30; c++) { grid[20][c] = 52; }
+  
+  // Wind Right over giant spike pit
+  for(let c=31; c<=50; c++) {
+    for(let r=20; r<=28; r++) {
+      grid[r][c] = 39; // Wind Right
+    }
+    grid[29][c] = 4; // Spikes below
+  }
+  
+  // Goal safe ground
+  for(let c=51; c<60; c++) {
+    grid[28][c] = 7; grid[29][c] = 7;
+  }
+  
+  return grid;
+}
+
+function createLevel7Grid() {
+  const grid = createBlankGrid();
+  
+  // Starting safe ground
+  for(let c=0; c<=4; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  
+  // Dash powerup
+  grid[27][3] = 41; // Dash Powerup
+  
+  // Dash Panel Right launching over a large gap
+  for(let c=5; c<=8; c++) {
+    grid[28][c] = 24; // Dash Panel Right
+    grid[29][c] = 7;
+  }
+  
+  // Giant spike pit
+  for(let c=9; c<=50; c++) {
+    grid[28][c] = 0; grid[29][c] = 4; // Spikes below
+  }
+  
+  // Rope over the gap
+  grid[10][20] = 55; // Rope anchor
+  
+  // Cannon in the middle of the air
+  grid[20][32] = 53; // Cannon barrel
+  
+  // Minecart on a floating track
+  for(let c=40; c<=48; c++) {
+    grid[24][c] = 7; // Ground for track
+  }
+  grid[23][40] = 56; // Minecart
+  
+  // Goal safe ground
+  for(let c=51; c<60; c++) {
+    grid[28][c] = 7; grid[29][c] = 7;
+  }
+  
+  return grid;
+}
+
+function createLevel8Grid() {
+  const grid = createBlankGrid();
+  
+  // Starting safe ground
+  for(let c=0; c<=8; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  
+  // Wall blocking the way
+  for(let r=10; r<=29; r++) { grid[r][10] = 1; }
+  
+  // Ground past the wall
+  for(let c=11; c<=20; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  
+  // Gravity switch
+  grid[28][18] = 29; // Gravity Switch
+  
+  // Ceiling path
+  for(let c=15; c<=30; c++) { grid[4][c] = 7; grid[5][c] = 7; }
+  
+  // Spikes on floor and ceiling
+  for(let c=31; c<=45; c++) {
+    grid[28][c] = 0; grid[29][c] = 4; // Floor spikes
+    grid[4][c] = 0; grid[5][c] = 4;   // Ceiling spikes (gravity is reversed, so these act as floor spikes)
+  }
+  
+  // Gravity well to slingshot across
+  grid[16][38] = 30; // Gravity Well
+  
+  // Ceiling path after spikes
+  for(let c=46; c<=55; c++) { grid[4][c] = 7; grid[5][c] = 7; }
+  
+  // Gravity switch to drop back down
+  grid[6][52] = 29; // Gravity Switch
+  
+  // Goal safe ground
+  for(let c=51; c<60; c++) {
+    grid[28][c] = 7; grid[29][c] = 7;
+  }
+  
+  return grid;
+}
+
+function createLevel9Grid() {
+  const grid = createBlankGrid();
+  
+  // Starting area
+  for(let c=0; c<=6; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  
+  // Shrink potion
+  grid[27][4] = 104; 
+  
+  // Wall with 1-tile gap at the bottom
+  for(let r=10; r<=27; r++) { grid[r][8] = 1; }
+  grid[29][8] = 1; // Floor is solid, gap is at row 28
+  
+  // Grapple area
+  for(let c=9; c<=18; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  grid[27][14] = 44; // Grapple powerup
+  
+  // Grapple pit
+  for(let c=19; c<=30; c++) { grid[28][c] = 0; grid[29][c] = 4; } // Spikes below
+  for(let c=19; c<=30; c++) { grid[15][c] = 1; } // Ceiling to grapple onto
+  
+  // Bomb area
+  for(let c=31; c<=40; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  grid[27][34] = 49; // Bomb powerup
+  
+  // Destructible wall
+  for(let r=20; r<=27; r++) { grid[r][40] = 6; } // Explodable blocks
+  
+  // Boomerang area
+  for(let c=41; c<=50; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  grid[27][44] = 33; // Boomerang powerup
+  
+  // Switch
+  grid[20][45] = 12; // Red Switch
+  
+  // Door (Blue blocks that turn off when red switch is hit? Wait, if switch is red, blue blocks are solid. Hit switch -> turns blue -> red blocks solid, blue blocks disappear)
+  for(let r=20; r<=27; r++) { grid[r][50] = 13; } // Blue switch block
+  
+  // Goal safe ground
+  for(let c=51; c<60; c++) {
+    grid[28][c] = 7; grid[29][c] = 7;
+  }
+  
+  return grid;
+}
+
+function createLevel10Grid() {
+  const grid = createBlankGrid();
+  
+  // Safe start
+  for(let c=0; c<=3; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  
+  // Conveyor over lava
+  for(let c=4; c<=12; c++) {
+    grid[28][c] = 20; // Conveyor Right
+    grid[29][c] = 22; // Lava below
+  }
+  
+  // Turret firing from above
+  grid[20][10] = 8; // Laser Turret Down? Wait, we don't know the exact direction, let's just place it at 10, 20
+  
+  // Jump through platforms moving up
+  grid[24][15] = 52;
+  grid[20][18] = 52;
+  grid[16][21] = 52;
+  
+  // Dash powerup at top
+  grid[15][21] = 41; // Dash Powerup
+  
+  // Long dash gap
+  for(let c=22; c<=35; c++) {
+    grid[29][c] = 22; // Lava
+  }
+  
+  // Rope over lava
+  grid[5][30] = 55; // Rope anchor
+  
+  // Landing zone with switch
+  for(let c=36; c<=42; c++) { grid[28][c] = 7; grid[29][c] = 7; }
+  grid[27][40] = 12; // Red Switch
+  
+  // Blue switch door
+  for(let r=10; r<=28; r++) { grid[r][44] = 13; } // Blue blocks
+  
+  // Cannon to shoot over final gap
+  grid[27][42] = 53; // Cannon
+  
+  // Gravity well
+  grid[15][50] = 30; // Gravity well
+  
+  // Final goal
+  for(let c=55; c<60; c++) {
+    grid[28][c] = 7; grid[29][c] = 7;
+  }
+  
+  return grid;
+}
+
+const PRESETS = [
+  { id: 'level-1', name: 'The Fundamentals', grid: createLevel1Grid(), playerSpawn: { col: 2, row: 27 }, goalPos: { col: 55, row: 24 }, isPreset: true },
+  { id: 'level-2', name: 'Puzzles & Pathways', grid: createLevel2Grid(), playerSpawn: { col: 2, row: 27 }, goalPos: { col: 55, row: 27 }, isPreset: true },
+  { id: 'level-3', name: 'Demolition & Danger', grid: createLevel3Grid(), enemies: [{ id: 'e1', col: 42, row: 26, speed: 1.8, patrolRange: 5, type: 'basic' }], playerSpawn: { col: 2, row: 27 }, goalPos: { col: 55, row: 24 }, isPreset: true },
+  { id: 'level-4', name: 'Hostile Territory', grid: createLevel4Grid(), enemies: [{ id: 'e1', col: 19, row: 24, speed: 0, patrolRange: 0, type: 'worm' }, { id: 'e2', col: 33, row: 19, speed: 0, patrolRange: 0, type: 'bat' }, { id: 'e3', col: 45, row: 24, speed: 1.8, patrolRange: 0, type: 'chaser' }], playerSpawn: { col: 2, row: 24 }, goalPos: { col: 57, row: 24 }, isPreset: true },
+  { id: 'level-5', name: 'The Elements', grid: createLevel5Grid(), playerSpawn: { col: 2, row: 27 }, goalPos: { col: 55, row: 27 }, isPreset: true },
+  { id: 'level-6', name: 'Industrial Complex', grid: createLevel6Grid(), playerSpawn: { col: 2, row: 27 }, goalPos: { col: 55, row: 27 }, isPreset: true },
+  { id: 'level-7', name: 'Momentum & Trajectory', grid: createLevel7Grid(), playerSpawn: { col: 2, row: 27 }, goalPos: { col: 55, row: 27 }, isPreset: true },
+  { id: 'level-8', name: 'Quantum Facility', grid: createLevel8Grid(), playerSpawn: { col: 2, row: 27 }, goalPos: { col: 55, row: 27 }, portal1: { col: 5, row: 27 }, portal2: { col: 15, row: 27 }, isPreset: true },
+  { id: 'level-9', name: 'Powerup Playground', grid: createLevel9Grid(), playerSpawn: { col: 2, row: 27 }, goalPos: { col: 55, row: 27 }, isPreset: true },
+  { id: 'level-10', name: 'The Final Gauntlet', grid: createLevel10Grid(), playerSpawn: { col: 2, row: 27 }, goalPos: { col: 57, row: 27 }, isPreset: true }
 ];
 
 function createTinyTunnelsGrid() {
