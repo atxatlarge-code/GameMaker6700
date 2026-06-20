@@ -1,5 +1,8 @@
 import { CONFIG } from './config.js';
 import { audio } from './audio.js';
+import { World } from './ecs/world.js';
+import { Components, createTransform, createVelocity, createCollider, createRenderable, createPlayerControl, createGravity } from './ecs/components.js';
+import { MovementSystem, GravitySystem, RenderSystem } from './ecs/systems.js';
 
 export class Engine {
 
@@ -78,6 +81,9 @@ export class Engine {
     this.editor = editor;
     this.assets = assets;
     this.onWin = onWin;
+
+    // ECS Initialization
+    this.ecsWorld = new World();
 
     this.mode = CONFIG.MODE_EDIT;
     this.isRunning = false;
@@ -197,7 +203,7 @@ export class Engine {
     const t = this.getTile(col, row);
     // 59 is Reflector Shield
     return t === 1 || t === 2 || t === 7 || t === 10 || t === 11 || t === 59 ||
-           t === 105 || t === 106 || t === 107 || t === 23 || t === 24 ||
+           t === 105 || t === 106 || t === 107 || t === 23 || t === 24 || t === 50 ||
            (t === 12 && this.level.switchState === 'red') || 
            (t === 13 && this.level.switchState === 'blue');
   }
@@ -235,6 +241,9 @@ export class Engine {
     } else if (this.player.charId === 'ball') {
       this.player.width = 24;
       this.player.height = 24;
+    } else if (this.player.charId === 'robot') {
+      this.player.width = 28;
+      this.player.height = 36;
     } else if (this.player.charId === 'paddle_h') {
       this.player.width = 80;
       this.player.height = 20;
@@ -428,6 +437,18 @@ export class Engine {
     const targetY = this.player.y + this.player.height / 2 - this.canvas.height / 2;
     this.camera.x = Math.max(0, Math.min(maxCamX, targetX));
     this.camera.y = Math.max(0, Math.min(maxCamY, targetY));
+
+    // ECS Player Entity Facade Sync
+    if (this.ecsPlayerId !== undefined) {
+      this.ecsWorld.destroyEntity(this.ecsPlayerId);
+    }
+    this.ecsPlayerId = this.ecsWorld.createEntity();
+    this.ecsWorld.addComponent(this.ecsPlayerId, Components.Transform, createTransform(this.player.x, this.player.y, this.player.width, this.player.height));
+    this.ecsWorld.addComponent(this.ecsPlayerId, Components.Velocity, createVelocity(0, 0));
+    this.ecsWorld.addComponent(this.ecsPlayerId, Components.Collider, createCollider(true));
+    this.ecsWorld.addComponent(this.ecsPlayerId, Components.Renderable, createRenderable(this.player.charId, 'right'));
+    this.ecsWorld.addComponent(this.ecsPlayerId, Components.PlayerControl, createPlayerControl());
+    this.ecsWorld.addComponent(this.ecsPlayerId, Components.Gravity, createGravity(1));
   }
 
   initListeners() {
@@ -675,6 +696,10 @@ export class Engine {
 
   update() {
     this.pollGamepad();
+
+    // ECS Systems Tick
+    MovementSystem(this.ecsWorld);
+    GravitySystem(this.ecsWorld);
 
     if (this.isDead) {
       this.deathTimer -= 1;
@@ -1789,6 +1814,70 @@ if (this.player.jumpBufferTimer > 0) {
     ctx.restore();
   }
 
+  drawRobot(ctx, x, y, width, height, facing, scaleX, scaleY, tiltAngle, alpha, isTrail = false) {
+    ctx.save();
+    ctx.globalAlpha = isTrail ? alpha : (ctx.globalAlpha * alpha);
+
+    ctx.translate(x + width / 2, y + height);
+    ctx.scale(facing === 'left' ? -scaleX : scaleX, scaleY);
+    ctx.rotate(tiltAngle);
+
+    const time = Date.now();
+
+    // Tracks / Wheels stay on ground
+    ctx.fillStyle = '#374151'; // dark tracks
+    ctx.fillRect(-width / 2 - 2, -4, 10, 4);
+    ctx.fillRect(width / 2 - 8, -4, 10, 4);
+
+    // Suspension bob for the body
+    const bob = Math.sin(time * 0.005) * 1.5;
+    ctx.translate(0, bob);
+
+    // Robot Body
+    ctx.fillStyle = '#9ca3af'; // light grey
+    ctx.fillRect(-width / 2, -height + 4, width, height - 8);
+    
+    // Glowing Core
+    const corePulse = (Math.sin(time * 0.003) + 1) / 2; // 0 to 1
+    ctx.fillStyle = `rgba(59, 130, 246, ${0.4 + corePulse * 0.6})`; // pulsing blue
+    ctx.beginPath();
+    ctx.arc(0, -height / 2 + 2, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Robot Head
+    ctx.fillStyle = '#6b7280'; // darker grey
+    ctx.fillRect(-width / 2 + 2, -height, width - 4, 12);
+
+    // Antenna
+    ctx.strokeStyle = '#4b5563';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -height);
+    ctx.lineTo(0, -height - 6);
+    ctx.stroke();
+    
+    // Pulsing Red bulb
+    const bulbAlpha = (Math.sin(time * 0.01) + 1) / 2; // Fast pulse
+    ctx.fillStyle = `rgba(239, 68, 68, ${0.5 + bulbAlpha * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(0, -height - 6, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes (Blink occasionally)
+    const isBlinking = (time % 4000) < 150; // Blink every 4s for 150ms
+    if (!isBlinking) {
+      ctx.fillStyle = '#3b82f6'; // Blue glowing eyes
+      ctx.fillRect(2, -height + 3, 4, 4);
+      ctx.fillRect(8, -height + 3, 4, 4);
+    } else {
+      ctx.fillStyle = '#1e3a8a'; // Dark blue (shut)
+      ctx.fillRect(2, -height + 5, 4, 2);
+      ctx.fillRect(8, -height + 5, 4, 2);
+    }
+
+    ctx.restore();
+  }
+
   drawClassicBox(ctx, x, y, width, height, facing, scaleX, scaleY, tiltAngle, alpha, isTrail = false) {
     ctx.save();
     ctx.globalAlpha = isTrail ? alpha : (ctx.globalAlpha * alpha);
@@ -1846,14 +1935,27 @@ if (this.player.jumpBufferTimer > 0) {
 
     // Shading/Highlight & Face
     if (!isTrail) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      // 3D Glassy Gel Shading
+      const boxGrad = ctx.createLinearGradient(-width/2, -height, width/2, height);
+      boxGrad.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
+      boxGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.1)');
+      boxGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0.1)');
+      boxGrad.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+      ctx.fillStyle = boxGrad;
+      ctx.beginPath();
+      ctx.roundRect(-width / 2, -height, width, height, 6);
+      ctx.fill();
+
+      // Bright rim light
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.roundRect(-width / 2 + 2, -height + 2, width - 4, height - 4, 4);
       ctx.stroke();
 
+      // Dark outer border
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.roundRect(-width / 2, -height, width, height, 6);
       ctx.stroke();
@@ -2219,14 +2321,14 @@ if (this.player.jumpBufferTimer > 0) {
       const [col, row] = key.split(',').map(Number);
       if (data.state === 'shaking' && data.timer <= 0) {
         // Break the block
-        this.level.setTile(col, row, 0);
+        this.setTile(col, row, 0);
         data.state = 'broken';
         data.timer = 180; // 3 seconds to respawn
         this.breakBlock(col, row);
         if (!this.isSimulation && audio.playBreakSound) audio.playBreakSound();
       } else if (data.state === 'broken' && data.timer <= 0) {
         // Respawn the block
-        this.level.setTile(col, row, 22);
+        this.setTile(col, row, 22);
         this.crumblingTiles.delete(key);
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
       }
@@ -2268,7 +2370,7 @@ if (this.player.jumpBufferTimer > 0) {
     for (let r = row - blastRadius; r <= row + blastRadius; r++) {
       for (let c = col - blastRadius; c <= col + blastRadius; c++) {
         if (this.getTile(c, r) === 50) {
-          this.level.setTile(c, r, 0);
+          this.setTile(c, r, 0);
           this.breakBlock(c, r);
         }
       }
@@ -2923,8 +3025,8 @@ if (this.player.jumpBufferTimer > 0) {
 
       for (let r = minRowV; r <= maxRowV; r++) {
         for (let c = minColV; c <= maxColV; c++) {
+          if (!this.isSolid(c, r)) continue;
           const tv = this.getTile(c, r);
-          if (tv !== 1 && tv !== 2 && tv !== 7) continue;
           const tileTop = r * CONFIG.TILE_SIZE;
           const tileBot = tileTop + CONFIG.TILE_SIZE;
           if (enemy.vy > 0 && eBoxV.bottom > tileTop && (eBoxV.bottom - enemy.vy) <= tileTop) {
@@ -3290,9 +3392,8 @@ if (this.player.jumpBufferTimer > 0) {
         if (enemy.vx > 0) {
           const rightCol = Math.floor((enemy.x + enemy.width) / CONFIG.TILE_SIZE);
            // Reverse if hitting a wall OR if about to step off an edge
-          const nextFloor = this.getTile(rightCol, footRow);
-          const wallAhead = this.getTile(rightCol, row) === 1 || this.getTile(rightCol, row) === 7;
-          const edgeAhead = nextFloor !== 1 && nextFloor !== 2 && nextFloor !== 7;
+          const wallAhead = this.isSolid(rightCol, row);
+          const edgeAhead = !this.isSolid(rightCol, footRow);
           if (wallAhead || edgeAhead) {
             enemy.x = rightCol * CONFIG.TILE_SIZE - enemy.width;
             if (enemy.type === 'chaser') {
@@ -3306,9 +3407,8 @@ if (this.player.jumpBufferTimer > 0) {
         } else {
           const leftCol = Math.floor(enemy.x / CONFIG.TILE_SIZE);
            // Reverse if hitting a wall OR if about to step off an edge
-          const nextFloor = this.getTile(leftCol, footRow);
-          const wallAhead = this.getTile(leftCol, row) === 1 || this.getTile(leftCol, row) === 7;
-          const edgeAhead = nextFloor !== 1 && nextFloor !== 2 && nextFloor !== 7;
+          const wallAhead = this.isSolid(leftCol, row);
+          const edgeAhead = !this.isSolid(leftCol, footRow);
           if (wallAhead || edgeAhead) {
             enemy.x = (leftCol + 1) * CONFIG.TILE_SIZE;
             if (enemy.type === 'chaser') {
@@ -3478,7 +3578,7 @@ if (this.player.jumpBufferTimer > 0) {
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const tileVal = this.getTile(c, r);
-        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7 || tileVal === 8 || tileVal === 10 || tileVal === 11 || tileVal === 17 || tileVal === 19 || tileVal === 20 || tileVal === 22 || tileVal === 23 || tileVal === 24 || tileVal === 40 || tileVal === 52) {
+        if (tileVal === 1 || tileVal === 2 || tileVal === 6 || tileVal === 7 || tileVal === 8 || tileVal === 10 || tileVal === 11 || tileVal === 17 || tileVal === 19 || tileVal === 20 || tileVal === 22 || tileVal === 23 || tileVal === 24 || tileVal === 40 || tileVal === 50 || tileVal === 52 || tileVal === 57 || tileVal === 58) {
           tiles.push({ col: c, row: r, type: tileVal });
         } else if (tileVal === 12 && this.level.switchState === 'red') {
           tiles.push({ col: c, row: r, type: 12 });
@@ -3492,6 +3592,8 @@ if (this.player.jumpBufferTimer > 0) {
           tiles.push({ col: c, row: r, type: 25 });
         } else if (tileVal === 27) {
           tiles.push({ col: c, row: r, type: 27 });
+        } else if (tileVal === 41 || tileVal === 43 || tileVal === 44 || tileVal === 45 || tileVal === 49) {
+          tiles.push({ col: c, row: r, type: tileVal });
         } else if (tileVal === 53) {
           tiles.push({ col: c, row: r, type: 53 });
         } else if (tileVal >= 100 && tileVal <= 110) {
@@ -3523,7 +3625,7 @@ if (this.player.jumpBufferTimer > 0) {
       }
       if (tile.type === 8) {
         if (this.hasKey) {
-          this.level.setTile(tile.col, tile.row, 0);
+          this.setTile(tile.col, tile.row, 0);
           this.hasKey = false;
           if (!this.isSimulation && audio.playBreakSound) audio.playBreakSound();
           this.spawnJumpDust();
@@ -3531,21 +3633,21 @@ if (this.player.jumpBufferTimer > 0) {
         }
       }
       if (tile.type === 16) {
-        this.level.setTile(tile.col, tile.row, 0);
+        this.setTile(tile.col, tile.row, 0);
         this.player.hasSpringBoots = true;
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
         continue;
       }
       if (tile.type === 24) {
-        this.level.setTile(tile.col, tile.row, 0);
+        this.setTile(tile.col, tile.row, 0);
         this.player.hasDoubleJump = true;
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
         continue;
       }
       if (tile.type === 104) {
-        this.level.setTile(tile.col, tile.row, 0);
+        this.setTile(tile.col, tile.row, 0);
         this.player.isShrunk = true;
         // Shrink player
         this.player.width = Math.max(10, this.player.baseWidth * 0.5);
@@ -3560,48 +3662,48 @@ if (this.player.jumpBufferTimer > 0) {
         this.level.playerSpawn = { col: tile.col, row: tile.row };
         // We do NOT remove the tile so they can see they got it, 
         // or we could replace it with a "checked" flag tile. Let's just remove it and spawn dust!
-        this.level.setTile(tile.col, tile.row, 0);
+        this.setTile(tile.col, tile.row, 0);
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
         continue;
       }
       if (tile.type === 27) {
-        this.level.setTile(tile.col, tile.row, 0);
+        this.setTile(tile.col, tile.row, 0);
         this.player.hasSpeedBoost = true;
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
         continue;
       }
       if (tile.type === 41) {
-        this.level.setTile(tile.col, tile.row, 0);
+        this.setTile(tile.col, tile.row, 0);
         this.player.hasDash = true;
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
         continue;
       }
       if (tile.type === 43) {
-        this.level.setTile(tile.col, tile.row, 0);
+        this.setTile(tile.col, tile.row, 0);
         this.player.hasMagneticBoots = true;
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
         continue;
       }
       if (tile.type === 44) {
-        this.level.setTile(tile.col, tile.row, 0);
+        this.setTile(tile.col, tile.row, 0);
         this.player.hasGrapple = true;
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
         continue;
       }
       if (tile.type === 45) {
-        this.level.setTile(tile.col, tile.row, 0);
+        this.setTile(tile.col, tile.row, 0);
         this.timeFreezeTimer = 180; // 3 seconds
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playPowerupSound) audio.playPowerupSound();
         continue;
       }
       if (tile.type === 49) {
-        this.level.setTile(tile.col, tile.row, 0);
+        this.setTile(tile.col, tile.row, 0);
         this.player.hasBombs = true;
         this.spawnJumpDust();
         if (!this.isSimulation && audio.playPowerupSound) audio.playPowerupSound();
@@ -3611,16 +3713,16 @@ if (this.player.jumpBufferTimer > 0) {
       if (tile.type === 10) {
         if (this.player.vx > 0) {
           if (this.getTile(tile.col + 1, tile.row) === 0) {
-            this.level.setTile(tile.col, tile.row, 0);
-            this.level.setTile(tile.col + 1, tile.row, 10);
+            this.setTile(tile.col, tile.row, 0);
+            this.setTile(tile.col + 1, tile.row, 10);
             this.spawnJumpDust();
             if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
             continue;
           }
         } else if (this.player.vx < 0) {
           if (this.getTile(tile.col - 1, tile.row) === 0) {
-            this.level.setTile(tile.col, tile.row, 0);
-            this.level.setTile(tile.col - 1, tile.row, 10);
+            this.setTile(tile.col, tile.row, 0);
+            this.setTile(tile.col - 1, tile.row, 10);
             this.spawnJumpDust();
             if (!this.isSimulation && audio.playTileSound) audio.playTileSound();
             continue;
@@ -3644,7 +3746,7 @@ if (this.player.jumpBufferTimer > 0) {
         continue;
       }
 
-      if (tile.type === 52) continue; // Jump-through platforms don't block horizontally
+      if (tile.type === 52 || tile.type === 57 || tile.type === 58) continue; // Jump-through platforms and slopes don't block horizontally
 
       if (this.player.vx > 0) {
         // Moving right
@@ -3686,7 +3788,7 @@ if (this.player.jumpBufferTimer > 0) {
       }
       if (tile.type === 8) {
         if (this.hasKey) {
-          this.level.setTile(tile.col, tile.row, 0);
+          this.setTile(tile.col, tile.row, 0);
           this.hasKey = false;
           if (!this.isSimulation && audio.playBreakSound) audio.playBreakSound();
           this.spawnJumpDust();
@@ -3710,19 +3812,41 @@ if (this.player.jumpBufferTimer > 0) {
         continue;
       }
 
-      if (this.player.vy > 0) {
+      if (this.player.vy >= 0) {
         // Falling down
         if (tile.type === 52) {
           if (this.keys && this.keys.down) continue; // Drop down
           if (playerBox.bottom - this.player.vy > tileTop + 0.1) continue; // Was already below top of tile
         }
-        if (playerBox.bottom > tileTop && playerBox.top < tileTop) {
+
+        let effectiveTileTop = tileTop;
+        if (tile.type === 57) { // Ramp Right (/)
+          const intersectX = playerBox.right - (tile.col * CONFIG.TILE_SIZE);
+          if (intersectX >= 0 && intersectX <= CONFIG.TILE_SIZE) {
+            effectiveTileTop = tileBottom - intersectX;
+          } else if (intersectX > CONFIG.TILE_SIZE) {
+            effectiveTileTop = tileTop;
+          } else {
+            effectiveTileTop = tileBottom;
+          }
+        } else if (tile.type === 58) { // Ramp Left (\)
+          const intersectX = playerBox.left - (tile.col * CONFIG.TILE_SIZE);
+          if (intersectX >= 0 && intersectX <= CONFIG.TILE_SIZE) {
+            effectiveTileTop = tileTop + intersectX;
+          } else if (intersectX > CONFIG.TILE_SIZE) {
+            effectiveTileTop = tileBottom;
+          } else {
+            effectiveTileTop = tileTop;
+          }
+        }
+
+        if (playerBox.bottom > effectiveTileTop && playerBox.top < effectiveTileTop) {
           // If we weren't grounded before, trigger a land squish!
-          if (!this.player.isGrounded && this.player.vy > 1.5) {
+          if (!this.player.isGrounded && this.player.vy > 1.5 && tile.type !== 57 && tile.type !== 58) {
             this.player.landSquishTimer = 10;
             this.spawnLandDust(this.player.vy);
           }
-          this.player.y = tileTop - this.player.height;
+          this.player.y = effectiveTileTop - this.player.height;
           
           if (this.player.charId === 'ball') {
             this.player.vy = Math.min(-6, -this.player.vy * 0.85);
@@ -3792,7 +3916,7 @@ if (this.player.jumpBufferTimer > 0) {
           }
         }
       } else if (this.player.vy < 0) {
-        if (tile.type === 52) continue; // Don't block jumping up through platforms
+        if (tile.type === 52 || tile.type === 57 || tile.type === 58) continue; // Don't block jumping up through platforms or slopes
         // Jumping up
         if (playerBox.top < tileBottom && playerBox.bottom > tileBottom) {
           this.player.y = tileBottom;
@@ -3876,6 +4000,8 @@ if (this.player.jumpBufferTimer > 0) {
   }
 
   render() {
+    // ECS Rendering Phase
+    RenderSystem(this.ecsWorld, this.ctx, this.camera);
     const now = Date.now();
     // Clear Canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -3929,31 +4055,74 @@ if (this.player.jumpBufferTimer > 0) {
         const y = r * CONFIG.TILE_SIZE;
 
         if (tileVal === 1) {
-          if (this.assets.ground && this.theme === 'default') {
-            this.ctx.drawImage(this.assets.ground, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          } else {
-            this.ctx.fillStyle = this.getGroundColor();
-            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          }
+          this.editor.renderSolidBlock(x, y, 1, c, r, this);
         } else if (tileVal === 2) {
           this.ctx.save();
           const anim = this.bounceAnims.get(`${c},${r}`);
           if (anim) {
             const progress = anim.timer / 15; // 1 to 0
-            const scaleY = 1 - 0.3 * progress * Math.sin((1 - progress) * Math.PI * 3);
-            const scaleX = 1 + 0.2 * progress * Math.sin((1 - progress) * Math.PI * 3);
+            const scaleY = 1 - 0.5 * progress * Math.sin((1 - progress) * Math.PI * 3); // More jiggle
+            const scaleX = 1 + 0.4 * progress * Math.sin((1 - progress) * Math.PI * 3);
 
             this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE);
             this.ctx.scale(scaleX, scaleY);
             this.ctx.translate(-(x + CONFIG.TILE_SIZE / 2), -(y + CONFIG.TILE_SIZE));
+            
+            // Spores
+            if (anim.timer > 5 && !this.isSimulation) {
+              this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+              for (let i=0; i<3; i++) {
+                const px = x + CONFIG.TILE_SIZE/2 + (Math.random()-0.5)*20;
+                const py = y + CONFIG.TILE_SIZE/2 + (Math.random()-0.5)*10;
+                this.ctx.beginPath();
+                this.ctx.arc(px, py, Math.random()*1.5 + 0.5, 0, Math.PI*2);
+                this.ctx.fill();
+              }
+            }
           }
 
-          if (this.assets.trampoline) {
-            this.ctx.drawImage(this.assets.trampoline, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          } else {
-            this.ctx.fillStyle = '#cc635e';
-            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          }
+          // Bouncy Mushroom (Procedural)
+          this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE);
+          
+          // Drop Shadow
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+          this.ctx.beginPath();
+          this.ctx.ellipse(0, -2, 14, 4, 0, 0, Math.PI*2);
+          this.ctx.fill();
+
+          // Stem
+          this.ctx.fillStyle = '#e2e8f0';
+          this.ctx.fillRect(-6, -16, 12, 16);
+          // Stem Shading
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+          this.ctx.fillRect(0, -16, 6, 16);
+          
+          // 3D Cap Gradient
+          const capGrad = this.ctx.createRadialGradient(-5, -22, 2, 0, -16, 20);
+          capGrad.addColorStop(0, '#f87171'); // Light red highlight
+          capGrad.addColorStop(0.7, '#ef4444'); // Standard red
+          capGrad.addColorStop(1, '#991b1b'); // Dark red shadow
+          this.ctx.fillStyle = capGrad;
+          
+          this.ctx.beginPath();
+          this.ctx.ellipse(0, -16, 18, 12, 0, 0, Math.PI*2);
+          this.ctx.fill();
+
+          // Shiny Glint
+          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+          this.ctx.beginPath();
+          this.ctx.ellipse(-8, -20, 4, 2, Math.PI/6, 0, Math.PI*2);
+          this.ctx.fill();
+          
+          // Spots
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.beginPath();
+          this.ctx.arc(-8, -20, 3, 0, Math.PI*2);
+          this.ctx.arc(8, -18, 2.5, 0, Math.PI*2);
+          this.ctx.arc(0, -24, 4, 0, Math.PI*2);
+          this.ctx.fill();
+          
+          this.ctx.translate(-(x + CONFIG.TILE_SIZE / 2), -(y + CONFIG.TILE_SIZE));
           this.ctx.restore();
         } else if (tileVal === 40) {
           this.ctx.save();
@@ -4043,120 +4212,169 @@ if (this.player.jumpBufferTimer > 0) {
           this.ctx.fillStyle = '#991b1b';
           this.ctx.fillRect(x, y + 16, CONFIG.TILE_SIZE / 2, 8);
         } else if (tileVal === 3) {
-          // Render Fire
+          // Render Fire purely procedural
           this.ctx.save();
           this.ctx.translate(x, y);
-          if (this.assets.fire) {
-            this.ctx.drawImage(this.assets.fire, 0, 0, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          } else {
-            const time = now * 0.005;
-            // Glowing embers
-            if (!this._fireGlow) {
-              this._fireGlow = this.ctx.createRadialGradient(CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE, 5, CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-              this._fireGlow.addColorStop(0, 'rgba(255, 100, 0, 0.6)');
-              this._fireGlow.addColorStop(1, 'rgba(255, 0, 0, 0)');
-            }
-            this.ctx.fillStyle = this._fireGlow;
-            this.ctx.fillRect(0, 0, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          
+          const time = now * 0.005;
+          // Glowing embers
+          if (!this._fireGlow) {
+            this._fireGlow = this.ctx.createRadialGradient(CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE, 5, CONFIG.TILE_SIZE/2, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+            this._fireGlow.addColorStop(0, 'rgba(255, 100, 0, 0.6)');
+            this._fireGlow.addColorStop(1, 'rgba(255, 0, 0, 0)');
+          }
+          this.ctx.fillStyle = this._fireGlow;
+          this.ctx.fillRect(0, 0, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
 
-            // 3 animated flame peaks
-            const flames = [
-              { x: 4, baseW: 12, height: 26, freq: 2, phase: 0, col: '#ff3b30' },
-              { x: 14, baseW: 14, height: 32, freq: 2.5, phase: 1, col: '#ff9500' },
-              { x: 24, baseW: 12, height: 28, freq: 3, phase: 2, col: '#ffd60a' },
-            ];
-            flames.forEach(f => {
-              const flameH = f.height + Math.sin(time * f.freq + f.phase) * 6;
-              const tipX = f.x + f.baseW/2 + Math.cos(time * f.freq * 0.8 + f.phase) * 4;
-              
-              this.ctx.fillStyle = f.col;
+          // 3 animated flame peaks
+          const flames = [
+            { x: 4, baseW: 12, height: 26, freq: 2, phase: 0, col: '#ff3b30' },
+            { x: 14, baseW: 14, height: 32, freq: 2.5, phase: 1, col: '#ff9500' },
+            { x: 24, baseW: 12, height: 28, freq: 3, phase: 2, col: '#ffd60a' },
+          ];
+          flames.forEach(f => {
+            const flameH = f.height + Math.sin(time * f.freq + f.phase) * 6;
+            const tipX = f.x + f.baseW/2 + Math.cos(time * f.freq * 0.8 + f.phase) * 4;
+            
+            this.ctx.fillStyle = f.col;
+            this.ctx.beginPath();
+            this.ctx.moveTo(f.x, CONFIG.TILE_SIZE);
+            this.ctx.quadraticCurveTo(f.x + f.baseW/4, CONFIG.TILE_SIZE - flameH/2, tipX, CONFIG.TILE_SIZE - flameH);
+            this.ctx.quadraticCurveTo(f.x + f.baseW*0.75, CONFIG.TILE_SIZE - flameH/2, f.x + f.baseW, CONFIG.TILE_SIZE);
+            this.ctx.closePath();
+            this.ctx.fill();
+          });
+          
+          // Floating sparks
+          this.ctx.fillStyle = '#fef08a'; // yellow sparks
+          for (let i = 0; i < 4; i++) {
+            const sparkY = CONFIG.TILE_SIZE - ((now * 0.05 + i * 15) % (CONFIG.TILE_SIZE + 10));
+            const sparkX = 4 + (i * 8) + Math.sin(now * 0.01 + i) * 6;
+            const size = Math.max(0, 2 - (CONFIG.TILE_SIZE - sparkY) * 0.05);
+            if (size > 0 && sparkY < CONFIG.TILE_SIZE - 5) {
               this.ctx.beginPath();
-              this.ctx.moveTo(f.x, CONFIG.TILE_SIZE);
-              this.ctx.quadraticCurveTo(f.x + f.baseW/4, CONFIG.TILE_SIZE - flameH/2, tipX, CONFIG.TILE_SIZE - flameH);
-              this.ctx.quadraticCurveTo(f.x + f.baseW*0.75, CONFIG.TILE_SIZE - flameH/2, f.x + f.baseW, CONFIG.TILE_SIZE);
-              this.ctx.closePath();
+              this.ctx.arc(sparkX, sparkY, size, 0, Math.PI * 2);
               this.ctx.fill();
-            });
+            }
           }
           this.ctx.restore();
         } else if (tileVal === 4) {
           // Render Spikes
           this.ctx.save();
           this.ctx.translate(x, y);
-          if (this.assets.spikes) {
-            this.ctx.drawImage(this.assets.spikes, 0, 0, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          } else {
-            // Base
-            this.ctx.fillStyle = '#3a3d45';
-            this.ctx.fillRect(0, CONFIG.TILE_SIZE - 8, CONFIG.TILE_SIZE, 8);
+          // Organic Thorns
+          this.ctx.fillStyle = '#27272a'; // Dark root
+          this.ctx.fillRect(0, CONFIG.TILE_SIZE - 6, CONFIG.TILE_SIZE, 6);
+          
+          this.ctx.fillStyle = '#18181b'; // Very dark thorns
+          const spikeW = CONFIG.TILE_SIZE / 3;
+          for (let i = 0; i < 3; i++) {
+            const sx = i * spikeW + 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(sx, CONFIG.TILE_SIZE - 6);
+            // Curved organic thorn
+            this.ctx.quadraticCurveTo(sx + spikeW/2 + Math.sin(now*0.002 + i)*3, CONFIG.TILE_SIZE - 20, sx + spikeW/2, CONFIG.TILE_SIZE - 32);
+            this.ctx.quadraticCurveTo(sx + spikeW/2 - 2, CONFIG.TILE_SIZE - 20, sx + spikeW - 2, CONFIG.TILE_SIZE - 6);
+            this.ctx.fill();
             
-            // 4 Spike teeth
-            const spikeWidth = CONFIG.TILE_SIZE / 4;
-            for (let i = 0; i < 4; i++) {
-              const sx = i * spikeWidth;
-              const grad = this.ctx.createLinearGradient(sx, CONFIG.TILE_SIZE - 8, sx + spikeWidth / 2, CONFIG.TILE_SIZE - 32);
-              grad.addColorStop(0, '#717782');
-              grad.addColorStop(1, '#dbe2ef');
-              this.ctx.fillStyle = grad;
-              this.ctx.beginPath();
-              this.ctx.moveTo(sx, CONFIG.TILE_SIZE - 8);
-              this.ctx.lineTo(sx + spikeWidth / 2, CONFIG.TILE_SIZE - 32);
-              this.ctx.lineTo(sx + spikeWidth, CONFIG.TILE_SIZE - 8);
-              this.ctx.closePath();
-              this.ctx.fill();
-              
-              this.ctx.strokeStyle = '#ffffff';
-              this.ctx.lineWidth = 1;
-              this.ctx.beginPath();
-              this.ctx.moveTo(sx + spikeWidth / 2, CONFIG.TILE_SIZE - 32);
-              this.ctx.lineTo(sx + spikeWidth, CONFIG.TILE_SIZE - 8);
-              this.ctx.stroke();
+            // Pulsing Toxic Vein
+            const veinPulse = (Math.sin(now * 0.004 + i * 2) + 1) / 2;
+            this.ctx.strokeStyle = `rgba(34, 197, 94, ${0.2 + veinPulse * 0.6})`; // Glowing green
+            this.ctx.lineWidth = 1.5;
+            this.ctx.beginPath();
+            this.ctx.moveTo(sx + spikeW/2, CONFIG.TILE_SIZE - 32);
+            // Trace the curve down the center
+            this.ctx.quadraticCurveTo(sx + spikeW/2 - 1, CONFIG.TILE_SIZE - 20, sx + spikeW - 2, CONFIG.TILE_SIZE - 6);
+            this.ctx.stroke();
+            this.ctx.lineWidth = 1;
+            
+            // Poison Drip with Splash
+            this.ctx.fillStyle = 'rgba(74, 222, 128, 0.8)'; // Toxic green
+            const dripDrop = ((now * 0.05 + i*15) % 50); // 0 to 50
+            if (dripDrop > 10 && dripDrop <= 38) {
+                // Falling drop
+                const dripSize = Math.max(0.5, 2 - (dripDrop - 10) * 0.04);
+                this.ctx.beginPath();
+                this.ctx.arc(sx + spikeW/2, CONFIG.TILE_SIZE - 32 + (dripDrop - 10), dripSize, 0, Math.PI*2);
+                this.ctx.fill();
+            } else if (dripDrop > 38 && dripDrop <= 45) {
+                // Splash on the ground
+                const splashProgress = (dripDrop - 38) / 7; // 0 to 1
+                this.ctx.globalAlpha = 1 - splashProgress;
+                this.ctx.beginPath();
+                this.ctx.ellipse(sx + spikeW/2, CONFIG.TILE_SIZE - 4, 2 + splashProgress*4, 1, 0, 0, Math.PI*2);
+                this.ctx.fill();
+                this.ctx.globalAlpha = 1.0;
             }
           }
           this.ctx.restore();
         } else if (tileVal === 5) {
+          // Gold Coin
           this.ctx.save();
           this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2);
 
+          // Floaty bob
           const floatOffset = Math.sin(now * 0.004 + (c * 17) + (r * 23)) * 3;
           this.ctx.translate(0, floatOffset);
 
+          // 3D Spin
           const spinScale = Math.cos(now * 0.006 + (c * 7) + (r * 11));
           this.ctx.scale(spinScale, 1);
 
-          if (!this._coinOuterGrad) {
-            this._coinOuterGrad = this.ctx.createRadialGradient(0, 0, CONFIG.TILE_SIZE * 0.1, 0, 0, CONFIG.TILE_SIZE * 0.35);
-            this._coinOuterGrad.addColorStop(0, '#ffe57f');
-            this._coinOuterGrad.addColorStop(0.7, '#ffd60a');
-            this._coinOuterGrad.addColorStop(1, '#ffab00');
+          // Coin Thickness (3D Edge)
+          if (spinScale > 0) {
+            this.ctx.fillStyle = '#b45309'; // Dark gold edge
+            this.ctx.beginPath();
+            this.ctx.arc(-2, 0, CONFIG.TILE_SIZE * 0.32, 0, Math.PI * 2);
+            this.ctx.fill();
+          } else {
+            this.ctx.fillStyle = '#b45309';
+            this.ctx.beginPath();
+            this.ctx.arc(2, 0, CONFIG.TILE_SIZE * 0.32, 0, Math.PI * 2);
+            this.ctx.fill();
           }
-          this.ctx.fillStyle = this._coinOuterGrad;
-          this.ctx.strokeStyle = '#d4a359';
+
+          // Main Coin Face
+          const coinGrad = this.ctx.createRadialGradient(0, -5, 2, 0, 0, CONFIG.TILE_SIZE * 0.35);
+          coinGrad.addColorStop(0, '#fef08a');
+          coinGrad.addColorStop(0.5, '#eab308');
+          coinGrad.addColorStop(1, '#ca8a04');
+          this.ctx.fillStyle = coinGrad;
+          
+          this.ctx.strokeStyle = '#fde047'; // Bright rim highlight
           this.ctx.lineWidth = 1.5;
           this.ctx.beginPath();
           this.ctx.arc(0, 0, CONFIG.TILE_SIZE * 0.32, 0, Math.PI * 2);
           this.ctx.fill();
           this.ctx.stroke();
 
-          this.ctx.fillStyle = '#ffd60a';
-          this.ctx.strokeStyle = '#ffe57f';
+          // Inner engraving ring
+          this.ctx.strokeStyle = '#a16207';
           this.ctx.lineWidth = 1;
           this.ctx.beginPath();
           this.ctx.arc(0, 0, CONFIG.TILE_SIZE * 0.22, 0, Math.PI * 2);
-          this.ctx.fill();
           this.ctx.stroke();
 
-          this.ctx.fillStyle = '#ffab00';
-          this.ctx.font = 'bold 13px sans-serif';
-          this.ctx.textAlign = 'center';
-          this.ctx.textBaseline = 'middle';
-          this.ctx.fillText('$', 0, 0.5);
-
-          this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-          this.ctx.lineWidth = 1.5;
+          // Star engraving in the center
+          this.ctx.fillStyle = '#fef08a';
           this.ctx.beginPath();
-          this.ctx.arc(-2, -2, CONFIG.TILE_SIZE * 0.2, Math.PI, Math.PI * 1.5);
-          this.ctx.stroke();
+          for (let i = 0; i < 5; i++) {
+            this.ctx.lineTo(Math.cos( (18 + i * 72) / 180 * Math.PI ) * 6,
+                            -Math.sin( (18 + i * 72) / 180 * Math.PI ) * 6);
+            this.ctx.lineTo(Math.cos( (54 + i * 72) / 180 * Math.PI ) * 3,
+                            -Math.sin( (54 + i * 72) / 180 * Math.PI ) * 3);
+          }
+          this.ctx.closePath();
+          this.ctx.fill();
+
+          // Shiny Glint passing over
+          const glintOffset = (now * 0.05 + c*20) % 100;
+          if (glintOffset < 20) {
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${1 - Math.abs(glintOffset - 10)/10})`;
+            this.ctx.beginPath();
+            this.ctx.ellipse(0, -CONFIG.TILE_SIZE * 0.2, 8, 2, Math.PI/4, 0, Math.PI*2);
+            this.ctx.fill();
+          }
 
           this.ctx.restore();
         } else if (tileVal === 6) {
@@ -4164,67 +4382,183 @@ if (this.player.jumpBufferTimer > 0) {
         } else if (tileVal === 7) {
           this.editor.renderEarthBlock(x, y, 1, c, r, this);
         } else if (tileVal === 8) {
-          // Lock Block
-          this.ctx.fillStyle = '#9e9e9e';
+          // Lock Block (Procedural Vault Door)
+          // Metallic base gradient
+          const lockGrad = this.ctx.createLinearGradient(x, y, x + CONFIG.TILE_SIZE, y + CONFIG.TILE_SIZE);
+          lockGrad.addColorStop(0, '#d1d5db'); // Light silver
+          lockGrad.addColorStop(0.5, '#9ca3af'); // Mid grey
+          lockGrad.addColorStop(1, '#4b5563'); // Dark slate
+          this.ctx.fillStyle = lockGrad;
           this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          this.ctx.fillStyle = '#616161';
-          this.ctx.font = 'bold 20px sans-serif';
-          this.ctx.textAlign = 'center';
-          this.ctx.textBaseline = 'middle';
-          this.ctx.fillText('L', x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          
+          // Inner recessed panel
+          this.ctx.fillStyle = '#374151';
+          this.ctx.fillRect(x + 4, y + 4, CONFIG.TILE_SIZE - 8, CONFIG.TILE_SIZE - 8);
+          this.ctx.fillStyle = '#6b7280';
+          this.ctx.fillRect(x + 6, y + 6, CONFIG.TILE_SIZE - 12, CONFIG.TILE_SIZE - 12);
+
+          // 4 Rivets in the corners
+          this.ctx.fillStyle = '#1f2937';
+          const rivetOffset = 8;
+          [ [rivetOffset, rivetOffset], 
+            [CONFIG.TILE_SIZE - rivetOffset, rivetOffset], 
+            [rivetOffset, CONFIG.TILE_SIZE - rivetOffset], 
+            [CONFIG.TILE_SIZE - rivetOffset, CONFIG.TILE_SIZE - rivetOffset] 
+          ].forEach(([rx, ry]) => {
+            this.ctx.beginPath();
+            this.ctx.arc(x + rx, y + ry, 1.5, 0, Math.PI * 2);
+            this.ctx.fill();
+          });
+
+          // Keyhole
+          this.ctx.fillStyle = '#111827'; // Near black
+          const kx = x + CONFIG.TILE_SIZE / 2;
+          const ky = y + CONFIG.TILE_SIZE / 2 - 2;
+          this.ctx.beginPath();
+          this.ctx.arc(kx, ky, 4, 0, Math.PI * 2); // Top round part
+          this.ctx.moveTo(kx - 3, ky + 2);
+          this.ctx.lineTo(kx + 3, ky + 2);
+          this.ctx.lineTo(kx + 4, ky + 10); // Flare out at bottom
+          this.ctx.lineTo(kx - 4, ky + 10);
+          this.ctx.fill();
+          
+          // Magical locked aura
+          const lockGlow = Math.sin(now * 0.004) * 2;
+          this.ctx.strokeStyle = `rgba(239, 68, 68, ${0.3 + lockGlow * 0.1})`; // Red locked glow
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeRect(x + 2, y + 2, CONFIG.TILE_SIZE - 4, CONFIG.TILE_SIZE - 4);
         } else if (tileVal === 9) {
-          // Key
+          // Procedural Golden Key
           this.ctx.save();
           this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2);
           const floatOffset = Math.sin(now * 0.005 + (c * 17) + (r * 23)) * 4;
           this.ctx.translate(0, floatOffset);
-          this.ctx.fillStyle = '#ffeb3b';
-          this.ctx.fillRect(-10, -5, 20, 10);
-          this.ctx.fillStyle = '#c8b900';
-          this.ctx.font = 'bold 20px sans-serif';
-          this.ctx.textAlign = 'center';
-          this.ctx.textBaseline = 'middle';
-          this.ctx.fillText('K', 0, 0);
-          this.ctx.restore();
-        } else if (tileVal === 59) {
-          // Reflector Shield
-          this.ctx.fillStyle = '#06b6d4'; // Cyan shield
-          this.ctx.fillRect(x + 5, y + 5, CONFIG.TILE_SIZE - 10, CONFIG.TILE_SIZE - 10);
-          this.ctx.strokeStyle = '#cffafe';
-          this.ctx.lineWidth = 2;
-          this.ctx.beginPath();
-          this.ctx.moveTo(x + 10, y + 20);
-          this.ctx.lineTo(x + 20, y + 10);
-          this.ctx.lineTo(x + 30, y + 20);
-          this.ctx.stroke();
-        } else if (tileVal === 60) {
-          // Gravity Well
-          this.ctx.save();
-          this.ctx.translate(x + 20, y + 20);
-          // Slowly rotate the aura
-          this.ctx.rotate(Date.now() / 500);
           
-          this.ctx.fillStyle = '#1e1b4b'; // Deep dark purple background
+          // Slight rotation based on time to make it sway
+          this.ctx.rotate(Math.sin(now * 0.003) * 0.2);
+
+          // Glow behind the key
+          this.ctx.fillStyle = 'rgba(250, 204, 21, 0.3)';
           this.ctx.beginPath();
-          this.ctx.arc(0, 0, 16, 0, Math.PI * 2);
-          this.ctx.fill();
-          this.ctx.strokeStyle = '#7c3aed'; // Purple aura
-          this.ctx.lineWidth = 3;
-          this.ctx.beginPath();
-          this.ctx.arc(0, 0, 12, 0, Math.PI * 2);
-          this.ctx.stroke();
-          
-          // Little swirling bits
-          this.ctx.fillStyle = '#c4b5fd';
-          this.ctx.beginPath();
-          this.ctx.arc(10, 0, 2, 0, Math.PI * 2);
-          this.ctx.arc(-10, 0, 2, 0, Math.PI * 2);
+          this.ctx.arc(0, 0, 16 + Math.sin(now * 0.008) * 2, 0, Math.PI * 2);
           this.ctx.fill();
 
-          this.ctx.fillStyle = '#000000'; // Black center
+          // Key Base color
+          this.ctx.fillStyle = '#fbbf24'; // Golden yellow
+          
+          // Shaft
+          this.ctx.fillRect(0, -2, 12, 4);
+          // Teeth
+          this.ctx.fillRect(8, 2, 3, 4);
+          this.ctx.fillRect(4, 2, 2, 3);
+          
+          // Bow (Handle)
           this.ctx.beginPath();
-          this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
+          this.ctx.arc(-6, 0, 6, 0, Math.PI * 2);
           this.ctx.fill();
+          this.ctx.fillStyle = '#000000'; // Hole in bow
+          this.ctx.beginPath();
+          this.ctx.arc(-6, 0, 3, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          // Golden Glint
+          const glintPos = (now * 0.05) % 100;
+          if (glintPos < 20) {
+             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+             this.ctx.fillRect(-8 + glintPos, -3, 2, 6); // Sweep across
+          }
+
+          this.ctx.restore();
+        } else if (tileVal === 59) {
+          // Reflector Shield (Energy Barrier)
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2);
+          
+          // Outer pulsing energy field
+          const shieldPulse = (Math.sin(now * 0.005) + 1) / 2; // 0 to 1
+          this.ctx.fillStyle = `rgba(6, 182, 212, ${0.2 + shieldPulse * 0.2})`; // Cyan glow
+          this.ctx.beginPath();
+          // Draw a hexagonal forcefield
+          this.ctx.moveTo(0, -14);
+          this.ctx.lineTo(12, -8);
+          this.ctx.lineTo(12, 8);
+          this.ctx.lineTo(0, 14);
+          this.ctx.lineTo(-12, 8);
+          this.ctx.lineTo(-12, -8);
+          this.ctx.closePath();
+          this.ctx.fill();
+
+          // Inner solid core
+          this.ctx.fillStyle = 'rgba(8, 145, 178, 0.6)';
+          this.ctx.beginPath();
+          this.ctx.moveTo(0, -10);
+          this.ctx.lineTo(8, -5);
+          this.ctx.lineTo(8, 5);
+          this.ctx.lineTo(0, 10);
+          this.ctx.lineTo(-8, 5);
+          this.ctx.lineTo(-8, -5);
+          this.ctx.closePath();
+          this.ctx.fill();
+
+          // Deflector Chevron (Pulsing bright white)
+          this.ctx.strokeStyle = `rgba(207, 250, 254, ${0.5 + shieldPulse * 0.5})`;
+          this.ctx.lineWidth = 2.5;
+          this.ctx.lineCap = 'round';
+          this.ctx.lineJoin = 'round';
+          this.ctx.beginPath();
+          this.ctx.moveTo(-5, 2);
+          this.ctx.lineTo(0, -4);
+          this.ctx.lineTo(5, 2);
+          this.ctx.stroke();
+
+          // Scanning laser line across the shield
+          const scanY = ((now * 0.02) % 28) - 14;
+          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+          this.ctx.fillRect(-10, scanY, 20, 1.5);
+
+          this.ctx.restore();
+        } else if (tileVal === 60) {
+          // Gravity Well (Black Hole)
+          this.ctx.save();
+          this.ctx.translate(x + CONFIG.TILE_SIZE / 2, y + CONFIG.TILE_SIZE / 2);
+          
+          // Outer accretion disk (Swirling purple/magenta)
+          const wellGlow = (Math.sin(now * 0.002) + 1) / 2;
+          this.ctx.fillStyle = `rgba(139, 92, 246, ${0.1 + wellGlow * 0.1})`; // Purple aura
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, 18 + wellGlow * 4, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          // Rapidly spinning inner matter
+          this.ctx.rotate(now * 0.003); // Fast spin
+          for (let i = 0; i < 3; i++) {
+            this.ctx.strokeStyle = `rgba(192, 132, 252, ${0.4 + (i*0.2)})`; // Lighter purple
+            this.ctx.lineWidth = 1.5;
+            this.ctx.beginPath();
+            // Create elliptical squished rings for a 3D effect
+            this.ctx.ellipse(0, 0, 14 - i*2, 6 - i, now * 0.001 * i, 0, Math.PI * 2);
+            this.ctx.stroke();
+          }
+
+          // Particles getting sucked in
+          this.ctx.fillStyle = '#ffffff';
+          for(let p=0; p<4; p++) {
+             const suckIn = (now * 0.005 + p * 5) % 15; // Moves from 15 down to 0
+             const dist = 16 - suckIn;
+             if (dist > 6) {
+               this.ctx.beginPath();
+               this.ctx.arc(dist, 0, 1.5, 0, Math.PI*2);
+               this.ctx.fill();
+             }
+             this.ctx.rotate(Math.PI / 2); // Spread them out
+          }
+
+          // Event Horizon (Pitch black center)
+          this.ctx.fillStyle = '#000000';
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, 6 + Math.sin(now*0.01)*0.5, 0, Math.PI * 2); // Slightly throbbing center
+          this.ctx.fill();
+          
           this.ctx.restore();
         } else if (tileVal === 105) {
           // Paint Block
@@ -4508,59 +4842,182 @@ if (this.player.jumpBufferTimer > 0) {
           this.ctx.stroke();
           this.ctx.restore();
         } else if (tileVal === 17) {
-          // Ice Block
-          this.ctx.fillStyle = '#a5f3fc';
-          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          this.ctx.fillStyle = '#cffafe';
-          this.ctx.fillRect(x + 2, y + 2, CONFIG.TILE_SIZE - 4, 4);
-          this.ctx.fillRect(x + 2, y + 6, 4, CONFIG.TILE_SIZE - 8);
+          // Ice Block (Procedural Glassy Frost)
+          this.ctx.save();
+          this.ctx.translate(x, y);
+
+          // Translucent frozen gradient
+          const iceGrad = this.ctx.createLinearGradient(0, 0, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          iceGrad.addColorStop(0, 'rgba(207, 250, 254, 0.8)'); // Very light blue
+          iceGrad.addColorStop(0.5, 'rgba(165, 243, 252, 0.6)');
+          iceGrad.addColorStop(1, 'rgba(103, 232, 249, 0.9)'); // Deep frost
+          this.ctx.fillStyle = iceGrad;
+          this.ctx.fillRect(0, 0, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+
+          // Frosty outer rim
+          this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.strokeRect(1, 1, CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2);
+
+          // Inner frost fractures
+          this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          this.ctx.lineWidth = 1;
+          this.ctx.beginPath();
+          // Fracture 1
+          this.ctx.moveTo(CONFIG.TILE_SIZE * 0.2, 0);
+          this.ctx.lineTo(CONFIG.TILE_SIZE * 0.4, CONFIG.TILE_SIZE * 0.3);
+          this.ctx.lineTo(CONFIG.TILE_SIZE * 0.3, CONFIG.TILE_SIZE * 0.7);
+          // Fracture 2
+          this.ctx.moveTo(CONFIG.TILE_SIZE, CONFIG.TILE_SIZE * 0.4);
+          this.ctx.lineTo(CONFIG.TILE_SIZE * 0.6, CONFIG.TILE_SIZE * 0.6);
+          this.ctx.lineTo(CONFIG.TILE_SIZE * 0.8, CONFIG.TILE_SIZE);
+          this.ctx.stroke();
+
+          // Sweeping Glint
+          const glintX = ((now * 0.05 + c * 30 + r * 15) % (CONFIG.TILE_SIZE * 3)) - CONFIG.TILE_SIZE;
+          if (glintX > -CONFIG.TILE_SIZE && glintX < CONFIG.TILE_SIZE) {
+            const glintGrad = this.ctx.createLinearGradient(glintX, 0, glintX + 15, 0);
+            glintGrad.addColorStop(0, 'rgba(255,255,255,0)');
+            glintGrad.addColorStop(0.5, 'rgba(255,255,255,0.7)');
+            glintGrad.addColorStop(1, 'rgba(255,255,255,0)');
+            
+            this.ctx.fillStyle = glintGrad;
+            // Draw diagonal glint
+            this.ctx.beginPath();
+            this.ctx.moveTo(glintX + 10, 0);
+            this.ctx.lineTo(glintX + 25, 0);
+            this.ctx.lineTo(glintX + 15, CONFIG.TILE_SIZE);
+            this.ctx.lineTo(glintX, CONFIG.TILE_SIZE);
+            this.ctx.fill();
+          }
+
+          this.ctx.restore();
         } else if (tileVal === 18) {
-          // Anti-Gravity Zone
+          // Anti-Gravity Zone (Soot-Magic)
           const cxG = x + CONFIG.TILE_SIZE / 2;
           const cyG = y + CONFIG.TILE_SIZE / 2;
-          this.ctx.fillStyle = 'rgba(139, 92, 246, 0.3)';
-          this.ctx.beginPath();
-          this.ctx.arc(cxG, cyG, CONFIG.TILE_SIZE * 0.4, 0, Math.PI * 2);
-          this.ctx.fill();
-          this.ctx.strokeStyle = '#c084fc';
-          this.ctx.lineWidth = 2;
-          const pulse = Math.sin(now * 0.005) * 2;
-          this.ctx.beginPath();
-          this.ctx.arc(cxG, cyG, CONFIG.TILE_SIZE * 0.3 + pulse, 0, Math.PI * 2);
-          this.ctx.stroke();
-          // Floating particles effect
-          this.ctx.fillStyle = '#d8b4fe';
-          this.ctx.beginPath();
-          this.ctx.arc(x + CONFIG.TILE_SIZE * 0.3, y + CONFIG.TILE_SIZE - ((now * 0.02) % CONFIG.TILE_SIZE), 2, 0, Math.PI * 2);
-          this.ctx.arc(x + CONFIG.TILE_SIZE * 0.7, y + CONFIG.TILE_SIZE - ((now * 0.015 + 10) % CONFIG.TILE_SIZE), 1.5, 0, Math.PI * 2);
-          this.ctx.fill();
-        } else if (tileVal === 19 || tileVal === 20) {
-          // Conveyor Belts
-          this.ctx.fillStyle = '#64748b';
-          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          this.ctx.fillStyle = '#94a3b8';
-          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 6);
-          this.ctx.fillStyle = '#f8fafc';
-          this.ctx.beginPath();
-          const offset = (now * 0.05) % 10;
-          if (tileVal === 19) {
-            // Left Conveyor
-            this.ctx.moveTo(x + 25 - offset, y + 15);
-            this.ctx.lineTo(x + 15 - offset, y + 20);
-            this.ctx.lineTo(x + 25 - offset, y + 25);
-          } else {
-            // Right Conveyor
-            this.ctx.moveTo(x + 15 + offset, y + 15);
-            this.ctx.lineTo(x + 25 + offset, y + 20);
-            this.ctx.lineTo(x + 15 + offset, y + 25);
+          
+          // Player Reactivity
+          let distToPlayer = 200;
+          if (this.player) {
+            const dx = cxG - (this.player.x + this.player.width/2);
+            const dy = cyG - (this.player.y + this.player.height/2);
+            distToPlayer = Math.sqrt(dx*dx + dy*dy);
           }
+          const proximityFactor = Math.max(0, 1 - (distToPlayer / 100));
+          const activeSpeed = 0.002 + (proximityFactor * 0.006); // Spins faster when near
+          const pulseGlow = Math.sin(now * 0.005) * 3 * proximityFactor;
+          
+          // Shifting dark base circle
+          const baseRadius = CONFIG.TILE_SIZE * 0.35 + Math.sin(now * 0.003) * 3 + pulseGlow;
+          this.ctx.fillStyle = `rgba(${20 + proximityFactor*20}, 15, ${30 + proximityFactor*30}, 0.6)`;
+          this.ctx.beginPath();
+          this.ctx.arc(cxG, cyG, baseRadius, 0, Math.PI * 2);
           this.ctx.fill();
+
+          // Magical Rune Ring (Outer Border)
+          this.ctx.strokeStyle = `rgba(168, 85, 247, ${0.4 + proximityFactor * 0.4})`; // Purple ring
+          this.ctx.lineWidth = 1.5;
+          this.ctx.setLineDash([8, 4, 2, 4]); // Dashed rune pattern
+          this.ctx.lineDashOffset = -now * activeSpeed * 20; // Rotate the dashed lines
+          this.ctx.beginPath();
+          this.ctx.arc(cxG, cyG, baseRadius + 4, 0, Math.PI * 2);
+          this.ctx.stroke();
+          this.ctx.setLineDash([]); // Reset dash
+          
+          // Swirling soot particles around the center
+          this.ctx.fillStyle = '#1e1720'; // Soot black
+          const numSwarms = 10;
+          for (let i = 0; i < numSwarms; i++) {
+            const angle = (now * activeSpeed) + (i * Math.PI * 2 / numSwarms);
+            const radiusOffset = Math.sin(now * 0.005 + i) * 6;
+            const px = cxG + Math.cos(angle) * (12 + radiusOffset);
+            const py = cyG + Math.sin(angle) * (12 + radiusOffset);
+            this.ctx.beginPath();
+            this.ctx.arc(px, py, 2.5 + Math.sin(now*0.01+i), 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+
+          // Floating magical embers going UP (anti-gravity cue)
+          this.ctx.fillStyle = '#c084fc'; // Purple magic tint
+          for(let i=0; i<5; i++) {
+            const emberY = (y + CONFIG.TILE_SIZE) - ((now * (0.03 + proximityFactor*0.02) + i*15) % CONFIG.TILE_SIZE);
+            const emberX = x + 8 + (i * 6) + Math.sin(now * 0.005 + i)*4;
+            const size = Math.max(0.5, 2 - (emberY - y)/CONFIG.TILE_SIZE * 2 + proximityFactor);
+            this.ctx.beginPath();
+            this.ctx.arc(emberX, emberY, size, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+        } else if (tileVal === 19 || tileVal === 20) {
+          // Conveyor Belts (Shifting Dirt)
+          // 3D cylindrical gradient for the main body
+          const grad = this.ctx.createLinearGradient(x, y + 6, x, y + CONFIG.TILE_SIZE);
+          grad.addColorStop(0, '#5c4a3d'); // Lighter top edge
+          grad.addColorStop(0.5, '#4a3b32'); // Mid dirt
+          grad.addColorStop(1, '#2c221c'); // Dark bottom edge
+          this.ctx.fillStyle = grad;
+          this.ctx.fillRect(x, y + 6, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE - 6);
+          
+          // Darker dirt top rim
+          this.ctx.fillStyle = '#3a2b22'; 
+          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 6);
+          
+          // Drop shadow under the rim
+          this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          this.ctx.fillRect(x, y + 6, CONFIG.TILE_SIZE, 2);
+          
+          // Draw shifting dirt clods
+          this.ctx.fillStyle = '#654b38'; // Highlight dirt color
+          const speed = 0.04;
+          const direction = (tileVal === 19) ? -1 : 1;
+          
+          for(let i=0; i<4; i++) {
+            // Calculate wrapping offset
+            let rawOffset = ((now * speed * direction) + i * 10) % CONFIG.TILE_SIZE;
+            if (rawOffset < 0) rawOffset += CONFIG.TILE_SIZE;
+            
+            // Draw a clump of dirt (angles/streaks)
+            this.ctx.beginPath();
+            this.ctx.arc(x + rawOffset, y + 15 + Math.sin(i)*4, 3, 0, Math.PI*2);
+            this.ctx.arc(x + rawOffset + 4*direction, y + 17 + Math.sin(i)*4, 2, 0, Math.PI*2);
+            this.ctx.fill();
+            
+            // Draw rolling clods on the top edge
+            let topOffset = ((now * speed * 1.5 * direction) + i * 12) % CONFIG.TILE_SIZE;
+            if (topOffset < 0) topOffset += CONFIG.TILE_SIZE;
+            this.ctx.beginPath();
+            this.ctx.arc(x + topOffset, y + 2, 2, 0, Math.PI*2);
+            this.ctx.fill();
+          }
+          
+          // Bumping pebbles
+          this.ctx.fillStyle = '#1e1720'; // Dark pebbles
+          for(let p=0; p<2; p++) {
+            let pebbleOffset = ((now * speed * 1.2 * direction) + p * 20) % CONFIG.TILE_SIZE;
+            if (pebbleOffset < 0) pebbleOffset += CONFIG.TILE_SIZE;
+            const hop = Math.abs(Math.sin((pebbleOffset/CONFIG.TILE_SIZE)*Math.PI * 4)) * 3;
+            this.ctx.beginPath();
+            this.ctx.arc(x + pebbleOffset, y + 2 - hop, 1.5, 0, Math.PI*2);
+            this.ctx.fill();
+          }
         } else if (tileVal === 23 || tileVal === 24) {
           // Dash Panels
           this.ctx.fillStyle = '#eab308'; // Yellow base
           this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           this.ctx.fillStyle = '#ca8a04';
           this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, 6);
+          
+          // Speed lines
+          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+          const speedOffset = (now * 0.3) % CONFIG.TILE_SIZE;
+          const direction = (tileVal === 23) ? -1 : 1;
+          for (let i = 0; i < 3; i++) {
+            let lineX = (speedOffset * direction + i * 12) % CONFIG.TILE_SIZE;
+            if (lineX < 0) lineX += CONFIG.TILE_SIZE;
+            this.ctx.fillRect(x + lineX, y + 10 + i * 6, 8, 2);
+          }
+
+          // Arrows
           this.ctx.fillStyle = '#ffffff';
           this.ctx.beginPath();
           const offset = (now * 0.15) % 10; // Fast animation
@@ -4575,53 +5032,138 @@ if (this.player.jumpBufferTimer > 0) {
           }
           this.ctx.fill();
         } else if (tileVal === 21) {
-          // Tripwire
-          this.ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
-          this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          this.ctx.strokeStyle = '#ef4444';
+          // Tripwire (Laser Emitter)
+          // Metal emitter boxes on walls
+          this.ctx.fillStyle = '#475569'; // dark grey metal
+          this.ctx.fillRect(x, y + 10, 4, 12);
+          this.ctx.fillRect(x + CONFIG.TILE_SIZE - 4, y + 10, 4, 12);
+
+          // Glowing laser beam
+          const laserAlpha = (Math.sin(now * 0.01) + 1) / 2;
+          this.ctx.fillStyle = `rgba(239, 68, 68, ${0.2 + laserAlpha * 0.2})`;
+          this.ctx.fillRect(x, y + 13, CONFIG.TILE_SIZE, 6); // soft outer glow
+          
+          this.ctx.strokeStyle = '#fca5a5'; // bright inner laser core
           this.ctx.lineWidth = 1.5;
           this.ctx.beginPath();
-          // Pulsing line
-          const glow = Math.sin(now * 0.01) * 2;
-          this.ctx.moveTo(x, y + CONFIG.TILE_SIZE / 2 + glow);
-          this.ctx.lineTo(x + CONFIG.TILE_SIZE, y + CONFIG.TILE_SIZE / 2 + glow);
+          this.ctx.moveTo(x + 4, y + 16);
+          this.ctx.lineTo(x + CONFIG.TILE_SIZE - 4, y + 16);
           this.ctx.stroke();
+
+          // Laser dust/sparks drifting along the beam
+          this.ctx.fillStyle = '#f87171';
+          for (let i = 0; i < 3; i++) {
+             const sparkX = x + ((now * 0.05 + i*10) % CONFIG.TILE_SIZE);
+             const sparkY = y + 16 + Math.sin(now * 0.02 + i) * 6;
+             this.ctx.beginPath();
+             this.ctx.arc(sparkX, sparkY, 1, 0, Math.PI * 2);
+             this.ctx.fill();
+          }
         } else if (tileVal === 22) {
-          // Crumble Block
+          // Crumble Block (Cracked Stone)
           const key = `${c},${r}`;
           const crumbleData = this.crumblingTiles.get(key);
           let offsetX = 0;
           let offsetY = 0;
+          let isShaking = false;
           if (crumbleData && crumbleData.state === 'shaking') {
             offsetX = (Math.random() - 0.5) * 4;
             offsetY = (Math.random() - 0.5) * 4;
+            isShaking = true;
           }
-          this.ctx.fillStyle = '#b45309';
-          this.ctx.fillRect(x + offsetX, y + offsetY, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          this.ctx.strokeStyle = '#78350f';
+
+          this.ctx.save();
+          this.ctx.translate(x + offsetX, y + offsetY);
+
+          // 3D Stone Block Bevel
+          const stoneGrad = this.ctx.createLinearGradient(0, 0, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          stoneGrad.addColorStop(0, '#d6d3d1'); // Light stone
+          stoneGrad.addColorStop(1, '#a8a29e'); // Dark stone
+          this.ctx.fillStyle = stoneGrad;
+          this.ctx.fillRect(0, 0, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+          
+          // Stone edge shading
+          this.ctx.strokeStyle = '#78716c';
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeRect(1, 1, CONFIG.TILE_SIZE - 2, CONFIG.TILE_SIZE - 2);
+
+          // Web of deep cracks
+          this.ctx.strokeStyle = '#44403c'; // Deep dark crack
           this.ctx.lineWidth = 1.5;
+          this.ctx.lineJoin = 'bevel';
           this.ctx.beginPath();
-          this.ctx.moveTo(x + offsetX + 5, y + offsetY);
-          this.ctx.lineTo(x + offsetX + 15, y + offsetY + 15);
-          this.ctx.lineTo(x + offsetX + 10, y + offsetY + 25);
-          this.ctx.moveTo(x + offsetX + 30, y + offsetY + 10);
-          this.ctx.lineTo(x + offsetX + 20, y + offsetY + 20);
-          this.ctx.lineTo(x + offsetX + 25, y + offsetY + 40);
+          // Crack 1
+          this.ctx.moveTo(5, 0);
+          this.ctx.lineTo(12, 10);
+          this.ctx.lineTo(8, 20);
+          this.ctx.lineTo(15, 32);
+          // Crack 2
+          this.ctx.moveTo(32, 8);
+          this.ctx.lineTo(20, 12);
+          this.ctx.lineTo(22, 22);
+          this.ctx.lineTo(28, 32);
+          // Cross fracture
+          this.ctx.moveTo(12, 10);
+          this.ctx.lineTo(20, 12);
           this.ctx.stroke();
+
+          // If shaking, spawn tiny dust particles randomly
+          if (isShaking && Math.random() > 0.5) {
+             this.ctx.fillStyle = 'rgba(168, 162, 158, 0.6)'; // Dust color
+             this.ctx.beginPath();
+             this.ctx.arc(Math.random() * CONFIG.TILE_SIZE, Math.random() * CONFIG.TILE_SIZE, Math.random() * 2, 0, Math.PI * 2);
+             this.ctx.fill();
+          }
+          this.ctx.restore();
         } else if (tileVal === 25) {
-          // Checkpoint Flag
+          // Checkpoint Flag (Waving Procedural)
+          this.ctx.save();
+          this.ctx.translate(x, y);
+
+          // Pole Base
+          this.ctx.fillStyle = '#64748b';
+          this.ctx.fillRect(4, 36, 12, 4);
+
+          // Metallic Pole Gradient
+          const poleGrad = this.ctx.createLinearGradient(8, 0, 12, 0);
+          poleGrad.addColorStop(0, '#9ca3af');
+          poleGrad.addColorStop(0.5, '#f3f4f6');
+          poleGrad.addColorStop(1, '#4b5563');
+          this.ctx.fillStyle = poleGrad;
+          this.ctx.fillRect(8, 6, 4, 30);
+
+          // Golden Finial (Ball on top)
+          this.ctx.fillStyle = '#fbbf24';
+          this.ctx.beginPath();
+          this.ctx.arc(10, 4, 3.5, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          // Waving Flag Cloth
           this.ctx.fillStyle = '#ef4444'; // Red flag
           this.ctx.beginPath();
-          this.ctx.moveTo(x + 10, y + 5);
-          this.ctx.lineTo(x + 30, y + 12);
-          this.ctx.lineTo(x + 10, y + 20);
+          this.ctx.moveTo(12, 6);
+          // Top edge waving
+          const wave1 = Math.sin(now * 0.005) * 3;
+          const wave2 = Math.sin(now * 0.005 - 1) * 4;
+          this.ctx.quadraticCurveTo(20, 4 + wave1, 30, 8 + wave2);
+          // Right edge
+          this.ctx.lineTo(30, 18 + wave2);
+          // Bottom edge waving back
+          this.ctx.quadraticCurveTo(20, 14 + wave1, 12, 16);
+          this.ctx.closePath();
           this.ctx.fill();
-          this.ctx.strokeStyle = '#d4d4d8'; // Pole
-          this.ctx.lineWidth = 4;
+
+          // Flag shading/folds for depth
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
           this.ctx.beginPath();
-          this.ctx.moveTo(x + 10, y + 5);
-          this.ctx.lineTo(x + 10, y + 40);
-          this.ctx.stroke();
+          this.ctx.moveTo(12, 6);
+          this.ctx.quadraticCurveTo(16, 5 + wave1/2, 20, 6 + wave1);
+          this.ctx.lineTo(20, 16 + wave1);
+          this.ctx.quadraticCurveTo(16, 15 + wave1/2, 12, 16);
+          this.ctx.closePath();
+          this.ctx.fill();
+
+          this.ctx.restore();
         } else if (tileVal === 26) {
           // Fake Wall (looks like Earth, tile 7)
           this.ctx.fillStyle = '#4ade80';
@@ -4735,11 +5277,46 @@ if (this.player.jumpBufferTimer > 0) {
     // 2. Render Goal Doorway
     const gx = this.level.goalPos.col * CONFIG.TILE_SIZE;
     const gy = this.level.goalPos.row * CONFIG.TILE_SIZE;
-    if (this.assets.goal) {
-      this.ctx.drawImage(this.assets.goal, gx, gy, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-    } else {
-      this.ctx.fillStyle = '#e8b76c';
-      this.ctx.fillRect(gx, gy, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+    // Mystical Archway Goal
+    const glow = Math.sin(now * 0.005) * 4;
+    this.ctx.fillStyle = 'rgba(234, 179, 8, 0.2)'; // Glowing aura
+    this.ctx.beginPath();
+    this.ctx.arc(gx + CONFIG.TILE_SIZE/2, gy + CONFIG.TILE_SIZE/2, 20 + glow, 0, Math.PI*2);
+    this.ctx.fill();
+
+    this.ctx.strokeStyle = '#eab308'; // Gold arch
+    this.ctx.lineWidth = 4;
+    this.ctx.beginPath();
+    this.ctx.arc(gx + CONFIG.TILE_SIZE/2, gy + CONFIG.TILE_SIZE, 16, Math.PI, 0);
+    this.ctx.stroke();
+    
+    // Magical Runes along the arch
+    this.ctx.fillStyle = '#fef08a';
+    for (let i = 1; i <= 3; i++) {
+      const runeAngle = Math.PI + (Math.PI / 4) * i; // Angles along the arc
+      const runeX = gx + CONFIG.TILE_SIZE/2 + Math.cos(runeAngle) * 16;
+      const runeY = gy + CONFIG.TILE_SIZE + Math.sin(runeAngle) * 16;
+      const runeGlow = (Math.sin(now * 0.003 + i) + 1) / 2; // 0 to 1
+      this.ctx.globalAlpha = 0.3 + runeGlow * 0.7;
+      this.ctx.beginPath();
+      this.ctx.arc(runeX, runeY, 2.5, 0, Math.PI*2);
+      this.ctx.fill();
+    }
+    this.ctx.globalAlpha = 1.0;
+    
+    // Inward-pulling vortex
+    this.ctx.fillStyle = '#fef08a';
+    for (let i = 0; i < 5; i++) {
+      // Particles spawn far and spiral inward
+      const pLife = (now * 0.001 + i * 0.2) % 1.0; // 0.0 to 1.0
+      const radius = 20 * (1.0 - pLife); // shrinking radius
+      const spiralAngle = now * 0.005 + i + (pLife * Math.PI * 4);
+      const px = gx + CONFIG.TILE_SIZE/2 + Math.cos(spiralAngle) * radius;
+      const py = gy + CONFIG.TILE_SIZE/2 + Math.sin(spiralAngle) * radius;
+      
+      this.ctx.beginPath();
+      this.ctx.arc(px, py, 1.5 * (1.0 - pLife), 0, Math.PI*2);
+      this.ctx.fill();
     }
 
     // Render Portals if they exist
@@ -4943,20 +5520,24 @@ if (this.player.jumpBufferTimer > 0) {
       if (!this.isSimulation && !isEdit) {
         if (renderCharId !== 'classic') {
           this.playerTrails.forEach(t => {
-            this.drawForestKid(
-              this.ctx,
-              t.x,
-              t.y,
-              this.player.width,
-              this.player.height,
-              t.facing,
-              t.scaleX,
-              t.scaleY,
-              t.tiltAngle,
-              t.alpha,
-              true, // isTrail
-              t.theme
-            );
+            if (renderCharId === 'robot') {
+              this.drawRobot(this.ctx, t.x, t.y, this.player.width, this.player.height, t.facing, t.scaleX, t.scaleY, t.tiltAngle, t.alpha, true);
+            } else {
+              this.drawForestKid(
+                this.ctx,
+                t.x,
+                t.y,
+                this.player.width,
+                this.player.height,
+                t.facing,
+                t.scaleX,
+                t.scaleY,
+                t.tiltAngle,
+                t.alpha,
+                true, // isTrail
+                t.theme
+              );
+            }
           });
         }
 
@@ -4968,8 +5549,16 @@ if (this.player.jumpBufferTimer > 0) {
           this.ctx.beginPath();
           if (p.isSquare) {
             this.ctx.fillRect(p.x - p.radius, p.y - p.radius, p.radius * 2, p.radius * 2);
+            // Little highlight on square dust
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            this.ctx.fillRect(p.x - p.radius + 1, p.y - p.radius + 1, p.radius, p.radius);
           } else {
+            // Fluffy cloud dust
+            this.ctx.beginPath();
             this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            this.ctx.arc(p.x - p.radius * 0.6, p.y + p.radius * 0.3, p.radius * 0.8, 0, Math.PI * 2);
+            this.ctx.arc(p.x + p.radius * 0.6, p.y + p.radius * 0.3, p.radius * 0.8, 0, Math.PI * 2);
+            this.ctx.arc(p.x, p.y - p.radius * 0.5, p.radius * 0.9, 0, Math.PI * 2);
             this.ctx.fill();
           }
           this.ctx.restore();
@@ -4985,6 +5574,8 @@ if (this.player.jumpBufferTimer > 0) {
         
         if (renderCharId === 'classic') {
           this.drawClassicBox(this.ctx, gx, gy, this.ghost.width, this.ghost.height, this.ghost.facing, 1, 1, 0, 0.5);
+        } else if (renderCharId === 'robot') {
+          this.drawRobot(this.ctx, gx, gy, this.ghost.width, this.ghost.height, this.ghost.facing, 1, 1, 0, 0.5);
         } else if (renderCharId === 'ball') {
           this.ctx.translate(gx + this.ghost.width / 2, gy + this.ghost.height / 2);
           this.ctx.beginPath();
@@ -5004,6 +5595,19 @@ if (this.player.jumpBufferTimer > 0) {
         // Player is hidden inside the cannon barrel
       } else if (renderCharId === 'classic') {
         this.drawClassicBox(
+          this.ctx,
+          px,
+          py,
+          this.player.width,
+          this.player.height,
+          isEdit ? 'right' : this.player.facing,
+          isEdit ? 1 : this.player.scaleX,
+          isEdit ? 1 : this.player.scaleY,
+          isEdit ? 0 : this.player.tiltAngle,
+          1.0
+        );
+      } else if (renderCharId === 'robot') {
+        this.drawRobot(
           this.ctx,
           px,
           py,
@@ -5116,24 +5720,41 @@ if (this.player.jumpBufferTimer > 0) {
       ctx.arc(cx, bodyY, radius, 0, Math.PI * 2);
       ctx.fill();
 
-      // ── Fluffy bumps around silhouette (hand-drawn Ghibli feel) ────────────
-      const bumps = 9;
-      const bumpR = radius * 0.28;
-      for (let i = 0; i < bumps; i++) {
-        const angle = (i / bumps) * Math.PI * 2 - Math.PI * 0.5;
-        const bx = cx + Math.cos(angle) * (radius * 0.88);
-        const by = bodyY + Math.sin(angle) * (radius * 0.88);
-        // Each bump has a slightly different size for organic feel
-        const br = bumpR * (0.75 + 0.35 * Math.sin(i * 2.3 + 1.1));
-        if (type === 'chaser') {
-          ctx.fillStyle = i % 2 === 0 ? '#962828' : '#781414';
-        } else {
-          ctx.fillStyle = i % 2 === 0 ? '#221c25' : '#1a141e';
+      // ── Fluffy fuzzy spikes (Soot Sprite Hair) ─────────────────────────────
+      // Draw dozens of little hair-like spikes around the edge
+      const numHairs = 60;
+      ctx.fillStyle = type === 'chaser' ? '#781414' : '#1a141e';
+      ctx.beginPath();
+      const startAngle = 0;
+      ctx.moveTo(cx + Math.cos(startAngle) * (radius * 0.8), bodyY + Math.sin(startAngle) * (radius * 0.8));
+      
+      for (let i = 0; i < numHairs; i++) {
+        const angle = (i / numHairs) * Math.PI * 2;
+        const nextAngle = ((i + 1) / numHairs) * Math.PI * 2;
+        
+        // Hair flutter using Date.now() + walkFrame
+        const flutter = Math.sin(Date.now() * 0.01 + i) * (radius * 0.1);
+        // Vary the length of the hairs to make it look jagged and organic
+        let bristleLen = radius * 1.15 + flutter + ((i % 3 === 0) ? radius * 0.2 : 0);
+        
+        // Trim the hairs on the bottom so the scurrying legs are visible!
+        if (angle > Math.PI * 0.15 && angle < Math.PI * 0.85) {
+          bristleLen = radius * 0.9 + flutter; // Shorter on the bottom
         }
-        ctx.beginPath();
-        ctx.arc(bx, by, br, 0, Math.PI * 2);
-        ctx.fill();
+        
+        // Spike tip (pointy)
+        ctx.lineTo(
+          cx + Math.cos(angle + (Math.PI/numHairs)) * bristleLen, 
+          bodyY + Math.sin(angle + (Math.PI/numHairs)) * bristleLen
+        );
+        // Spike base (back down to circle)
+        ctx.lineTo(
+          cx + Math.cos(nextAngle) * (radius * 0.8), 
+          bodyY + Math.sin(nextAngle) * (radius * 0.8)
+        );
       }
+      ctx.closePath();
+      ctx.fill();
 
       // ── Large Ghibli eyes ──────────────────────────────────────────────────
       const eyeOffsetX = radius * 0.38;

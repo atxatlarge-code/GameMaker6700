@@ -483,7 +483,7 @@ window.addEventListener('DOMContentLoaded', () => {
     winOverlay.classList.remove('hidden');
   });
   engine.player.skin = window.selectedSkin;
-  window.engine = engine;
+  window.engine = engine; window.game = engine;
 
   // Initialize custom dynamic character icons
   updateCharacterIcons(engine, editor);

@@ -574,7 +574,141 @@ function createDashCityGrid() {
   return grid;
 }
 
+
+function createLevel4Grid() {
+  const grid = createBlankGrid();
+  
+  // Starting platform
+  for(let c=0; c<10; c++) {
+    for(let r=25; r<=29; r++) { grid[r][c] = 7; }
+  }
+  // Gap
+  for(let c=10; c<20; c++) {
+    grid[28][c] = 0; grid[29][c] = 0;
+    // Spikes at bottom
+    grid[29][c] = 4;
+  }
+  // Middle platform (Worm will be here)
+  for(let c=20; c<30; c++) {
+    for(let r=25; r<=29; r++) { grid[r][c] = 7; }
+  }
+  // Gap 2
+  for(let c=30; c<40; c++) {
+    grid[28][c] = 0; grid[29][c] = 0;
+    grid[29][c] = 4;
+  }
+  // High platforms for Bats
+  grid[20][34] = 7; grid[20][35] = 7;
+  
+  // Platform 3 (Chaser enemy will be here)
+  for(let c=40; c<50; c++) {
+    for(let r=25; r<=29; r++) { grid[r][c] = 7; }
+  }
+  // Gap 3
+  for(let c=50; c<55; c++) {
+    grid[28][c] = 0; grid[29][c] = 0;
+    grid[29][c] = 4;
+  }
+  // Goal
+  for(let c=55; c<60; c++) {
+    for(let r=25; r<=29; r++) { grid[r][c] = 7; }
+  }
+  
+  return grid;
+}
+
+function createBallLevelGrid() {
+  const grid = Array.from({ length: 30 }, () => Array(60).fill(0));
+  
+  // Floor and ceiling
+  for(let c=0; c<60; c++) {
+    grid[0][c] = 1;
+    grid[29][c] = 1;
+  }
+  // Left and Right walls
+  for(let r=0; r<30; r++) {
+    grid[r][0] = 1;
+    grid[r][59] = 1;
+  }
+
+  // Giant funnel towards the center
+  for(let i=0; i<15; i++) {
+    // left stairs
+    grid[28 - i][1 + i] = 1;
+    // right stairs
+    grid[28 - i][58 - i] = 1;
+  }
+  
+  // Trampolines at the bottom funnel to bounce you back up!
+  for(let c=16; c<=20; c++) {
+    grid[28][c] = 2; // Trampoline
+  }
+  for(let c=39; c<=43; c++) {
+    grid[28][c] = 2; // Trampoline
+  }
+  
+  // The central pit of spikes
+  for(let c=21; c<=38; c++) {
+    grid[29][c] = 4; // Spikes
+    grid[28][c] = 4; // Spikes
+  }
+  
+  // A safety island in the middle of the pit with a big trampoline
+  for(let c=28; c<=31; c++) {
+    grid[28][c] = 1;
+    grid[27][c] = 2; // Mega bounce
+  }
+  
+  // Bumpers scattered to create chaotic bounces
+  grid[20][10] = 28;
+  grid[22][15] = 28;
+  grid[15][20] = 28;
+  grid[18][30] = 28;
+  grid[15][40] = 28;
+  grid[22][45] = 28;
+  grid[20][50] = 28;
+  grid[10][25] = 28;
+  grid[10][35] = 28;
+
+  // Some floating platforms to land on
+  grid[12][10] = 1; grid[12][11] = 1;
+  grid[12][48] = 1; grid[12][49] = 1;
+  
+  // Gravity Wells (60) to pull the ball in crazy directions
+  grid[8][15] = 60;
+  grid[8][45] = 60;
+  
+  // Wind blowing up in the center column
+  for(let r=5; r<=24; r++) {
+    for(let c=29; c<=30; c++) {
+      grid[r][c] = 36; // Wind Up
+    }
+  }
+
+  // Goal platform at the top middle
+  for(let c=28; c<=31; c++) {
+    grid[4][c] = 1;
+  }
+  
+  // Slime on the upper walls to catch you
+  for(let r=1; r<15; r++) {
+    grid[r][1] = 32;
+    grid[r][58] = 32;
+  }
+
+  return grid;
+}
+
 const PRESETS = [
+  {
+    id: 'level-5',
+    name: 'Pinball Chaos',
+    grid: createBallLevelGrid(),
+    playerSpawn: { col: 10, row: 10, charId: 'ball' },
+    goalPos: { col: 30, row: 4 },
+    isPreset: true,
+  },
+
   {
     id: 'preset-1',
     name: 'Mushroom Forest',

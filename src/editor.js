@@ -17,6 +17,7 @@ export class Editor {
     this.theme = 'default';
 
     this.initListeners();
+    this.updateWallIcon();
   }
 
   initEngine(engine) {
@@ -29,6 +30,26 @@ export class Editor {
 
   setTheme(theme) {
     this.theme = theme;
+    this.updateWallIcon();
+  }
+
+  updateWallIcon() {
+    this.renderSolidBlock(-1000, -1000, 1, 0, 0, null);
+    const cacheKey = `0_0_0000_0000`; // Note: renderSolidBlock doesn't use theme in its cache key right now
+    const cachedCanvas = this.solidCache.get(cacheKey);
+    
+    if (cachedCanvas) {
+      const cropCanvas = document.createElement('canvas');
+      cropCanvas.width = 32;
+      cropCanvas.height = 32;
+      const cropCtx = cropCanvas.getContext('2d');
+      cropCtx.drawImage(cachedCanvas, 12, 12, 32, 32, 0, 0, 32, 32);
+
+      const wallImg = document.getElementById('img-tool-wall');
+      if (wallImg) wallImg.src = cropCanvas.toDataURL('image/png');
+      const groupImg = document.getElementById('img-group-blocks');
+      if (groupImg) groupImg.src = cropCanvas.toDataURL('image/png');
+    }
   }
 
   getGroundColor() {
@@ -369,7 +390,12 @@ export class Editor {
     const hasTop = row !== null && isSolid(c, r - 1);
     const hasBottom = row !== null && isSolid(c, r + 1);
 
-    const cacheKey = `${c}_${r}_${theme}_${hasLeft ? 1 : 0}${hasRight ? 1 : 0}${hasTop ? 1 : 0}${hasBottom ? 1 : 0}`;
+    const hasTopLeft = col !== null && row !== null && isSolid(c - 1, r - 1);
+    const hasTopRight = col !== null && row !== null && isSolid(c + 1, r - 1);
+    const hasBottomLeft = col !== null && row !== null && isSolid(c - 1, r + 1);
+    const hasBottomRight = col !== null && row !== null && isSolid(c + 1, r + 1);
+
+    const cacheKey = `${c}_${r}_${theme}_${hasLeft ? 1 : 0}${hasRight ? 1 : 0}${hasTop ? 1 : 0}${hasBottom ? 1 : 0}_${hasTopLeft ? 1 : 0}${hasTopRight ? 1 : 0}${hasBottomLeft ? 1 : 0}${hasBottomRight ? 1 : 0}`;
 
     let cachedCanvas = this.earthCache.get(cacheKey);
 
@@ -389,35 +415,67 @@ export class Editor {
         return val - Math.floor(val);
       };
 
+      const cornerR = 6;
+      const innerTL = hasTop && hasLeft && !hasTopLeft;
+      const innerTR = hasTop && hasRight && !hasTopRight;
+      const innerBR = hasBottom && hasRight && !hasBottomRight;
+      const innerBL = hasBottom && hasLeft && !hasBottomLeft;
+
       offCtx.beginPath();
-      offCtx.moveTo(0, 0);
+      
+      if (innerTL) {
+        offCtx.moveTo(0, cornerR);
+        offCtx.quadraticCurveTo(cornerR * 0.3, cornerR * 0.3, cornerR, 0);
+      } else {
+        offCtx.moveTo(0, 0);
+      }
 
       if (hasTop) {
-        offCtx.lineTo(size, 0);
+        if (innerTR) {
+          offCtx.lineTo(size - cornerR, 0);
+          offCtx.quadraticCurveTo(size - cornerR * 0.3, cornerR * 0.3, size, cornerR);
+        } else {
+          offCtx.lineTo(size, 0);
+        }
       } else {
         const w = (getWobble(c * 17 + r * 31) - 0.5) * 5;
         offCtx.quadraticCurveTo(size / 2, w, size, 0);
       }
 
       if (hasRight) {
-        offCtx.lineTo(size, size);
+        if (innerBR) {
+          offCtx.lineTo(size, size - cornerR);
+          offCtx.quadraticCurveTo(size - cornerR * 0.3, size - cornerR * 0.3, size - cornerR, size);
+        } else {
+          offCtx.lineTo(size, size);
+        }
       } else {
         const w = (getWobble(c * 19 + r * 29) - 0.5) * 5;
         offCtx.quadraticCurveTo(size + w, size / 2, size, size);
       }
 
       if (hasBottom) {
-        offCtx.lineTo(0, size);
+        if (innerBL) {
+          offCtx.lineTo(cornerR, size);
+          offCtx.quadraticCurveTo(cornerR * 0.3, size - cornerR * 0.3, 0, size - cornerR);
+        } else {
+          offCtx.lineTo(0, size);
+        }
       } else {
         const w = (getWobble(c * 23 + r * 37) - 0.5) * 5;
         offCtx.quadraticCurveTo(size / 2, size + w, 0, size);
       }
 
       if (hasLeft) {
-        offCtx.lineTo(0, 0);
+        if (innerTL) {
+          offCtx.lineTo(0, cornerR);
+        } else {
+          offCtx.lineTo(0, 0);
+        }
       } else {
         const w = (getWobble(c * 13 + r * 41) - 0.5) * 5;
-        offCtx.quadraticCurveTo(w, size / 2, 0, 0);
+        if (innerTL) offCtx.lineTo(0, cornerR);
+        else offCtx.quadraticCurveTo(w, size / 2, 0, 0);
       }
       offCtx.closePath();
 
@@ -477,35 +535,93 @@ export class Editor {
 
         offCtx.fillStyle = colors.detail;
         offCtx.strokeStyle = colors.detail;
+        offCtx.lineWidth = 1.0 + nextRandom() * 0.8;
 
-        if (detailType === 0) {
-          const pr = 1.2 + nextRandom() * 2.2;
-          offCtx.beginPath();
-          offCtx.arc(px, py, pr, 0, Math.PI * 2);
-          offCtx.fill();
-
-          if (pr > 1.8) {
-            offCtx.fillStyle = colors.light;
+        if (theme === 'spooky') {
+          // Glowing crystals or bones
+          if (detailType === 0) {
+            offCtx.fillStyle = '#00ffcc'; // Glowing cyan
             offCtx.beginPath();
-            offCtx.arc(px - pr * 0.3, py - pr * 0.3, pr * 0.3, 0, Math.PI * 2);
+            offCtx.moveTo(px, py - 4);
+            offCtx.lineTo(px + 2, py + 2);
+            offCtx.lineTo(px - 2, py + 2);
             offCtx.fill();
+          } else {
+            // Little bone shape
+            offCtx.strokeStyle = '#e0e0e0';
+            offCtx.beginPath();
+            offCtx.moveTo(px - 3, py);
+            offCtx.lineTo(px + 3, py);
+            offCtx.stroke();
+            offCtx.fillStyle = '#e0e0e0';
+            offCtx.beginPath(); offCtx.arc(px - 3, py - 1, 1, 0, Math.PI*2); offCtx.fill();
+            offCtx.beginPath(); offCtx.arc(px - 3, py + 1, 1, 0, Math.PI*2); offCtx.fill();
+            offCtx.beginPath(); offCtx.arc(px + 3, py - 1, 1, 0, Math.PI*2); offCtx.fill();
+            offCtx.beginPath(); offCtx.arc(px + 3, py + 1, 1, 0, Math.PI*2); offCtx.fill();
           }
-        } else if (detailType === 1) {
-          const length = 3 + nextRandom() * 5;
-          const angle = (nextRandom() - 0.5) * 0.4;
-          offCtx.lineWidth = 1.0 + nextRandom() * 0.8;
-          offCtx.beginPath();
-          offCtx.moveTo(px - length / 2, py - (length / 2) * Math.sin(angle));
-          offCtx.lineTo(px + length / 2, py + (length / 2) * Math.sin(angle));
-          offCtx.stroke();
+        } else if (theme === 'icecream') {
+          // Sprinkles and chocolate chips
+          if (detailType === 0) {
+            offCtx.fillStyle = '#4a2c11'; // Chocolate chip
+            offCtx.beginPath();
+            offCtx.arc(px, py, 2, 0, Math.PI, true);
+            offCtx.lineTo(px, py - 3);
+            offCtx.fill();
+          } else {
+            // Sprinkles (random bright colors)
+            const sprinkleColors = ['#ff007f', '#00e5ff', '#ffea00', '#ff5e00'];
+            offCtx.strokeStyle = sprinkleColors[Math.floor(nextRandom() * sprinkleColors.length)];
+            offCtx.lineWidth = 2;
+            const angle = nextRandom() * Math.PI;
+            offCtx.beginPath();
+            offCtx.moveTo(px - Math.cos(angle)*2, py - Math.sin(angle)*2);
+            offCtx.lineTo(px + Math.cos(angle)*2, py + Math.sin(angle)*2);
+            offCtx.stroke();
+          }
+        } else if (theme === '16bit') {
+          // Square pixels and traces
+          if (detailType === 0) {
+            offCtx.fillStyle = '#829c36';
+            offCtx.fillRect(px - 1, py - 1, 2, 2);
+          } else {
+            offCtx.strokeStyle = '#5a6e27';
+            offCtx.beginPath();
+            offCtx.moveTo(px - 4, py);
+            offCtx.lineTo(px, py);
+            offCtx.lineTo(px, py + 4);
+            offCtx.stroke();
+          }
         } else {
-          const numDots = 2 + Math.floor(nextRandom() * 2);
-          for (let d = 0; d < numDots; d++) {
-            const dx = px + (nextRandom() - 0.5) * 5;
-            const dy = py + (nextRandom() - 0.5) * 5;
-            if (dx >= minX && dx <= maxX && dy >= minY && dy <= maxY) {
+          // Default / Butterflies: fossils and roots
+          if (detailType === 0) {
+            // Fossil spiral
+            offCtx.strokeStyle = colors.detail;
+            offCtx.beginPath();
+            for (let a = 0; a < Math.PI * 2.5; a += 0.5) {
+              const r = 0.5 + a * 0.5;
+              const sx = px + Math.cos(a) * r;
+              const sy = py + Math.sin(a) * r;
+              if (a === 0) offCtx.moveTo(sx, sy);
+              else offCtx.lineTo(sx, sy);
+            }
+            offCtx.stroke();
+          } else if (detailType === 1) {
+            // Root
+            offCtx.strokeStyle = colors.detail;
+            offCtx.beginPath();
+            offCtx.moveTo(px, py - 3);
+            offCtx.quadraticCurveTo(px + 2, py, px - 2, py + 4);
+            offCtx.stroke();
+          } else {
+            // Small rocks
+            const pr = 1.2 + nextRandom() * 2.2;
+            offCtx.beginPath();
+            offCtx.arc(px, py, pr, 0, Math.PI * 2);
+            offCtx.fill();
+            if (pr > 1.8) {
+              offCtx.fillStyle = colors.light;
               offCtx.beginPath();
-              offCtx.arc(dx, dy, 0.8 + nextRandom() * 0.8, 0, Math.PI * 2);
+              offCtx.arc(px - pr * 0.3, py - pr * 0.3, pr * 0.3, 0, Math.PI * 2);
               offCtx.fill();
             }
           }
@@ -602,6 +718,32 @@ export class Editor {
         offCtx.stroke();
       }
 
+      // Inner corner strokes
+      if (innerTL) {
+        offCtx.beginPath();
+        offCtx.moveTo(0, cornerR);
+        offCtx.quadraticCurveTo(cornerR * 0.3, cornerR * 0.3, cornerR, 0);
+        offCtx.stroke();
+      }
+      if (innerTR) {
+        offCtx.beginPath();
+        offCtx.moveTo(size - cornerR, 0);
+        offCtx.quadraticCurveTo(size - cornerR * 0.3, cornerR * 0.3, size, cornerR);
+        offCtx.stroke();
+      }
+      if (innerBR) {
+        offCtx.beginPath();
+        offCtx.moveTo(size, size - cornerR);
+        offCtx.quadraticCurveTo(size - cornerR * 0.3, size - cornerR * 0.3, size - cornerR, size);
+        offCtx.stroke();
+      }
+      if (innerBL) {
+        offCtx.beginPath();
+        offCtx.moveTo(cornerR, size);
+        offCtx.quadraticCurveTo(cornerR * 0.3, size - cornerR * 0.3, 0, size - cornerR);
+        offCtx.stroke();
+      }
+
       this.earthCache.set(cacheKey, cachedCanvas);
     }
 
@@ -610,6 +752,126 @@ export class Editor {
     this.ctx.drawImage(cachedCanvas, x - 12, y - 12);
     this.ctx.restore();
   }
+
+  renderSolidBlock(x, y, alpha = 1, col = null, row = null, engine = null) {
+    if (!this.solidCache) this.solidCache = new Map();
+
+    const c = col !== null ? col : 0;
+    const r = row !== null ? row : 0;
+
+    const isSolid = (colNum, rowNum) => {
+      if (engine) {
+        const t = engine.getTile(colNum, rowNum);
+        return t === 1 || t === 6 || t === 7;
+      }
+      return false;
+    };
+
+    const hasLeft = col !== null && isSolid(c - 1, r);
+    const hasRight = col !== null && isSolid(c + 1, r);
+    const hasTop = row !== null && isSolid(c, r - 1);
+    const hasBottom = row !== null && isSolid(c, r + 1);
+
+    const hasTopLeft = col !== null && row !== null && isSolid(c - 1, r - 1);
+    const hasTopRight = col !== null && row !== null && isSolid(c + 1, r - 1);
+    const hasBottomLeft = col !== null && row !== null && isSolid(c - 1, r + 1);
+    const hasBottomRight = col !== null && row !== null && isSolid(c + 1, r + 1);
+
+    const cacheKey = `${c}_${r}_${hasLeft ? 1 : 0}${hasRight ? 1 : 0}${hasTop ? 1 : 0}${hasBottom ? 1 : 0}_${hasTopLeft ? 1 : 0}${hasTopRight ? 1 : 0}${hasBottomLeft ? 1 : 0}${hasBottomRight ? 1 : 0}`;
+
+    let cachedCanvas = this.solidCache.get(cacheKey);
+
+    if (!cachedCanvas) {
+      cachedCanvas = document.createElement('canvas');
+      const padding = 12;
+      const size = CONFIG.TILE_SIZE;
+      cachedCanvas.width = size + padding * 2;
+      cachedCanvas.height = size + padding * 2;
+      const offCtx = cachedCanvas.getContext('2d');
+
+      offCtx.translate(padding, padding);
+
+      // --- Draw Smooth Concrete Block ---
+      
+      // Base color
+      offCtx.fillStyle = '#9ca3af'; // light concrete gray
+      offCtx.fillRect(0, 0, size, size);
+
+      // Subtle texture (noise/scratches)
+      offCtx.fillStyle = 'rgba(0,0,0,0.03)';
+      const seed = (c * 13.37 + r * 42.1) % 100;
+      for (let i = 0; i < 15; i++) {
+        const px = (seed * i * 3.1) % size;
+        const py = (seed * i * 7.2) % size;
+        offCtx.fillRect(px, py, 4, 1);
+        offCtx.fillRect(px, py, 1, 3);
+      }
+
+      // Draw Bevels (Highlights and Shadows)
+      const bevelSize = 4;
+      
+      // Highlight (Top/Left)
+      offCtx.fillStyle = 'rgba(255,255,255,0.4)';
+      if (!hasTop) {
+        offCtx.beginPath(); offCtx.moveTo(0,0); offCtx.lineTo(size,0); offCtx.lineTo(size-bevelSize,bevelSize); offCtx.lineTo(bevelSize,bevelSize); offCtx.fill();
+      }
+      if (!hasLeft) {
+        offCtx.beginPath(); offCtx.moveTo(0,0); offCtx.lineTo(0,size); offCtx.lineTo(bevelSize,size-bevelSize); offCtx.lineTo(bevelSize,bevelSize); offCtx.fill();
+      }
+
+      // Shadow (Bottom/Right)
+      offCtx.fillStyle = 'rgba(0,0,0,0.3)';
+      if (!hasBottom) {
+        offCtx.beginPath(); offCtx.moveTo(0,size); offCtx.lineTo(size,size); offCtx.lineTo(size-bevelSize,size-bevelSize); offCtx.lineTo(bevelSize,size-bevelSize); offCtx.fill();
+      }
+      if (!hasRight) {
+        offCtx.beginPath(); offCtx.moveTo(size,0); offCtx.lineTo(size,size); offCtx.lineTo(size-bevelSize,size-bevelSize); offCtx.lineTo(size-bevelSize,bevelSize); offCtx.fill();
+      }
+
+      // Inner Corners (If neighbors exist but diagonal doesn't)
+      const innerTL = hasTop && hasLeft && !hasTopLeft;
+      const innerTR = hasTop && hasRight && !hasTopRight;
+      const innerBL = hasBottom && hasLeft && !hasBottomLeft;
+      const innerBR = hasBottom && hasRight && !hasBottomRight;
+
+      if (innerTL || innerTR || innerBL || innerBR) {
+        offCtx.fillStyle = 'rgba(0,0,0,0.2)';
+        if (innerTL) offCtx.fillRect(0, 0, bevelSize, bevelSize);
+        if (innerTR) offCtx.fillRect(size-bevelSize, 0, bevelSize, bevelSize);
+        if (innerBL) offCtx.fillRect(0, size-bevelSize, bevelSize, bevelSize);
+        if (innerBR) offCtx.fillRect(size-bevelSize, size-bevelSize, bevelSize, bevelSize);
+      }
+
+      // Rivets on exposed corners
+      offCtx.fillStyle = '#4b5563'; // Dark rivet color
+      const drawRivet = (rx, ry) => {
+        offCtx.beginPath();
+        offCtx.arc(rx, ry, 2, 0, Math.PI*2);
+        offCtx.fill();
+        offCtx.fillStyle = 'rgba(255,255,255,0.5)';
+        offCtx.beginPath();
+        offCtx.arc(rx-0.5, ry-0.5, 1, 0, Math.PI*2);
+        offCtx.fill();
+        offCtx.fillStyle = '#4b5563';
+      };
+
+      const ro = bevelSize + 2; // Rivet offset
+      if (!hasTop && !hasLeft) drawRivet(ro, ro);
+      if (!hasTop && !hasRight) drawRivet(size-ro, ro);
+      if (!hasBottom && !hasLeft) drawRivet(ro, size-ro);
+      if (!hasBottom && !hasRight) drawRivet(size-ro, size-ro);
+
+      this.solidCache.set(cacheKey, cachedCanvas);
+    }
+
+    this.ctx.save();
+    this.ctx.globalAlpha = alpha;
+    if (x !== -1000) {
+      this.ctx.drawImage(cachedCanvas, x - 12, y - 12);
+    }
+    this.ctx.restore();
+  }
+
 
   initListeners() {
     this.canvas.addEventListener('mousedown', (e) => {
@@ -1158,6 +1420,14 @@ export class Editor {
           }
         }
         break;
+      case CONFIG.TOOL_PLAYER_ROBOT:
+        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+          if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'robot') {
+            this.level.setPlayerSpawn(col, row, 'robot');
+            audio.playTileSound();
+          }
+        }
+        break;
       case CONFIG.TOOL_PLAYER_BALL:
         if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
           if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'ball') {
@@ -1231,12 +1501,7 @@ export class Editor {
 
       switch (this.currentTool) {
         case CONFIG.TOOL_WALL:
-          if (this.assets.ground && this.theme === 'default') {
-            this.ctx.drawImage(this.assets.ground, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          } else {
-            this.ctx.fillStyle = this.getGroundColor();
-            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          }
+          this.renderSolidBlock(x, y, 0.5);
           break;
         case CONFIG.TOOL_BREAKABLE:
           this.renderBreakableBlock(x, y, 0.5);
@@ -1836,6 +2101,7 @@ export class Editor {
           break;
         case CONFIG.TOOL_PLAYER_CLASSIC:
         case CONFIG.TOOL_PLAYER_GHIBLI:
+        case CONFIG.TOOL_PLAYER_ROBOT:
         case CONFIG.TOOL_PLAYER_BALL:
         case CONFIG.TOOL_PLAYER_TOPDOWN:
         case CONFIG.TOOL_PLAYER_PADDLE_H:
@@ -1893,6 +2159,31 @@ export class Editor {
                 0,
                 isInvalid ? 0.25 : 0.55
               );
+            }
+          } else if (this.currentTool === CONFIG.TOOL_PLAYER_ROBOT) {
+            if (this.engine) {
+              const width = this.engine.player ? this.engine.player.width : 28;
+              const height = this.engine.player ? this.engine.player.height : 36;
+              const px = x + (CONFIG.TILE_SIZE - width) / 2;
+              const py = y + (CONFIG.TILE_SIZE - height);
+              if (this.engine.drawRobot) {
+                this.engine.drawRobot(
+                  this.ctx,
+                  px,
+                  py,
+                  width,
+                  height,
+                  'right',
+                  1,
+                  1,
+                  0,
+                  isInvalid ? 0.25 : 0.55
+                );
+              } else {
+                this.ctx.fillStyle = '#9ca3af';
+                this.ctx.globalAlpha = isInvalid ? 0.25 : 0.55;
+                this.ctx.fillRect(px, py, width, height);
+              }
             }
           } else if (this.currentTool === CONFIG.TOOL_PLAYER_BALL) {
             this.ctx.beginPath();

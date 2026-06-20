@@ -135,7 +135,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
   btnWinRestart.addEventListener('click', () => {
     winOverlay.classList.add('hidden');
+    const allLevels = LevelManager.getLevels();
+    const currentIndex = allLevels.findIndex(l => l.id === targetLevelData.id);
+    let nextIndex = currentIndex + 1;
+    if (nextIndex >= allLevels.length) {
+      nextIndex = 0;
+    }
+    targetLevelData = allLevels[nextIndex];
     level.load(targetLevelData);
+    if (levelTitleEl && targetLevelData) {
+      levelTitleEl.textContent = targetLevelData.name;
+    }
     engine.setMode(CONFIG.MODE_PLAY);
   });
 

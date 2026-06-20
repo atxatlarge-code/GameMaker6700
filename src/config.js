@@ -25,6 +25,7 @@ export const CONFIG = {
   TOOL_WALL: 'wall',
   TOOL_PLAYER_CLASSIC: 'player_classic',
   TOOL_PLAYER_GHIBLI: 'player_ghibli',
+  TOOL_PLAYER_ROBOT: 'player_robot',
   TOOL_PLAYER_BALL: 'player_ball',
   TOOL_PLAYER_TOPDOWN: 'player_topdown',
   TOOL_PLAYER_PADDLE_H: 'player_paddle_h',
