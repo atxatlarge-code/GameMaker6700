@@ -28,6 +28,7 @@ export const CONFIG = {
   TOOL_PLAYER_ROBOT: 'player_robot',
   TOOL_PLAYER_BALL: 'player_ball',
   TOOL_PLAYER_TOPDOWN: 'player_topdown',
+  TOOL_PLAYER_BLOB: 'player_blob',
   TOOL_PLAYER_PADDLE_H: 'player_paddle_h',
   TOOL_PLAYER_PADDLE_V: 'player_paddle_v',
   TOOL_GOAL: 'goal',

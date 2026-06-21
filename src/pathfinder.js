@@ -1,5 +1,6 @@
 import { CONFIG } from './config.js';
 import { audio } from './audio.js';
+import { TILE } from './tiles.js';
 
 // Helper for binary search insertion to maintain sorted order in A* open set
 function insertSorted(array, item, compareFn) {

@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { TILE } from './tiles.js';
 
 export class Level {
   constructor() {
@@ -114,7 +115,7 @@ export class Level {
 
     // Check if there is a block (1: Wall, 3: Fire, 4: Spikes, 6: Breakable, 7: Earth)
     const tileVal = this.getTile(col, row);
-    if (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6 || tileVal === 7) {
+    if (tileVal === TILE.SOLID || tileVal === TILE.FIRE || tileVal === TILE.SPIKES || tileVal === TILE.BREAKABLE || tileVal === TILE.EARTH) {
       return false;
     }
 
@@ -179,25 +180,25 @@ export class Level {
       const row = [];
       for (let c = 0; c < CONFIG.GRID_COLS; c++) {
         if (r >= CONFIG.GRID_ROWS - 2) {
-          row.push(7);
+          row.push(TILE.EARTH);
         } else {
-          row.push(0);
+          row.push(TILE.EMPTY);
         }
       }
       this.grid.push(row);
     }
-    this.grid[22][50] = 7; this.grid[22][51] = 7;
-    this.grid[23][23] = 7; this.grid[23][24] = 7; this.grid[23][25] = 7; this.grid[23][26] = 7; this.grid[23][49] = 7; this.grid[23][50] = 7; this.grid[23][51] = 7;
-    this.grid[24][23] = 7; this.grid[24][26] = 7; this.grid[24][48] = 7; this.grid[24][49] = 7; this.grid[24][50] = 7; this.grid[24][51] = 7;
-    this.grid[25][14] = 7; this.grid[25][15] = 7; this.grid[25][16] = 7; this.grid[25][17] = 7; this.grid[25][18] = 7; this.grid[25][19] = 7;
-    this.grid[25][23] = 7; this.grid[25][26] = 7; this.grid[25][32] = 7; this.grid[25][33] = 7;
-    this.grid[25][47] = 7; this.grid[25][48] = 7; this.grid[25][49] = 7; this.grid[25][50] = 7; this.grid[25][51] = 7;
-    this.grid[26][14] = 7; this.grid[26][19] = 7; this.grid[26][23] = 7; this.grid[26][26] = 7;
-    this.grid[26][32] = 7; this.grid[26][33] = 7; this.grid[26][38] = 7; this.grid[26][39] = 7;
-    this.grid[26][46] = 7; this.grid[26][47] = 7; this.grid[26][48] = 7; this.grid[26][49] = 7; this.grid[26][50] = 7; this.grid[26][51] = 7;
-    this.grid[27][9] = 2; this.grid[27][12] = 7; this.grid[27][13] = 7; this.grid[27][14] = 7; this.grid[27][19] = 7; this.grid[27][21] = 2;
-    this.grid[27][23] = 7; this.grid[27][26] = 7; this.grid[27][32] = 7; this.grid[27][33] = 7; this.grid[27][35] = 2; this.grid[27][38] = 7; this.grid[27][39] = 7;
-    this.grid[27][45] = 7; this.grid[27][46] = 7; this.grid[27][47] = 7; this.grid[27][48] = 7; this.grid[27][49] = 7; this.grid[27][50] = 7; this.grid[27][51] = 7;
+    this.grid[22][50] = TILE.EARTH; this.grid[22][51] = TILE.EARTH;
+    this.grid[23][23] = TILE.EARTH; this.grid[23][24] = TILE.EARTH; this.grid[23][25] = TILE.EARTH; this.grid[23][26] = TILE.EARTH; this.grid[23][49] = TILE.EARTH; this.grid[23][50] = TILE.EARTH; this.grid[23][51] = TILE.EARTH;
+    this.grid[24][23] = TILE.EARTH; this.grid[24][26] = TILE.EARTH; this.grid[24][48] = TILE.EARTH; this.grid[24][49] = TILE.EARTH; this.grid[24][50] = TILE.EARTH; this.grid[24][51] = TILE.EARTH;
+    this.grid[25][14] = TILE.EARTH; this.grid[25][15] = TILE.EARTH; this.grid[25][16] = TILE.EARTH; this.grid[25][17] = TILE.EARTH; this.grid[25][18] = TILE.EARTH; this.grid[25][19] = TILE.EARTH;
+    this.grid[25][23] = TILE.EARTH; this.grid[25][26] = TILE.EARTH; this.grid[25][32] = TILE.EARTH; this.grid[25][33] = TILE.EARTH;
+    this.grid[25][47] = TILE.EARTH; this.grid[25][48] = TILE.EARTH; this.grid[25][49] = TILE.EARTH; this.grid[25][50] = TILE.EARTH; this.grid[25][51] = TILE.EARTH;
+    this.grid[26][14] = TILE.EARTH; this.grid[26][19] = TILE.EARTH; this.grid[26][23] = TILE.EARTH; this.grid[26][26] = TILE.EARTH;
+    this.grid[26][32] = TILE.EARTH; this.grid[26][33] = TILE.EARTH; this.grid[26][38] = TILE.EARTH; this.grid[26][39] = TILE.EARTH;
+    this.grid[26][46] = TILE.EARTH; this.grid[26][47] = TILE.EARTH; this.grid[26][48] = TILE.EARTH; this.grid[26][49] = TILE.EARTH; this.grid[26][50] = TILE.EARTH; this.grid[26][51] = TILE.EARTH;
+    this.grid[27][9] = TILE.TRAMPOLINE; this.grid[27][12] = TILE.EARTH; this.grid[27][13] = TILE.EARTH; this.grid[27][14] = TILE.EARTH; this.grid[27][19] = TILE.EARTH; this.grid[27][21] = TILE.TRAMPOLINE;
+    this.grid[27][23] = TILE.EARTH; this.grid[27][26] = TILE.EARTH; this.grid[27][32] = TILE.EARTH; this.grid[27][33] = TILE.EARTH; this.grid[27][35] = TILE.TRAMPOLINE; this.grid[27][38] = TILE.EARTH; this.grid[27][39] = TILE.EARTH;
+    this.grid[27][45] = TILE.EARTH; this.grid[27][46] = TILE.EARTH; this.grid[27][47] = TILE.EARTH; this.grid[27][48] = TILE.EARTH; this.grid[27][49] = TILE.EARTH; this.grid[27][50] = TILE.EARTH; this.grid[27][51] = TILE.EARTH;
     
     // Default portals in Mushroom Forest preset
     this.portal1 = { col: 16, row: 27 };
@@ -207,7 +208,7 @@ export class Level {
 
   getTile(col, row) {
     if (col < 0 || col >= CONFIG.GRID_COLS || row < 0 || row >= CONFIG.GRID_ROWS) {
-      return 1;
+      return TILE.SOLID;
     }
     return this.grid[row][col];
   }
@@ -219,7 +220,7 @@ export class Level {
         if (value !== 0) {
           if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
           if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
-          if (value === 1 || value === 3 || value === 4 || value === 6 || value === 7) {
+          if (value === TILE.SOLID || value === TILE.FIRE || value === TILE.SPIKES || value === TILE.BREAKABLE || value === TILE.EARTH) {
             this._removeEnemyInternal(col, row);
           }
           this._removePlatformInternal(col, row);
@@ -238,7 +239,7 @@ export class Level {
         if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
         if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
         this._removeEnemyInternal(col, row);
-        this.grid[row][col] = 0;
+        this.grid[row][col] = TILE.EMPTY;
         if (this.onModify) this.onModify();
       }
     }
@@ -252,7 +253,7 @@ export class Level {
         if (this.portal1 && this.portal1.col === col && this.portal1.row === row) this.portal1 = null;
         if (this.portal2 && this.portal2.col === col && this.portal2.row === row) this.portal2 = null;
         this._removeEnemyInternal(col, row);
-        this.grid[row][col] = 0;
+        this.grid[row][col] = TILE.EMPTY;
         if (this.onModify) this.onModify();
       }
     }
@@ -269,7 +270,7 @@ export class Level {
       } else if (!this.portal2) {
         this.portal2 = { col, row };
       } else {
-        if (this._nextPortal === 2) {
+        if (this._nextPortal === TILE.TRAMPOLINE) {
           this.portal2 = { col, row };
           this._nextPortal = 1;
         } else {
@@ -278,7 +279,7 @@ export class Level {
         }
       }
       this._removeEnemyInternal(col, row);
-      this.grid[row][col] = 0;
+      this.grid[row][col] = TILE.EMPTY;
       if (this.onModify) this.onModify();
     }
   }

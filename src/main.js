@@ -6,6 +6,7 @@ import { LevelManager } from './levels.js';
 import { audio } from './audio.js';
 import { messageService } from './messages.js';
 import { solveLevel, AsyncPathfinder } from './pathfinder.js';
+import { TILE } from './tiles.js';
 
 // Load Assets object
 const assets = {
@@ -232,36 +233,36 @@ function renderLevelPreview(canvas, levelObj) {
       const t = levelObj.grid[r][c];
       const x = c * tileW;
       const y = r * tileH;
-      if (t === 1) {
+      if (t === TILE.SOLID) {
         ctx.fillStyle = '#528c46';
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
-      } else if (t === 2) {
+      } else if (t === TILE.TRAMPOLINE) {
         ctx.fillStyle = '#cc635e';
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
-      } else if (t === 3) {
+      } else if (t === TILE.FIRE) {
         ctx.fillStyle = '#ff9500';
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
-      } else if (t === 4) {
+      } else if (t === TILE.SPIKES) {
         ctx.fillStyle = '#dbe2ef';
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
-      } else if (t === 5) {
+      } else if (t === TILE.COIN) {
         ctx.fillStyle = '#ffd60a';
         ctx.beginPath();
         ctx.arc((c + 0.5) * tileW, (r + 0.5) * tileH, tileW * 0.4, 0, Math.PI * 2);
         ctx.fill();
-      } else if (t === 6) {
+      } else if (t === TILE.BREAKABLE) {
         ctx.fillStyle = '#8c6239'; // Brown brick color
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
-      } else if (t === 7) {
+      } else if (t === TILE.EARTH) {
         // Draw mini grass/earth block: bottom 70% brown, top 30% green
         ctx.fillStyle = '#8c6239'; // Earth brown
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
         ctx.fillStyle = '#528c46'; // Grass green
         ctx.fillRect(x, y, tileW + 0.5, (tileH * 0.3) + 0.5);
-      } else if (t === 31) {
+      } else if (t === TILE.WATER) {
         ctx.fillStyle = '#0096ff';
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
-      } else if (t === 32) {
+      } else if (t === TILE.SLIME) {
         ctx.fillStyle = '#4ade80';
         ctx.fillRect(x, y, tileW + 0.5, tileH + 0.5);
       }
@@ -360,15 +361,6 @@ function renderLevelPreview(canvas, levelObj) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  loadAndRemoveWhiteBg('assets/ground.png', '.ground-preview', (img) => {
-    if (img) {
-      assets.ground = img;
-      const wallImg = document.getElementById('img-tool-wall');
-      if (wallImg) wallImg.src = img.src;
-      const groupImg = document.getElementById('img-group-blocks');
-      if (groupImg && groupImg.src.includes('ground.png')) groupImg.src = img.src;
-    }
-  });
   loadAndRemoveWhiteBg('assets/player.png', '.player-preview', (img) => {
     if (img) {
       assets.player = img;
@@ -376,31 +368,6 @@ window.addEventListener('DOMContentLoaded', () => {
       if (playerImg) playerImg.src = img.src;
       const groupImg = document.getElementById('img-group-player');
       if (groupImg && groupImg.src.includes('player.png')) groupImg.src = img.src;
-    }
-  });
-  loadAndRemoveWhiteBg('assets/goal.png', '.goal-preview', (img) => {
-    if (img) {
-      assets.goal = img;
-      const goalImg = document.getElementById('img-tool-goal');
-      if (goalImg) goalImg.src = img.src;
-      const groupImg = document.getElementById('img-group-special');
-      if (groupImg && groupImg.src.includes('goal.png')) groupImg.src = img.src;
-    }
-  });
-  loadAndRemoveWhiteBg('assets/trampoline.png', '.trampoline-preview', (img) => {
-    if (img) {
-      assets.trampoline = img;
-      const trampImg = document.getElementById('img-tool-trampoline');
-      if (trampImg) trampImg.src = img.src;
-      const groupImg = document.getElementById('img-group-special');
-      if (groupImg && groupImg.src.includes('trampoline.png')) groupImg.src = img.src;
-    }
-  });
-  loadAndRemoveWhiteBg('assets/spikes.png', '.spikes-preview', (img) => {
-    if (img) {
-      assets.spikes = img;
-      const spikesImg = document.getElementById('img-tool-spikes');
-      if (spikesImg) spikesImg.src = img.src;
     }
   });
   loadAndRemoveWhiteBg('assets/water.png', '.water-preview', (img) => {
@@ -424,7 +391,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const renameOverlay = document.getElementById('rename-overlay');
   const inputLevelName = document.getElementById('input-level-name');
 
-  const btnRestart = document.getElementById('btn-restart');
+  const btnWinMenu = document.getElementById('btn-win-menu');
+  const btnWinReplay = document.getElementById('btn-win-replay');
+  const btnWinNext = document.getElementById('btn-win-next');
   const btnEditMode = document.getElementById('btn-edit-mode');
   const btnPlayMode = document.getElementById('btn-play-mode');
   const btnSolveMode = document.getElementById('btn-solve-mode');
@@ -471,13 +440,77 @@ window.addEventListener('DOMContentLoaded', () => {
   const engine = new Engine(gameCanvas, level, editor, assets, () => {
     audio.playWinSound();
     
+    const runCoins = engine.coinsCollected || 0;
+
     // Add coins collected this run to global
-    if (engine.coinsCollected > 0) {
-      window.globalCoins += engine.coinsCollected;
+    if (runCoins > 0) {
+      window.globalCoins += runCoins;
       localStorage.setItem('gm6700_global_coins', window.globalCoins.toString());
       updateGlobalCoinDisplay();
-      // prevent farming from the same run continuously if desired, but we'll leave it simple
+      // prevent farming from the same run continuously
       engine.coinsCollected = 0; 
+    }
+
+    // Best Records Logic
+    const levelId = engine.level.id || 'custom';
+    const bestDeathsKey = `best_deaths_${levelId}`;
+    const bestTimeKey = `best_time_${levelId}`;
+    
+    let prevBestDeaths = localStorage.getItem(bestDeathsKey);
+    let prevBestTime = localStorage.getItem(bestTimeKey);
+    
+    const deaths = engine.deathCount || 0;
+    const timeSec = (engine.levelTimeElapsed / 1000).toFixed(2);
+    
+    let newBestDeaths = false;
+    let newBestTime = false;
+    
+    if (prevBestDeaths === null || deaths < parseInt(prevBestDeaths)) {
+      localStorage.setItem(bestDeathsKey, deaths);
+      newBestDeaths = true;
+    }
+    
+    if (prevBestTime === null || parseFloat(timeSec) < parseFloat(prevBestTime)) {
+      localStorage.setItem(bestTimeKey, timeSec);
+      newBestTime = true;
+    }
+
+    // Populate win stats
+    const winCoins = document.getElementById('win-coins');
+    const winTotalCoins = document.getElementById('win-total-coins');
+    const winDeaths = document.getElementById('win-deaths');
+    const winTime = document.getElementById('win-time');
+    const winStars = document.getElementById('win-stars');
+    const winNewBestTime = document.getElementById('win-new-best-time');
+    const winNewBestDeaths = document.getElementById('win-new-best-deaths');
+    
+    if (winCoins) winCoins.textContent = runCoins;
+    if (winTotalCoins) winTotalCoins.textContent = engine.totalCoins || '0';
+    if (winDeaths) winDeaths.textContent = deaths;
+    if (winTime) winTime.textContent = timeSec + 's';
+    
+    if (winNewBestTime) {
+      if (newBestTime) winNewBestTime.classList.remove('hidden');
+      else winNewBestTime.classList.add('hidden');
+    }
+    
+    if (winNewBestDeaths) {
+      if (newBestDeaths) winNewBestDeaths.classList.remove('hidden');
+      else winNewBestDeaths.classList.add('hidden');
+    }
+
+    if (winStars) {
+      const allCoins = runCoins >= (engine.totalCoins || 0);
+      let stars = 1;
+      if (deaths === 0 && allCoins) stars = 3;
+      else if (deaths <= 3 && runCoins >= Math.floor((engine.totalCoins || 0)/2)) stars = 2;
+      
+      const starSpans = winStars.querySelectorAll('span');
+      if (starSpans.length === 3) {
+        for (let i = 0; i < 3; i++) {
+          starSpans[i].textContent = i < stars ? '⭐' : '☆';
+        }
+      }
     }
 
     winOverlay.classList.remove('hidden');
@@ -518,6 +551,35 @@ window.addEventListener('DOMContentLoaded', () => {
     btnToggleMusic.addEventListener('click', (e) => {
       audio.toggleMusic();
       e.currentTarget.blur();
+    });
+  }
+
+  // Transition Selection Setup
+  window.transitionStyle = localStorage.getItem('gm6700_transition_style') || 'none';
+  const transitionSelect = document.getElementById('transition-select');
+  if (transitionSelect) {
+    transitionSelect.value = window.transitionStyle;
+    transitionSelect.addEventListener('change', (e) => {
+      window.transitionStyle = e.target.value;
+      localStorage.setItem('gm6700_transition_style', window.transitionStyle);
+      e.target.blur();
+    });
+  }
+
+  const btnDemoTransition = document.getElementById('btn-demo-transition');
+  if (btnDemoTransition) {
+    btnDemoTransition.addEventListener('click', (e) => {
+      e.currentTarget.blur();
+      if (!engine.hasWon) {
+        // Move player to goal visually to simulate it
+        if (engine.level.goalPos) {
+          engine.player.x = engine.level.goalPos.col * CONFIG.TILE_SIZE;
+          engine.player.y = engine.level.goalPos.row * CONFIG.TILE_SIZE;
+          // Teleport camera to match so transitions (like zoom) look correct!
+          engine.camera.x = engine.player.x + engine.player.width / 2 - engine.canvas.width / 2;
+          engine.camera.y = engine.player.y + engine.player.height / 2 - engine.canvas.height / 2;
+        }
+      }
     });
   }
 
@@ -1123,10 +1185,155 @@ window.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(runSolveStep);
   });
 
-  btnRestart.addEventListener('click', () => {
-    btnEditMode.click(); // Switch back to edit mode
-    btnRestart.blur();
+  if (btnWinMenu) {
+    btnWinMenu.addEventListener('click', () => {
+      winOverlay.classList.add('hidden');
+      btnMenu.click();
+    });
+  }
+
+  if (btnWinReplay) {
+    btnWinReplay.addEventListener('click', () => {
+      winOverlay.classList.add('hidden');
+      engine.setMode(CONFIG.MODE_PLAY); // This resets levelStartTime, deathCount, and grid
+    });
+  }
+
+  if (btnWinNext) {
+    btnWinNext.addEventListener('click', () => {
+      winOverlay.classList.add('hidden');
+      const allLevels = LevelManager.getLevels();
+      if (!selectedLevel) {
+        btnMenu.click();
+        return;
+      }
+      const idx = allLevels.findIndex(l => l.id === selectedLevel.id);
+      if (idx !== -1 && idx + 1 < allLevels.length) {
+        const nextLvl = allLevels[idx + 1];
+        selectedLevel = nextLvl;
+        openLevelInMode(CONFIG.MODE_PLAY);
+      } else {
+        btnMenu.click();
+      }
+    });
+  }
+
+  // =========================================
+  // PAUSE MENU & CONTROLS OVERLAY LOGIC
+  // =========================================
+  const pauseOverlay = document.getElementById('pause-overlay');
+  const controlsOverlay = document.getElementById('controls-overlay');
+  const btnResume = document.getElementById('btn-resume');
+  const btnPauseRestart = document.getElementById('btn-pause-restart');
+  const btnPauseMenu = document.getElementById('btn-pause-menu');
+  const btnControls = document.getElementById('btn-controls');
+  const btnCloseControls = document.getElementById('btn-close-controls');
+  const pauseDeathCount = document.getElementById('pause-death-count');
+  let isPaused = false;
+
+  function pauseGame() {
+    if (isPaused) return;
+    isPaused = true;
+    engine.isRunning = false;
+    // Update death count display
+    if (pauseDeathCount) {
+      pauseDeathCount.textContent = engine.deathCount || 0;
+    }
+    pauseOverlay.classList.remove('hidden');
+  }
+
+  function resumeGame() {
+    if (!isPaused) return;
+    isPaused = false;
+    pauseOverlay.classList.add('hidden');
+    engine.start();
+  }
+
+  // Global keydown handler
+  window.addEventListener('keydown', (e) => {
+    // Pressing Enter on the win screen proceeds to the next level
+    if (e.key === 'Enter' && winOverlay && !winOverlay.classList.contains('hidden')) {
+      e.preventDefault();
+      if (btnWinNext) btnWinNext.click();
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      // If controls overlay is open, close it
+      if (controlsOverlay && !controlsOverlay.classList.contains('hidden')) {
+        controlsOverlay.classList.add('hidden');
+        e.preventDefault();
+        return;
+      }
+
+      // Only toggle pause when in play mode and the editor view is visible
+      if (engine.mode !== CONFIG.MODE_PLAY) return;
+      if (editorView.classList.contains('hidden')) return;
+
+      // Don't pause if the win overlay is showing
+      if (winOverlay && !winOverlay.classList.contains('hidden')) return;
+
+      e.preventDefault();
+      if (isPaused) {
+        resumeGame();
+      } else {
+        pauseGame();
+      }
+    }
   });
+
+  // Resume button
+  if (btnResume) {
+    btnResume.addEventListener('click', () => {
+      resumeGame();
+      btnResume.blur();
+    });
+  }
+
+  // Restart button – restart the level from scratch
+  if (btnPauseRestart) {
+    btnPauseRestart.addEventListener('click', () => {
+      isPaused = false;
+      pauseOverlay.classList.add('hidden');
+      winOverlay.classList.add('hidden');
+      engine.deathCount = 0;
+      engine.resetPlayer();
+      engine.hasWon = false;
+      engine.start();
+      btnPauseRestart.blur();
+    });
+  }
+
+  // Back to Menu button
+  if (btnPauseMenu) {
+    btnPauseMenu.addEventListener('click', () => {
+      isPaused = false;
+      pauseOverlay.classList.add('hidden');
+      winOverlay.classList.add('hidden');
+      // Save and switch to menu view – mirrors the btn-menu click handler
+      LevelManager.saveLevel(level.export());
+      editorView.classList.add('hidden');
+      menuView.classList.remove('hidden');
+      window.updateMenuUI();
+      btnPauseMenu.blur();
+    });
+  }
+
+  // Controls button in header
+  if (btnControls) {
+    btnControls.addEventListener('click', () => {
+      controlsOverlay.classList.remove('hidden');
+      btnControls.blur();
+    });
+  }
+
+  // Close controls button
+  if (btnCloseControls) {
+    btnCloseControls.addEventListener('click', () => {
+      controlsOverlay.classList.add('hidden');
+      btnCloseControls.blur();
+    });
+  }
 
   // =========================================
   // MESSAGING & CLOUD SYNC SYSTEM LOGIC

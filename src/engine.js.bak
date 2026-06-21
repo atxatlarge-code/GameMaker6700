@@ -128,7 +128,6 @@ export class Engine {
     this.deathParticles = [];
     this.portalCooldown = 0;
     this.teleportParticles = [];
-    this.timeFreezeTimer = 0;
     this.playGrid = null;
     this.coinsCollected = 0;
     this.totalCoins = 0;
@@ -223,7 +222,6 @@ export class Engine {
     // 59 is Reflector Shield
     return t === TILE.SOLID || t === TILE.TRAMPOLINE || t === TILE.EARTH || t === TILE.MOVEABLE || t === TILE.SWITCH || t === TILE.REFLECTOR ||
            t === TILE.PAINT_BLOCK || t === TILE.INVISIBLE_BLOCK || t === TILE.REVEALED_BLOCK || t === TILE.DASH_PANEL_LEFT || t === TILE.DASH_PANEL_RIGHT || t === TILE.CRACKED_BLOCK ||
-           t === TILE.SLIME || t === TILE.BREAKABLE || t === TILE.ICE || t === TILE.CONVEYOR_LEFT || t === TILE.CONVEYOR_RIGHT ||
            (t === TILE.BLOCK_RED && this.level.switchState === 'red') || 
            (t === TILE.BLOCK_BLUE && this.level.switchState === 'blue');
   }
@@ -261,9 +259,6 @@ export class Engine {
     } else if (this.player.charId === 'ball') {
       this.player.width = 24;
       this.player.height = 24;
-    } else if (this.player.charId === 'blob') {
-      this.player.width = 30;
-      this.player.height = 30;
     } else if (this.player.charId === 'robot') {
       this.player.width = 28;
       this.player.height = 36;
@@ -324,10 +319,6 @@ export class Engine {
     // Level animations
     this.crumblingBlocks = [];
     this.ghostTimer = 0;
-    this.screenShake = 0;
-    this.cameraShake = 0;
-    this.cameraLocked = false;
-    this.timeFreezeTimer = 0;
     this.boomerangs = [];
     this.stalactites = [];
     this.shadowClone = null;
@@ -755,54 +746,29 @@ export class Engine {
 
     // Cinematic transition update tick
     if (this.hasWon) {
-      if (!this.isSimulation) {
+      if (this.transitionActive && !this.isSimulation) {
         const style = window.transitionStyle || 'none';
-        
-        // Celebration Animation!
-        if (style !== 'beam') {
-          // Bounce and spin
-          this.player.vy += CONFIG.GRAVITY;
+        if (style === 'iris') {
+          if (this.irisRadius > 0) this.irisRadius -= 8;
+          if (this.irisRadius <= 0 && !this.transitionComplete) {
+            this.transitionComplete = true;
+            if (this.onWin) this.onWin();
+          }
+        } else if (style === 'beam') {
+          this.player.vy = -6.0; // float up much faster
           this.player.y += this.player.vy;
-          this.resolveVerticalCollisions();
-          
-          if (this.player.isGrounded) {
-             this.player.vy = -7; // Jump!
-             this.player.isGrounded = false;
-             if (window.audio && window.audio.playJumpSound) window.audio.playJumpSound();
-          }
-          
-          // Spin while in the air
-          if (!this.player.isGrounded) {
-             this.player.tiltAngle += 0.25; // Spin clockwise
-          } else {
-             this.player.tiltAngle = 0; // Reset
-          }
-        }
-
-        if (this.transitionActive) {
-          if (style === 'iris') {
-            if (this.irisRadius > 0) this.irisRadius -= 8;
-            if (this.irisRadius <= 0 && !this.transitionComplete) {
-              this.transitionComplete = true;
+          this.beamAlpha = Math.min(0.4, (this.beamAlpha || 0) + 0.05); // more transparent
+          this.beamParallaxOffset = (this.beamParallaxOffset || 0) + 5.0; // Accrue vertical parallax offset
+          if (this.player.y < this.camera.y - 64 && !this.transitionComplete) {
+            this.transitionComplete = true;
+            // Fade to white
+            const flash = document.getElementById('white-flash');
+            if (flash) flash.classList.add('active');
+            setTimeout(() => {
+              if (!this.hasWon) return;
               if (this.onWin) this.onWin();
-            }
-          } else if (style === 'beam') {
-            this.player.vy = -6.0; // float up much faster
-            this.player.y += this.player.vy;
-            this.player.tiltAngle += 0.4; // Spin fast while beaming up
-            this.beamAlpha = Math.min(0.4, (this.beamAlpha || 0) + 0.05); // more transparent
-            this.beamParallaxOffset = (this.beamParallaxOffset || 0) + 5.0; // Accrue vertical parallax offset
-            if (this.player.y < this.camera.y - 64 && !this.transitionComplete) {
-              this.transitionComplete = true;
-              // Fade to white
-              const flash = document.getElementById('white-flash');
-              if (flash) flash.classList.add('active');
-              setTimeout(() => {
-                if (!this.hasWon) return;
-                if (this.onWin) this.onWin();
-                if (flash) flash.classList.remove('active');
-              }, 300);
-            }
+              if (flash) flash.classList.remove('active');
+            }, 300);
           }
         }
       }
@@ -979,47 +945,12 @@ export class Engine {
           alpha: 0.5,
           theme: this.theme,
           vy: this.player.vy,
-          charId: this.player.charId
         });
-      }
-
-      // Blob trail
-      if (this.player.charId === 'blob' && (Math.abs(this.player.vx) > 0.5 || Math.abs(this.player.vy) > 0.5)) {
-        // Leave slime splats on the ground
-        if (this.frameCount % 3 === 0) {
-          this.dustParticles.push({
-            x: this.player.x + this.player.width / 2 + (Math.random() - 0.5) * 16,
-            y: this.player.y + this.player.height / 2 + (Math.random() - 0.5) * 16,
-            vx: 0,
-            vy: 0,
-            radius: 3 + Math.random() * 4,
-            alpha: 0.8,
-            decay: 0.002 + Math.random() * 0.002, // very slow decay
-            isSlime: true,
-            color: 'rgba(50, 205, 50, 0.85)'
-          });
-        }
-        // Faint ghost trails
-        if (this.frameCount % 6 === 0) {
-          this.playerTrails.push({
-            x: this.player.x,
-            y: this.player.y,
-            facing: this.player.facing,
-            scaleX: this.player.scaleX,
-            scaleY: this.player.scaleY,
-            tiltAngle: this.player.tiltAngle,
-            alpha: 0.3,
-            theme: this.theme,
-            vy: this.player.vy,
-            vx: this.player.vx,
-            charId: 'blob'
-          });
-        }
       }
 
       // Update trails
       this.playerTrails.forEach(t => {
-        t.alpha -= (t.charId === 'blob' ? 0.015 : 0.05);
+        t.alpha -= 0.05;
       });
       this.playerTrails = this.playerTrails.filter(t => t.alpha > 0);
     }
@@ -1040,32 +971,29 @@ export class Engine {
       this.screenShake = Math.max(0, this.screenShake - 0.5);
     }
 
-    if (this.player.charId === 'topdown' || this.player.charId === 'blob' || this.player.charId === 'paddle_h' || this.player.charId === 'paddle_v') {
+    if (this.player.charId === 'topdown' || this.player.charId === 'paddle_h' || this.player.charId === 'paddle_v') {
       const isV = this.player.charId === 'paddle_v';
       const isH = this.player.charId === 'paddle_h';
-      const isBlob = this.player.charId === 'blob';
       const canMoveX = !isV;
       const canMoveY = !isH;
 
-      const maxSpeed = isBlob ? 3.5 : CONFIG.MOVE_SPEED;
-
-      const targetVx = (canMoveX && this.keys.left) ? -maxSpeed : ((canMoveX && this.keys.right) ? maxSpeed : 0);
-      const targetVy = (canMoveY && this.keys.up) ? -maxSpeed : ((canMoveY && this.keys.down) ? maxSpeed : 0);
+      const targetVx = (canMoveX && this.keys.left) ? -CONFIG.MOVE_SPEED : ((canMoveX && this.keys.right) ? CONFIG.MOVE_SPEED : 0);
+      const targetVy = (canMoveY && this.keys.up) ? -CONFIG.MOVE_SPEED : ((canMoveY && this.keys.down) ? CONFIG.MOVE_SPEED : 0);
       
       if (this.keys.left) this.player.facing = 'left';
       if (this.keys.right) this.player.facing = 'right';
 
       if (targetVx !== 0) {
-        this.player.vx += (targetVx - this.player.vx) * (isBlob ? 0.08 : CONFIG.ACCELERATION);
+        this.player.vx += (targetVx - this.player.vx) * CONFIG.ACCELERATION;
       } else {
-        this.player.vx += (0 - this.player.vx) * (isBlob ? 0.05 : CONFIG.DECELERATION);
+        this.player.vx += (0 - this.player.vx) * CONFIG.DECELERATION;
         if (Math.abs(this.player.vx) < 0.1) this.player.vx = 0;
       }
 
       if (targetVy !== 0) {
-        this.player.vy += (targetVy - this.player.vy) * (isBlob ? 0.08 : CONFIG.ACCELERATION);
+        this.player.vy += (targetVy - this.player.vy) * CONFIG.ACCELERATION;
       } else {
-        this.player.vy += (0 - this.player.vy) * (isBlob ? 0.05 : CONFIG.DECELERATION);
+        this.player.vy += (0 - this.player.vy) * CONFIG.DECELERATION;
         if (Math.abs(this.player.vy) < 0.1) this.player.vy = 0;
       }
     } else {
@@ -1770,147 +1698,6 @@ if (this.player.jumpBufferTimer > 0) {
         isSquare: this.player.charId === 'classic',
       });
     }
-  }
-
-  drawBlob(ctx, x, y, width, height, facing, vx, vy, alpha, isTrail) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    
-    // Determine squish based on velocity
-    const speedX = Math.abs(vx);
-    const speedY = Math.abs(vy);
-    const totalSpeed = Math.sqrt(speedX*speedX + speedY*speedY);
-    
-    // Max stretch is around 1.5
-    const stretch = 1 + Math.min(totalSpeed * 0.1, 0.5);
-    const squish = 1 / stretch;
-    
-    let scaleX = 1;
-    let scaleY = 1;
-    let rotation = 0;
-    
-    if (totalSpeed > 0.1) {
-       rotation = Math.atan2(vy, vx);
-       scaleX = stretch;
-       scaleY = squish;
-    }
-
-    ctx.translate(x + width / 2, y + height / 2);
-    ctx.rotate(rotation);
-    ctx.scale(scaleX, scaleY);
-    
-    // Wobble effect
-    const time = Date.now() / 200;
-    const wobble1 = Math.sin(time) * 1.5;
-    const wobble2 = Math.cos(time * 1.3) * 1.5;
-    
-    ctx.fillStyle = isTrail ? 'rgba(50, 205, 50, 0.5)' : 'rgba(50, 205, 50, 0.85)';
-    
-    ctx.beginPath();
-    ctx.ellipse(0, 0, width/2 - 2 + wobble1, height/2 - 2 + wobble2, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Highlight
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.beginPath();
-    ctx.ellipse(-width/6, -height/6, width/6, height/8, Math.PI/4, 0, Math.PI * 2);
-    ctx.fill();
-    
-    if (!isTrail) {
-      // Eyes looking towards movement
-      ctx.fillStyle = 'white';
-      ctx.beginPath();
-      ctx.arc(width/5, -5, 4, 0, Math.PI * 2);
-      ctx.arc(width/5, 5, 4, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.fillStyle = 'black';
-      ctx.beginPath();
-      ctx.arc(width/5 + 1, -5, 2, 0, Math.PI * 2);
-      ctx.arc(width/5 + 1, 5, 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    
-    ctx.restore();
-  }
-
-  drawTopDownPlayer(ctx, x, y, width, height, facing, scaleX, scaleY, tiltAngle, alpha) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    
-    // Position center of the box
-    ctx.translate(x + width / 2, y + height / 2);
-    ctx.scale(scaleX, scaleY);
-    ctx.rotate(tiltAngle);
-
-    // Dynamic hovering/bobbing based on time
-    const hoverY = Math.sin(Date.now() / 150) * 2;
-    ctx.translate(0, hoverY);
-
-    // If facing left, we flip horizontally
-    if (facing === 'left') {
-      ctx.scale(-1, 1);
-    }
-
-    // Shadow
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.beginPath();
-    ctx.ellipse(0, height / 2 + 6, 12, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Backpack / Thruster Pack
-    ctx.fillStyle = '#1e293b'; // Dark gray
-    ctx.beginPath();
-    ctx.roundRect(-10, -8, 20, 24, 4);
-    ctx.fill();
-
-    // Glowing thrusters
-    const thrustGlow = Math.abs(Math.sin(Date.now() / 100)) * 0.5 + 0.5;
-    ctx.fillStyle = `rgba(56, 189, 248, ${thrustGlow})`; // Cyan glow
-    ctx.beginPath();
-    ctx.arc(-5, 16, 4, 0, Math.PI * 2);
-    ctx.arc(5, 16, 4, 0, Math.PI * 2);
-    ctx.fill();
-    // Inner thruster bright spots
-    ctx.fillStyle = '#e0f2fe';
-    ctx.beginPath();
-    ctx.arc(-5, 16, 2, 0, Math.PI * 2);
-    ctx.arc(5, 16, 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Shoulders
-    ctx.fillStyle = '#0284c7'; // Blue armor
-    ctx.beginPath();
-    ctx.roundRect(-14, -10, 28, 14, 6);
-    ctx.fill();
-
-    // Head
-    ctx.fillStyle = '#fcd34d'; // Warm skin tone
-    ctx.beginPath();
-    ctx.arc(0, -6, 8, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Hair / Helmet
-    ctx.fillStyle = '#0f172a'; // Dark helmet
-    ctx.beginPath();
-    ctx.arc(0, -7, 8.5, Math.PI, 0); // Top half
-    ctx.fill();
-    
-    // Visor
-    ctx.fillStyle = '#38bdf8'; // Glowing visor
-    ctx.beginPath();
-    ctx.roundRect(-5, -6, 10, 4, 2);
-    ctx.fill();
-
-    // Hands (bobbing opposite to hover)
-    const handY = Math.cos(Date.now() / 150) * 2;
-    ctx.fillStyle = '#0f172a'; // Gloves
-    ctx.beginPath();
-    ctx.arc(-16, handY + 2, 4, 0, Math.PI * 2);
-    ctx.arc(16, handY + 2, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
   }
 
   drawForestKid(ctx, x, y, width, height, facing, scaleX, scaleY, tiltAngle, alpha, isTrail = false, customTheme = null) {
@@ -3754,10 +3541,7 @@ if (this.player.jumpBufferTimer > 0) {
 
         // Patrol range edges
         if (enemy.type !== 'chaser') {
-          if (enemy.patrolLeft >= enemy.patrolRight) {
-            enemy.vx = 0;
-            enemy.walkFrame = 0;
-          } else if (enemy.x <= enemy.patrolLeft) {
+          if (enemy.x <= enemy.patrolLeft) {
             enemy.x = enemy.patrolLeft;
             enemy.vx = enemy.speed;
             enemy.facing = 'right';
@@ -3914,7 +3698,7 @@ if (this.player.jumpBufferTimer > 0) {
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         const tileVal = this.getTile(c, r);
-        if (tileVal === TILE.SOLID || tileVal === TILE.TRAMPOLINE || tileVal === TILE.BREAKABLE || tileVal === TILE.EARTH || tileVal === TILE.LOCK || tileVal === TILE.MOVEABLE || tileVal === TILE.SWITCH || tileVal === TILE.ICE || tileVal === TILE.CONVEYOR_LEFT || tileVal === TILE.CONVEYOR_RIGHT || tileVal === TILE.CRUMBLE || tileVal === TILE.DASH_PANEL_LEFT || tileVal === TILE.DASH_PANEL_RIGHT || tileVal === TILE.BOUNCY_MUSHROOM || tileVal === TILE.CRACKED_BLOCK || tileVal === TILE.JUMP_THROUGH || tileVal === TILE.RAMP_RIGHT || tileVal === TILE.RAMP_LEFT || tileVal === TILE.SLIME || tileVal === TILE.INVISIBLE_BLOCK || tileVal === TILE.PAINT_BLOCK || tileVal === TILE.REVEALED_BLOCK || tileVal === TILE.REFLECTOR) {
+        if (tileVal === TILE.SOLID || tileVal === TILE.TRAMPOLINE || tileVal === TILE.BREAKABLE || tileVal === TILE.EARTH || tileVal === TILE.LOCK || tileVal === TILE.MOVEABLE || tileVal === TILE.SWITCH || tileVal === TILE.ICE || tileVal === TILE.CONVEYOR_LEFT || tileVal === TILE.CONVEYOR_RIGHT || tileVal === TILE.CRUMBLE || tileVal === TILE.DASH_PANEL_LEFT || tileVal === TILE.DASH_PANEL_RIGHT || tileVal === TILE.BOUNCY_MUSHROOM || tileVal === TILE.CRACKED_BLOCK || tileVal === TILE.JUMP_THROUGH || tileVal === TILE.RAMP_RIGHT || tileVal === TILE.RAMP_LEFT) {
           tiles.push({ col: c, row: r, type: tileVal });
         } else if (tileVal === TILE.BLOCK_RED && this.level.switchState === 'red') {
           tiles.push({ col: c, row: r, type: TILE.BLOCK_RED });
@@ -4769,17 +4553,8 @@ if (this.player.jumpBufferTimer > 0) {
           if (this.assets.slime) {
             this.ctx.drawImage(this.assets.slime, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           } else {
-            this.ctx.fillStyle = 'rgba(74, 222, 128, 0.7)';
+            this.ctx.fillStyle = '#4ade80';
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-            this.ctx.strokeStyle = '#22c55e';
-            this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-            this.ctx.beginPath();
-            this.ctx.arc(x + 8, y + 8, 3, 0, Math.PI * 2);
-            this.ctx.arc(x + 24, y + 16, 2, 0, Math.PI * 2);
-            this.ctx.arc(x + 12, y + 24, 4, 0, Math.PI * 2);
-            this.ctx.fill();
           }
         } else if (tileVal === TILE.EARTH) {
           this.editor.renderEarthBlock(x, y, 1, c, r, this);
@@ -5922,9 +5697,7 @@ if (this.player.jumpBufferTimer > 0) {
       if (!this.isSimulation && !isEdit) {
         if (renderCharId !== 'classic') {
           this.playerTrails.forEach(t => {
-            if (t.charId === 'blob' || renderCharId === 'blob') {
-              this.drawBlob(this.ctx, t.x, t.y, this.player.width, this.player.height, t.facing, t.vx || 0, t.vy || 0, t.alpha, true);
-            } else if (renderCharId === 'robot') {
+            if (renderCharId === 'robot') {
               this.drawRobot(this.ctx, t.x, t.y, this.player.width, this.player.height, t.facing, t.scaleX, t.scaleY, t.tiltAngle, t.alpha, true);
             } else {
               this.drawForestKid(
@@ -5956,16 +5729,6 @@ if (this.player.jumpBufferTimer > 0) {
             // Little highlight on square dust
             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             this.ctx.fillRect(p.x - p.radius + 1, p.y - p.radius + 1, p.radius, p.radius);
-          } else if (p.isSlime) {
-            // Slime splat
-            this.ctx.beginPath();
-            this.ctx.ellipse(p.x, p.y, p.radius * 1.2, p.radius * 0.8, 0, 0, Math.PI * 2);
-            this.ctx.fill();
-            // Highlight
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            this.ctx.beginPath();
-            this.ctx.ellipse(p.x - p.radius * 0.2, p.y - p.radius * 0.2, p.radius * 0.4, p.radius * 0.2, Math.PI/4, 0, Math.PI * 2);
-            this.ctx.fill();
           } else {
             // Fluffy cloud dust
             this.ctx.beginPath();
@@ -5996,8 +5759,6 @@ if (this.player.jumpBufferTimer > 0) {
           this.ctx.arc(0, 0, this.ghost.width / 2, 0, Math.PI * 2);
           this.ctx.fillStyle = '#ff9800';
           this.ctx.fill();
-        } else if (renderCharId === 'blob') {
-          this.drawBlob(this.ctx, gx, gy, this.ghost.width, this.ghost.height, this.ghost.facing, this.ghost.vx || 0, this.ghost.vy || 0, 0.5, false);
         } else if (renderCharId === 'topdown' || renderCharId === 'paddle_h' || renderCharId === 'paddle_v') {
           this.ctx.fillStyle = renderCharId === 'topdown' ? '#9c27b0' : '#009688';
           this.ctx.fillRect(gx, gy, this.ghost.width, this.ghost.height);
@@ -6050,32 +5811,9 @@ if (this.player.jumpBufferTimer > 0) {
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
         this.ctx.restore();
-      } else if (renderCharId === 'blob') {
-        this.drawBlob(
-          this.ctx,
-          px,
-          py,
-          this.player.width,
-          this.player.height,
-          isEdit ? 'right' : this.player.facing,
-          this.player.vx || 0,
-          this.player.vy || 0,
-          1.0,
-          false
-        );
       } else if (renderCharId === 'topdown') {
-        this.drawTopDownPlayer(
-          this.ctx,
-          px,
-          py,
-          this.player.width,
-          this.player.height,
-          isEdit ? 'right' : this.player.facing,
-          isEdit ? 1 : this.player.scaleX,
-          isEdit ? 1 : this.player.scaleY,
-          isEdit ? 0 : this.player.tiltAngle,
-          1.0
-        );
+        this.ctx.fillStyle = '#9c27b0';
+        this.ctx.fillRect(px, py, this.player.width, this.player.height);
       } else if (renderCharId === 'paddle_h' || renderCharId === 'paddle_v') {
         this.ctx.fillStyle = '#009688';
         this.ctx.fillRect(px, py, this.player.width, this.player.height);

@@ -1,5 +1,6 @@
 import { CONFIG } from './config.js';
 import { audio } from './audio.js';
+import { TILE } from './tiles.js';
 
 export class Editor {
   constructor(canvas, level, assets) {
@@ -129,10 +130,10 @@ export class Editor {
     const r = row !== null ? row : 0;
 
     // Check neighbors of type 6 (breakable block)
-    const hasLeft = col !== null && engine && engine.getTile(col - 1, row) === 6;
-    const hasRight = col !== null && engine && engine.getTile(col + 1, row) === 6;
-    const hasTop = row !== null && engine && engine.getTile(col, row - 1) === 6;
-    const hasBottom = row !== null && engine && engine.getTile(col, row + 1) === 6;
+    const hasLeft = col !== null && engine && engine.getTile(col - 1, row) === TILE.BREAKABLE;
+    const hasRight = col !== null && engine && engine.getTile(col + 1, row) === TILE.BREAKABLE;
+    const hasTop = row !== null && engine && engine.getTile(col, row - 1) === TILE.BREAKABLE;
+    const hasBottom = row !== null && engine && engine.getTile(col, row + 1) === TILE.BREAKABLE;
 
     // Helper to get a stable, wobbly offset along grid coordinates
     const getWobble = (seed) => {
@@ -260,7 +261,7 @@ export class Editor {
       drawBrickShading(1.5, 21.5, 19, 9, seed + 5);
       // Bottom-Right brick
       drawBrickShading(23.5, 21.5, 7, 9, seed + 6);
-    } else if (varIdx === 2) {
+    } else if (varIdx === TILE.TRAMPOLINE) {
       // Variety 2: Top split at 24, Bottom split none
       drawWobbleLine(24, 0, 24, 20, seed + 1, 2);
 
@@ -270,7 +271,7 @@ export class Editor {
       drawBrickShading(25.5, 1.5, 5, 17, seed + 4);
       // Bottom full brick
       drawBrickShading(1.5, 21.5, size - 3, 9, seed + 5);
-    } else if (varIdx === 3) {
+    } else if (varIdx === TILE.FIRE) {
       // Variety 3: Top split none, Bottom split at 14
       drawWobbleLine(14, 20, 14, size, seed + 1, 2);
 
@@ -380,7 +381,7 @@ export class Editor {
     const isSolid = (colNum, rowNum) => {
       if (engine) {
         const t = engine.getTile(colNum, rowNum);
-        return t === 1 || t === 6 || t === 7;
+        return t === TILE.SOLID || t === TILE.BREAKABLE || t === TILE.EARTH;
       }
       return false;
     };
@@ -762,7 +763,7 @@ export class Editor {
     const isSolid = (colNum, rowNum) => {
       if (engine) {
         const t = engine.getTile(colNum, rowNum);
-        return t === 1 || t === 6 || t === 7;
+        return t === TILE.SOLID || t === TILE.BREAKABLE || t === TILE.EARTH;
       }
       return false;
     };
@@ -966,80 +967,80 @@ export class Editor {
 
     switch (this.currentTool) {
       case CONFIG.TOOL_WALL:
-        if (this.level.getTile(col, row) !== 1) {
-          this.level.setTile(col, row, 1);
+        if (this.level.getTile(col, row) !== TILE.SOLID) {
+          this.level.setTile(col, row, TILE.SOLID);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_BREAKABLE:
-        if (this.level.getTile(col, row) !== 6) {
-          this.level.setTile(col, row, 6);
+        if (this.level.getTile(col, row) !== TILE.BREAKABLE) {
+          this.level.setTile(col, row, TILE.BREAKABLE);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_EARTH:
-        if (this.level.getTile(col, row) !== 7) {
-          this.level.setTile(col, row, 7);
+        if (this.level.getTile(col, row) !== TILE.EARTH) {
+          this.level.setTile(col, row, TILE.EARTH);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_TRAMPOLINE:
-        if (this.level.getTile(col, row) !== 2) {
-          this.level.setTile(col, row, 2);
+        if (this.level.getTile(col, row) !== TILE.TRAMPOLINE) {
+          this.level.setTile(col, row, TILE.TRAMPOLINE);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_FIRE:
-        if (this.level.getTile(col, row) !== 3) {
-          this.level.setTile(col, row, 3);
+        if (this.level.getTile(col, row) !== TILE.FIRE) {
+          this.level.setTile(col, row, TILE.FIRE);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_SPIKES:
-        if (this.level.getTile(col, row) !== 4) {
-          this.level.setTile(col, row, 4);
+        if (this.level.getTile(col, row) !== TILE.SPIKES) {
+          this.level.setTile(col, row, TILE.SPIKES);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_COIN:
-        if (this.level.getTile(col, row) !== 5) {
-          this.level.setTile(col, row, 5);
+        if (this.level.getTile(col, row) !== TILE.COIN) {
+          this.level.setTile(col, row, TILE.COIN);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_LOCK:
-        if (this.level.getTile(col, row) !== 8) {
-          this.level.setTile(col, row, 8);
+        if (this.level.getTile(col, row) !== TILE.LOCK) {
+          this.level.setTile(col, row, TILE.LOCK);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_MOVEABLE:
-        if (this.level.getTile(col, row) !== 10) {
-          this.level.setTile(col, row, 10);
+        if (this.level.getTile(col, row) !== TILE.MOVEABLE) {
+          this.level.setTile(col, row, TILE.MOVEABLE);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_KEY:
-        if (this.level.getTile(col, row) !== 9) {
-          this.level.setTile(col, row, 9);
+        if (this.level.getTile(col, row) !== TILE.KEY) {
+          this.level.setTile(col, row, TILE.KEY);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_SWITCH:
-        if (this.level.getTile(col, row) !== 11) {
-          this.level.setTile(col, row, 11);
+        if (this.level.getTile(col, row) !== TILE.SWITCH) {
+          this.level.setTile(col, row, TILE.SWITCH);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_BLOCK_RED:
-        if (this.level.getTile(col, row) !== 12) {
-          this.level.setTile(col, row, 12);
+        if (this.level.getTile(col, row) !== TILE.BLOCK_RED) {
+          this.level.setTile(col, row, TILE.BLOCK_RED);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_BLOCK_BLUE:
-        if (this.level.getTile(col, row) !== 13) {
-          this.level.setTile(col, row, 13);
+        if (this.level.getTile(col, row) !== TILE.BLOCK_BLUE) {
+          this.level.setTile(col, row, TILE.BLOCK_BLUE);
           audio.playTileSound();
         }
         break;
@@ -1050,206 +1051,206 @@ export class Editor {
         }
         break;
       case CONFIG.TOOL_SPRING_BOOTS:
-        if (this.level.getTile(col, row) !== 16) {
-          this.level.setTile(col, row, 16);
+        if (this.level.getTile(col, row) !== TILE.GHOST_BLOCK) {
+          this.level.setTile(col, row, TILE.GHOST_BLOCK);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_DOUBLE_JUMP:
-        if (this.level.getTile(col, row) !== 24) {
-          this.level.setTile(col, row, 24);
+        if (this.level.getTile(col, row) !== TILE.DASH_PANEL_RIGHT) {
+          this.level.setTile(col, row, TILE.DASH_PANEL_RIGHT);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_BLOCK_ICE:
-        if (this.level.getTile(col, row) !== 17) {
-          this.level.setTile(col, row, 17);
+        if (this.level.getTile(col, row) !== TILE.ICE) {
+          this.level.setTile(col, row, TILE.ICE);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_PUSHABLE_ICE_BLOCK:
-        if (this.level.getTile(col, row) !== 42) {
-          this.level.setTile(col, row, 42);
+        if (this.level.getTile(col, row) !== TILE.MAGNETIC_SURFACE) {
+          this.level.setTile(col, row, TILE.MAGNETIC_SURFACE);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_MAGNETIC_BOOTS:
-        if (this.level.getTile(col, row) !== 43) {
-          this.level.setTile(col, row, 43);
+        if (this.level.getTile(col, row) !== TILE.MAGNETIC_BOOTS) {
+          this.level.setTile(col, row, TILE.MAGNETIC_BOOTS);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_GRAPPLE:
-        if (this.level.getTile(col, row) !== 44) {
-          this.level.setTile(col, row, 44);
+        if (this.level.getTile(col, row) !== TILE.GRAPPLE_POWERUP) {
+          this.level.setTile(col, row, TILE.GRAPPLE_POWERUP);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_STOPWATCH:
-        if (this.level.getTile(col, row) !== 45) {
-          this.level.setTile(col, row, 45);
+        if (this.level.getTile(col, row) !== TILE.STOPWATCH) {
+          this.level.setTile(col, row, TILE.STOPWATCH);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_PORTAL_GRAVITY:
-        if (this.level.getTile(col, row) !== 18) {
-          this.level.setTile(col, row, 18);
+        if (this.level.getTile(col, row) !== TILE.ANTI_GRAVITY) {
+          this.level.setTile(col, row, TILE.ANTI_GRAVITY);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_CONVEYOR_LEFT:
-        if (this.level.getTile(col, row) !== 19) {
-          this.level.setTile(col, row, 19);
+        if (this.level.getTile(col, row) !== TILE.CONVEYOR_LEFT) {
+          this.level.setTile(col, row, TILE.CONVEYOR_LEFT);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_CONVEYOR_RIGHT:
-        if (this.level.getTile(col, row) !== 20) {
-          this.level.setTile(col, row, 20);
+        if (this.level.getTile(col, row) !== TILE.CONVEYOR_RIGHT) {
+          this.level.setTile(col, row, TILE.CONVEYOR_RIGHT);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_DASH_PANEL_LEFT:
-        if (this.level.getTile(col, row) !== 23) {
-          this.level.setTile(col, row, 23);
+        if (this.level.getTile(col, row) !== TILE.DASH_PANEL_LEFT) {
+          this.level.setTile(col, row, TILE.DASH_PANEL_LEFT);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_DASH_PANEL_RIGHT:
-        if (this.level.getTile(col, row) !== 24) {
-          this.level.setTile(col, row, 24);
+        if (this.level.getTile(col, row) !== TILE.DASH_PANEL_RIGHT) {
+          this.level.setTile(col, row, TILE.DASH_PANEL_RIGHT);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_TRIPWIRE:
-        if (this.level.getTile(col, row) !== 21) {
-          this.level.setTile(col, row, 21);
+        if (this.level.getTile(col, row) !== TILE.TRIPWIRE) {
+          this.level.setTile(col, row, TILE.TRIPWIRE);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_CHECKPOINT:
-        if (this.level.getTile(col, row) !== 25) {
-          this.level.setTile(col, row, 25);
+        if (this.level.getTile(col, row) !== TILE.CHECKPOINT) {
+          this.level.setTile(col, row, TILE.CHECKPOINT);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_FAKE_WALL:
-        if (this.level.getTile(col, row) !== 26) {
-          this.level.setTile(col, row, 26);
+        if (this.level.getTile(col, row) !== TILE.FAKE_WALL) {
+          this.level.setTile(col, row, TILE.FAKE_WALL);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_SPEED_BOOST:
-        if (this.level.getTile(col, row) !== 27) {
-          this.level.setTile(col, row, 27);
+        if (this.level.getTile(col, row) !== TILE.SPEED_BOOST) {
+          this.level.setTile(col, row, TILE.SPEED_BOOST);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_DASH_POWERUP:
-        if (this.level.getTile(col, row) !== 41) {
-          this.level.setTile(col, row, 41);
+        if (this.level.getTile(col, row) !== TILE.DASH_POWERUP) {
+          this.level.setTile(col, row, TILE.DASH_POWERUP);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_BUMPER:
-        if (this.level.getTile(col, row) !== 28) {
-          this.level.setTile(col, row, 28);
+        if (this.level.getTile(col, row) !== TILE.BUMPER) {
+          this.level.setTile(col, row, TILE.BUMPER);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_GRAVITY_SWITCH:
-        if (this.level.getTile(col, row) !== 29) {
-          this.level.setTile(col, row, 29);
+        if (this.level.getTile(col, row) !== TILE.GRAVITY_SWITCH) {
+          this.level.setTile(col, row, TILE.GRAVITY_SWITCH);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_JETPACK:
-        if (this.level.getTile(col, row) !== 103) {
-          this.level.setTile(col, row, 103);
+        if (this.level.getTile(col, row) !== TILE.JETPACK) {
+          this.level.setTile(col, row, TILE.JETPACK);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_SHRINK_POTION:
-        if (this.level.getTile(col, row) !== 104) {
-          this.level.setTile(col, row, 104);
+        if (this.level.getTile(col, row) !== TILE.SHRINK_POTION) {
+          this.level.setTile(col, row, TILE.SHRINK_POTION);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_PAINT_BLOCK:
-        if (this.level.getTile(col, row) !== 105) {
-          this.level.setTile(col, row, 105);
+        if (this.level.getTile(col, row) !== TILE.PAINT_BLOCK) {
+          this.level.setTile(col, row, TILE.PAINT_BLOCK);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_INVISIBLE_BLOCK:
-        if (this.level.getTile(col, row) !== 106) {
-          this.level.setTile(col, row, 106);
+        if (this.level.getTile(col, row) !== TILE.INVISIBLE_BLOCK) {
+          this.level.setTile(col, row, TILE.INVISIBLE_BLOCK);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_WATER:
-        if (this.level.getTile(col, row) !== 31) {
-          this.level.setTile(col, row, 31);
+        if (this.level.getTile(col, row) !== TILE.WATER) {
+          this.level.setTile(col, row, TILE.WATER);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_SLIME:
-        if (this.level.getTile(col, row) !== 32) {
-          this.level.setTile(col, row, 32);
+        if (this.level.getTile(col, row) !== TILE.SLIME) {
+          this.level.setTile(col, row, TILE.SLIME);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_BOOMERANG:
-        if (this.level.getTile(col, row) !== 33) {
-          this.level.setTile(col, row, 33);
+        if (this.level.getTile(col, row) !== TILE.BOOMERANG) {
+          this.level.setTile(col, row, TILE.BOOMERANG);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_PORTAL_MIRROR:
-        if (this.level.getTile(col, row) !== 34) {
-          this.level.setTile(col, row, 34);
+        if (this.level.getTile(col, row) !== TILE.MIRROR_PORTAL) {
+          this.level.setTile(col, row, TILE.MIRROR_PORTAL);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_STALACTITE:
-        if (this.level.getTile(col, row) !== 35) {
-          this.level.setTile(col, row, 35);
+        if (this.level.getTile(col, row) !== TILE.STALACTITE) {
+          this.level.setTile(col, row, TILE.STALACTITE);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_WIND_UP:
-        if (this.level.getTile(col, row) !== 36) {
-          this.level.setTile(col, row, 36);
+        if (this.level.getTile(col, row) !== TILE.WIND_UP) {
+          this.level.setTile(col, row, TILE.WIND_UP);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_WIND_DOWN:
-        if (this.level.getTile(col, row) !== 37) {
-          this.level.setTile(col, row, 37);
+        if (this.level.getTile(col, row) !== TILE.WIND_DOWN) {
+          this.level.setTile(col, row, TILE.WIND_DOWN);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_WIND_LEFT:
-        if (this.level.getTile(col, row) !== 38) {
-          this.level.setTile(col, row, 38);
+        if (this.level.getTile(col, row) !== TILE.WIND_LEFT) {
+          this.level.setTile(col, row, TILE.WIND_LEFT);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_WIND_RIGHT:
-        if (this.level.getTile(col, row) !== 39) {
-          this.level.setTile(col, row, 39);
+        if (this.level.getTile(col, row) !== TILE.WIND_RIGHT) {
+          this.level.setTile(col, row, TILE.WIND_RIGHT);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_BOUNCY_MUSHROOM:
-        if (this.level.getTile(col, row) !== 40) {
-          this.level.setTile(col, row, 40);
+        if (this.level.getTile(col, row) !== TILE.BOUNCY_MUSHROOM) {
+          this.level.setTile(col, row, TILE.BOUNCY_MUSHROOM);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_BLOCK_CRUMBLE:
-        if (this.level.getTile(col, row) !== 22) {
-          this.level.setTile(col, row, 22);
+        if (this.level.getTile(col, row) !== TILE.CRUMBLE) {
+          this.level.setTile(col, row, TILE.CRUMBLE);
           audio.playTileSound();
         }
         break;
@@ -1259,56 +1260,56 @@ export class Editor {
         }
         break;
       case CONFIG.TOOL_JUMP_THROUGH:
-        if (this.level.getTile(col, row) !== 52) {
-          this.level.setTile(col, row, 52);
+        if (this.level.getTile(col, row) !== TILE.JUMP_THROUGH) {
+          this.level.setTile(col, row, TILE.JUMP_THROUGH);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_CANNON_BARREL:
-        if (this.level.getTile(col, row) !== 53) {
-          this.level.setTile(col, row, 53);
+        if (this.level.getTile(col, row) !== TILE.CANNON) {
+          this.level.setTile(col, row, TILE.CANNON);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_ROPE:
-        if (this.level.getTile(col, row) !== 55) {
-          this.level.setTile(col, row, 55);
+        if (this.level.getTile(col, row) !== TILE.ROPE) {
+          this.level.setTile(col, row, TILE.ROPE);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_TURRET:
-        if (this.level.getTile(col, row) !== 54) {
-          this.level.setTile(col, row, 54);
+        if (this.level.getTile(col, row) !== TILE.TURRET) {
+          this.level.setTile(col, row, TILE.TURRET);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_MINECART:
-        if (this.level.getTile(col, row) !== 56) {
-          this.level.setTile(col, row, 56);
+        if (this.level.getTile(col, row) !== TILE.MINECART) {
+          this.level.setTile(col, row, TILE.MINECART);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_RAMP_RIGHT:
-        if (this.level.getTile(col, row) !== 57) {
-          this.level.setTile(col, row, 57);
+        if (this.level.getTile(col, row) !== TILE.RAMP_RIGHT) {
+          this.level.setTile(col, row, TILE.RAMP_RIGHT);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_RAMP_LEFT:
-        if (this.level.getTile(col, row) !== 58) {
-          this.level.setTile(col, row, 58);
+        if (this.level.getTile(col, row) !== TILE.RAMP_LEFT) {
+          this.level.setTile(col, row, TILE.RAMP_LEFT);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_REFLECTOR:
-        if (this.level.getTile(col, row) !== 59) {
-          this.level.setTile(col, row, 59);
+        if (this.level.getTile(col, row) !== TILE.REFLECTOR) {
+          this.level.setTile(col, row, TILE.REFLECTOR);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_GRAVITY_WELL:
-        if (this.level.getTile(col, row) !== 60) {
-          this.level.setTile(col, row, 60);
+        if (this.level.getTile(col, row) !== TILE.GRAVITY_WELL) {
+          this.level.setTile(col, row, TILE.GRAVITY_WELL);
           audio.playTileSound();
         }
         break;
@@ -1332,8 +1333,8 @@ export class Editor {
           audio.playEraseSound();
         } else if (this.level.removeEnemy(col, row)) {
           audio.playEraseSound();
-        } else if (this.level.getTile(col, row) !== 0) {
-          this.level.setTile(col, row, 0);
+        } else if (this.level.getTile(col, row) !== TILE.EMPTY) {
+          this.level.setTile(col, row, TILE.EMPTY);
           audio.playEraseSound();
         }
         break;
@@ -1363,49 +1364,49 @@ export class Editor {
         audio.playTileSound();
         break;
       case CONFIG.TOOL_PORTAL_SIZE:
-        if (this.level.getTile(col, row) !== 14) {
-          this.level.setTile(col, row, 14);
+        if (this.level.getTile(col, row) !== TILE.SIZE_PORTAL) {
+          this.level.setTile(col, row, TILE.SIZE_PORTAL);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_DOOR_RED:
-        if (this.level.getTile(col, row) !== 46) {
-          this.level.setTile(col, row, 46);
+        if (this.level.getTile(col, row) !== TILE.DOOR_RED) {
+          this.level.setTile(col, row, TILE.DOOR_RED);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_DOOR_BLUE:
-        if (this.level.getTile(col, row) !== 47) {
-          this.level.setTile(col, row, 47);
+        if (this.level.getTile(col, row) !== TILE.DOOR_BLUE) {
+          this.level.setTile(col, row, TILE.DOOR_BLUE);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_DOOR_GREEN:
-        if (this.level.getTile(col, row) !== 48) {
-          this.level.setTile(col, row, 48);
+        if (this.level.getTile(col, row) !== TILE.DOOR_GREEN) {
+          this.level.setTile(col, row, TILE.DOOR_GREEN);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_BOMB_POWERUP:
-        if (this.level.getTile(col, row) !== 49) {
-          this.level.setTile(col, row, 49);
+        if (this.level.getTile(col, row) !== TILE.BOMB_POWERUP) {
+          this.level.setTile(col, row, TILE.BOMB_POWERUP);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_CRACKED_BLOCK:
-        if (this.level.getTile(col, row) !== 50) {
-          this.level.setTile(col, row, 50);
+        if (this.level.getTile(col, row) !== TILE.CRACKED_BLOCK) {
+          this.level.setTile(col, row, TILE.CRACKED_BLOCK);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_GHOST_SWITCH:
-        if (this.level.getTile(col, row) !== 51) {
-          this.level.setTile(col, row, 51);
+        if (this.level.getTile(col, row) !== TILE.GHOST_SWITCH) {
+          this.level.setTile(col, row, TILE.GHOST_SWITCH);
           audio.playTileSound();
         }
         break;
       case CONFIG.TOOL_PLAYER_CLASSIC:
-        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+        if (this.level.getTile(col, row) === TILE.EMPTY && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
           if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'classic') {
             this.level.setPlayerSpawn(col, row, 'classic');
             audio.playTileSound();
@@ -1413,7 +1414,7 @@ export class Editor {
         }
         break;
       case CONFIG.TOOL_PLAYER_GHIBLI:
-        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+        if (this.level.getTile(col, row) === TILE.EMPTY && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
           if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'ghibli') {
             this.level.setPlayerSpawn(col, row, 'ghibli');
             audio.playTileSound();
@@ -1421,7 +1422,7 @@ export class Editor {
         }
         break;
       case CONFIG.TOOL_PLAYER_ROBOT:
-        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+        if (this.level.getTile(col, row) === TILE.EMPTY && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
           if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'robot') {
             this.level.setPlayerSpawn(col, row, 'robot');
             audio.playTileSound();
@@ -1429,7 +1430,7 @@ export class Editor {
         }
         break;
       case CONFIG.TOOL_PLAYER_BALL:
-        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+        if (this.level.getTile(col, row) === TILE.EMPTY && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
           if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'ball') {
             this.level.setPlayerSpawn(col, row, 'ball');
             audio.playTileSound();
@@ -1437,15 +1438,23 @@ export class Editor {
         }
         break;
       case CONFIG.TOOL_PLAYER_TOPDOWN:
-        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+        if (this.level.getTile(col, row) === TILE.EMPTY && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
           if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'topdown') {
             this.level.setPlayerSpawn(col, row, 'topdown');
             audio.playTileSound();
           }
         }
         break;
+      case CONFIG.TOOL_PLAYER_BLOB:
+        if (this.level.getTile(col, row) === TILE.EMPTY && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+          if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'blob') {
+            this.level.setPlayerSpawn(col, row, 'blob');
+            audio.playTileSound();
+          }
+        }
+        break;
       case CONFIG.TOOL_PLAYER_PADDLE_H:
-        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+        if (this.level.getTile(col, row) === TILE.EMPTY && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
           if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'paddle_h') {
             this.level.setPlayerSpawn(col, row, 'paddle_h');
             audio.playTileSound();
@@ -1453,7 +1462,7 @@ export class Editor {
         }
         break;
       case CONFIG.TOOL_PLAYER_PADDLE_V:
-        if (this.level.getTile(col, row) === 0 && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
+        if (this.level.getTile(col, row) === TILE.EMPTY && !this.level.enemies.some(e => e.col === col && e.row === row) && (!this.level.portal1 || this.level.portal1.col !== col || this.level.portal1.row !== row) && (!this.level.portal2 || this.level.portal2.col !== col || this.level.portal2.row !== row)) {
           if (this.level.playerSpawn.col !== col || this.level.playerSpawn.row !== row || this.level.playerSpawn.charId !== 'paddle_v') {
             this.level.setPlayerSpawn(col, row, 'paddle_v');
             audio.playTileSound();
@@ -2095,8 +2104,17 @@ export class Editor {
           if (this.assets.slime) {
             this.ctx.drawImage(this.assets.slime, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
           } else {
-            this.ctx.fillStyle = 'rgba(100, 255, 100, 0.8)';
+            this.ctx.fillStyle = 'rgba(74, 222, 128, 0.7)';
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+            this.ctx.strokeStyle = '#22c55e';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            this.ctx.beginPath();
+            this.ctx.arc(x + 8, y + 8, 3, 0, Math.PI * 2);
+            this.ctx.arc(x + 24, y + 16, 2, 0, Math.PI * 2);
+            this.ctx.arc(x + 12, y + 24, 4, 0, Math.PI * 2);
+            this.ctx.fill();
           }
           break;
         case CONFIG.TOOL_PLAYER_CLASSIC:
@@ -2107,7 +2125,7 @@ export class Editor {
         case CONFIG.TOOL_PLAYER_PADDLE_H:
         case CONFIG.TOOL_PLAYER_PADDLE_V: {
           const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
-          const isInvalid = tileVal !== 0 ||
+          const isInvalid = tileVal !== TILE.EMPTY ||
             this.level.enemies.some(e => e.col === this.hoverCol && e.row === this.hoverRow) ||
             (this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||
             (this.level.portal2 && this.level.portal2.col === this.hoverCol && this.level.portal2.row === this.hoverRow);
@@ -2213,14 +2231,32 @@ export class Editor {
           this.ctx.globalAlpha = 1;
           break;
         }
-        case CONFIG.TOOL_GOAL:
-          if (this.assets.goal) {
-            this.ctx.drawImage(this.assets.goal, x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
-          } else {
-            this.ctx.fillStyle = '#e8b76c';
-            this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+        case CONFIG.TOOL_GOAL: {
+          // Mystical Archway Goal
+          const glow = Math.sin(Date.now() * 0.005) * 4;
+          this.ctx.fillStyle = 'rgba(234, 179, 8, 0.2)'; // Glowing aura
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE/2, 20 + glow, 0, Math.PI*2);
+          this.ctx.fill();
+
+          this.ctx.strokeStyle = '#eab308'; // Gold arch
+          this.ctx.lineWidth = 4;
+          this.ctx.beginPath();
+          this.ctx.arc(x + CONFIG.TILE_SIZE/2, y + CONFIG.TILE_SIZE, 16, Math.PI, 0);
+          this.ctx.stroke();
+          
+          // Magical Runes along the arch
+          this.ctx.fillStyle = '#fef08a';
+          for (let i = 1; i <= 3; i++) {
+            const runeAngle = Math.PI + (Math.PI / 4) * i;
+            const runeX = x + CONFIG.TILE_SIZE/2 + Math.cos(runeAngle) * 16;
+            const runeY = y + CONFIG.TILE_SIZE + Math.sin(runeAngle) * 16;
+            this.ctx.beginPath();
+            this.ctx.arc(runeX, runeY, 2, 0, Math.PI*2);
+            this.ctx.fill();
           }
           break;
+        }
         case CONFIG.TOOL_ENEMY:
         case CONFIG.TOOL_ENEMY_CHASER:
         case CONFIG.TOOL_ENEMY_WORM:
@@ -2228,7 +2264,7 @@ export class Editor {
         case CONFIG.TOOL_ENEMY_MIMIC:
         case CONFIG.TOOL_ENEMY_TELEPORT: {
           const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
-          let isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 5 || tileVal === 6 || tileVal === 7) ||
+          let isInvalid = (tileVal === TILE.SOLID || tileVal === TILE.FIRE || tileVal === TILE.SPIKES || tileVal === TILE.COIN || tileVal === TILE.BREAKABLE || tileVal === TILE.EARTH) ||
             (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
             (this.level.goalPos && this.level.goalPos.col === this.hoverCol && this.level.goalPos.row === this.hoverRow) ||
             ((this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||
@@ -2237,7 +2273,7 @@ export class Editor {
           if (this.currentTool === CONFIG.TOOL_ENEMY_BAT) {
              const ceilingVal = this.level.getTile(this.hoverCol, this.hoverRow - 1);
              // Must have a solid block above it
-             if (ceilingVal !== 1 && ceilingVal !== 2 && ceilingVal !== 7) {
+             if (ceilingVal !== 1 && ceilingVal !== TILE.TRAMPOLINE && ceilingVal !== TILE.EARTH) {
                 isInvalid = true;
              }
           }
@@ -2294,7 +2330,7 @@ export class Editor {
         }
         case CONFIG.TOOL_LAZER: {
           const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
-          const isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 5 || tileVal === 6 || tileVal === 7);
+          const isInvalid = (tileVal === TILE.SOLID || tileVal === TILE.FIRE || tileVal === TILE.SPIKES || tileVal === TILE.COIN || tileVal === TILE.BREAKABLE || tileVal === TILE.EARTH);
           if (isInvalid) {
             this.ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
             this.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
@@ -2319,14 +2355,14 @@ export class Editor {
       let isValid = true;
       if (this.currentTool === CONFIG.TOOL_ENEMY || this.currentTool === CONFIG.TOOL_ENEMY_CHASER || this.currentTool === CONFIG.TOOL_ENEMY_WORM || this.currentTool === CONFIG.TOOL_ENEMY_BAT || this.currentTool === CONFIG.TOOL_ENEMY_MIMIC || this.currentTool === CONFIG.TOOL_LAZER) {
         const tileVal = this.level.getTile(this.hoverCol, this.hoverRow);
-        let isInvalid = (tileVal === 1 || tileVal === 3 || tileVal === 4 || tileVal === 6 || tileVal === 7) ||
+        let isInvalid = (tileVal === TILE.SOLID || tileVal === TILE.FIRE || tileVal === TILE.SPIKES || tileVal === TILE.BREAKABLE || tileVal === TILE.EARTH) ||
           (this.level.playerSpawn && this.level.playerSpawn.col === this.hoverCol && this.level.playerSpawn.row === this.hoverRow) ||
           (this.level.goalPos && this.level.goalPos.col === this.hoverCol && this.level.goalPos.row === this.hoverRow) ||
           ((this.level.portal1 && this.level.portal1.col === this.hoverCol && this.level.portal1.row === this.hoverRow) ||
            (this.level.portal2 && this.level.portal2.col === this.hoverCol && this.level.portal2.row === this.hoverRow));
         if (this.currentTool === CONFIG.TOOL_ENEMY_BAT) {
            const ceilingVal = this.level.getTile(this.hoverCol, this.hoverRow - 1);
-           if (ceilingVal !== 1 && ceilingVal !== 2 && ceilingVal !== 7) isInvalid = true;
+           if (ceilingVal !== 1 && ceilingVal !== TILE.TRAMPOLINE && ceilingVal !== TILE.EARTH) isInvalid = true;
         }
         if (isInvalid) isValid = false;
       }
