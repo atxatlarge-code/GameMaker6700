@@ -32,7 +32,6 @@ export function drawForestKid(ctx, entity, globalTime, isTrail = false) {
     } else {
       capeColor = '#4a5d4e'; liningColor = '#c29b68'; faceColor = '#f5f0eb'; eyeColor = '#2b2621';
     }
-    const skin = entity ? (entity.skin || 'default') : 'default';
     if (skin === 'ninja') {
       capeColor = '#111111'; liningColor = '#e63946'; faceColor = '#ffe0e0'; eyeColor = '#111111';
     } else if (skin === 'knight') {

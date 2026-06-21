@@ -12,19 +12,19 @@ export function drawBlob(ctx, entity, globalTime, isTrail = false) {
     const stretch = 1 + Math.min(totalSpeed * 0.1, 0.5);
     const squish = 1 / stretch;
     
-    let scaleX = 1;
-    let scaleY = 1;
+    let blobScaleX = 1;
+    let blobScaleY = 1;
     let rotation = 0;
     
     if (totalSpeed > 0.1) {
        rotation = Math.atan2(vy, vx);
-       scaleX = stretch;
-       scaleY = squish;
+       blobScaleX = stretch;
+       blobScaleY = squish;
     }
 
     ctx.translate(x + width / 2, y + height / 2);
     ctx.rotate(rotation);
-    ctx.scale(scaleX, scaleY);
+    ctx.scale(blobScaleX, blobScaleY);
     
     // Wobble effect
     const time = globalTime / 200;
