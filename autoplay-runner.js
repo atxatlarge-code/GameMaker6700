@@ -110,19 +110,53 @@ async function run() {
     const solverResult = await page.evaluate(() => {
       const e = window.engine;
       
-      // Helper for binary search insertion to maintain sorted order in A* open set
-      function insertSorted(array, item, compareFn) {
-        let low = 0;
-        let high = array.length;
-        while (low < high) {
-          const mid = (low + high) >>> 1;
-          if (compareFn(array[mid], item) < 0) {
-            low = mid + 1;
-          } else {
-            high = mid;
+      // ⚡ Bolt: Use a Min-Heap for O(log N) insertions instead of O(N) splice
+      class MinHeap {
+        constructor(compareFn) {
+          this.data = [];
+          this.compare = compareFn;
+          this.counter = 0;
+        }
+        push(val) {
+          this.data.push({ val, c: this.counter++ });
+          let i = this.data.length - 1;
+          while (i > 0) {
+            const p = (i - 1) >>> 1;
+            const cmp = this.compare(this.data[p].val, this.data[i].val);
+            if (cmp < 0 || (cmp === 0 && this.data[p].c > this.data[i].c)) break;
+            const tmp = this.data[i];
+            this.data[i] = this.data[p];
+            this.data[p] = tmp;
+            i = p;
           }
         }
-        array.splice(low, 0, item);
+        pop() {
+          if (this.data.length === 0) return undefined;
+          const top = this.data[0];
+          const bottom = this.data.pop();
+          if (this.data.length > 0) {
+            this.data[0] = bottom;
+            let i = 0;
+            const len = this.data.length;
+            while ((i << 1) + 1 < len) {
+              let left = (i << 1) + 1;
+              let right = left + 1;
+              let min = left;
+              let cmpRightLeft = right < len ? this.compare(this.data[right].val, this.data[left].val) : 1;
+              if (right < len && (cmpRightLeft < 0 || (cmpRightLeft === 0 && this.data[right].c > this.data[left].c))) min = right;
+              const cmpIMin = this.compare(this.data[i].val, this.data[min].val);
+              if (cmpIMin < 0 || (cmpIMin === 0 && this.data[i].c > this.data[min].c)) break;
+              const tmp = this.data[i];
+              this.data[i] = this.data[min];
+              this.data[min] = tmp;
+              i = min;
+            }
+          }
+          return top.val;
+        }
+        get length() {
+          return this.data.length;
+        }
       }
 
       const CONFIG = {
@@ -204,24 +238,27 @@ async function run() {
       e.isAutoplay = false;
       e.isSimulation = true;
 
+      const getHeuristic = (s) => {
+        const dx = goalX - s.x;
+        const dy = goalY - s.y;
+        return Math.sqrt(dx * dx + dy * dy);
+      };
+
       const startState = {
         ...saveEngine(),
         path: []
       };
+      // ⚡ Bolt: Cache fScore on state to prevent recomputing heuristic in sort loop
+      startState.fScore = getHeuristic(startState);
       
-      const openSet = [startState];
+      const openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+      openSet.push(startState);
       const visited = new Set();
       
       const getDiscretizedKey = (s) => {
         const playerPart = `${Math.round(s.x / 5)},${Math.round(s.y / 5)},${Math.round(s.vx * 2)},${Math.round(s.vy * 2)},${s.isGrounded ? 1 : 0},${s.coyoteTimer > 0 ? 1 : 0},${s.jumpBufferTimer > 0 ? 1 : 0}`;
         const enemyPart = s.enemies.map(en => `${Math.round(en.x / 10)},${Math.round(en.y / 10)}`).join('|');
         return `${playerPart}|${enemyPart}`;
-      };
-      
-      const getHeuristic = (s) => {
-        const dx = goalX - s.x;
-        const dy = goalY - s.y;
-        return Math.sqrt(dx * dx + dy * dy);
       };
       
       const actions = [
@@ -242,7 +279,7 @@ async function run() {
       while (openSet.length > 0 && iterations < maxIterations) {
         iterations++;
         
-        const curr = openSet.shift();
+        const curr = openSet.pop();
         
         if (curr.hasWon) {
           solution = curr.path;
@@ -276,11 +313,9 @@ async function run() {
           
           const nextKey = getDiscretizedKey(nextState);
           if (!visited.has(nextKey)) {
-            insertSorted(openSet, nextState, (a, b) => {
-              const fA = a.path.length * 5 + getHeuristic(a);
-              const fB = b.path.length * 5 + getHeuristic(b);
-              return fA - fB;
-            });
+            // ⚡ Bolt: Cache fScore on state to prevent recomputing heuristic in sort loop
+            nextState.fScore = nextState.path.length * 5 + getHeuristic(nextState);
+            openSet.push(nextState);
           }
         }
       }
