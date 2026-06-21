@@ -10,7 +10,7 @@ export function drawClassicBox(ctx, entity, globalTime, isTrail = false) {
     let dynamicScaleX = scaleX;
     let dynamicScaleY = scaleY;
     
-    if (!isTrail && entity && this.mode === CONFIG.MODE_PLAY) {
+    if (!isTrail && entity) {
       if (!entity.isGrounded) {
         const stretch = Math.min(0.2, Math.abs(entity.vy) * 0.02);
         dynamicScaleX -= stretch;
@@ -84,7 +84,7 @@ export function drawClassicBox(ctx, entity, globalTime, isTrail = false) {
       ctx.fillStyle = '#1e1720'; 
       let lookX = 0;
       let lookY = 0;
-      if (entity && this.mode === CONFIG.MODE_PLAY) {
+      if (entity) {
         if (entity.vy < -1) lookY = -2;
         else if (entity.vy > 1) lookY = 2;
         if (Math.abs(entity.vx) > 1) lookX = 1;

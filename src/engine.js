@@ -16,6 +16,27 @@ import { MovementSystem, GravitySystem, RenderSystem } from './ecs/systems.js';
 import { TILE } from './tiles.js';
 
 export class Engine {
+  // Legacy wrappers for UI rendering compatibility
+  drawClassicBox(ctx, x, y, width, height, facing, scaleX = 1.0, scaleY = 1.0, tiltAngle = 0, alpha = 1.0, isTrail = false) {
+    drawClassicBox(ctx, { x, y, width, height, facing, scaleX, scaleY, tiltAngle, alpha }, Date.now(), isTrail);
+  }
+  
+  drawForestKid(ctx, x, y, width, height, facing, scaleX = 1.0, scaleY = 1.0, tiltAngle = 0, alpha = 1.0, isTrail = false) {
+    drawForestKid(ctx, { x, y, width, height, facing, scaleX, scaleY, tiltAngle, alpha }, Date.now(), isTrail);
+  }
+
+  drawRobot(ctx, x, y, width, height, facing, scaleX = 1.0, scaleY = 1.0, tiltAngle = 0, alpha = 1.0, isTrail = false) {
+    drawRobot(ctx, { x, y, width, height, facing, scaleX, scaleY, tiltAngle, alpha }, Date.now(), isTrail);
+  }
+
+  drawTopDownPlayer(ctx, x, y, width, height, facing, scaleX = 1.0, scaleY = 1.0, tiltAngle = 0, alpha = 1.0, isTrail = false) {
+    drawTopDownPlayer(ctx, { x, y, width, height, facing, scaleX, scaleY, tiltAngle, alpha }, Date.now(), isTrail);
+  }
+
+  drawBlob(ctx, x, y, width, height, facing, scaleX = 1.0, scaleY = 1.0, tiltAngle = 0, alpha = 1.0, isTrail = false) {
+    drawBlob(ctx, { x, y, width, height, facing, scaleX, scaleY, tiltAngle, alpha }, Date.now(), isTrail);
+  }
+
 
   saveState() {
     return {
