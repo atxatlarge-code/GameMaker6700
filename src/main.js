@@ -597,6 +597,19 @@ window.addEventListener('DOMContentLoaded', () => {
       titleEl.textContent = selectedLevel.name;
     }
 
+    const btnDelLevelMenu = document.getElementById('btn-del-level');
+    if (btnDelLevelMenu && selectedLevel) {
+      if (selectedLevel.isPreset) {
+        btnDelLevelMenu.disabled = true;
+        btnDelLevelMenu.title = "Preset levels cannot be deleted";
+        btnDelLevelMenu.setAttribute("aria-label", "Preset levels cannot be deleted");
+      } else {
+        btnDelLevelMenu.disabled = false;
+        btnDelLevelMenu.title = "Delete Level";
+        btnDelLevelMenu.setAttribute("aria-label", "Delete Level");
+      }
+    }
+
     const mainCanvas = document.getElementById('selected-level-canvas');
     if (mainCanvas && selectedLevel) {
       renderLevelPreview(mainCanvas, selectedLevel);
@@ -711,10 +724,6 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   btnDelLevel.addEventListener('click', () => {
-    if (selectedLevel.isPreset) {
-      alert('Preset levels cannot be deleted. Select a custom level to delete.');
-      return;
-    }
     if (confirm(`Are you sure you want to delete '${selectedLevel.name}'?`)) {
       LevelManager.deleteLevel(selectedLevel.id);
       const remaining = LevelManager.getLevels();
