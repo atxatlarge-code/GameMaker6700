@@ -2,19 +2,72 @@ import { CONFIG } from './config.js';
 import { audio } from './audio.js';
 import { TILE } from './tiles.js';
 
-// Helper for binary search insertion to maintain sorted order in A* open set
-function insertSorted(array, item, compareFn) {
-  let low = 0;
-  let high = array.length;
-  while (low < high) {
-    const mid = (low + high) >>> 1;
-    if (compareFn(array[mid], item) < 0) {
-      low = mid + 1;
-    } else {
-      high = mid;
+// ⚡ Bolt: Replace O(N) array splice insertion with O(log N) Min-Heap Priority Queue
+class PriorityQueue {
+  constructor(compareFn) {
+    this.heap = [];
+    this.compare = compareFn;
+    this.counter = 0;
+  }
+
+  push(item) {
+    item._order = this.counter++;
+    this.heap.push(item);
+    this._siftUp(this.heap.length - 1);
+  }
+
+  shift() {
+    if (this.heap.length === 0) return null;
+    if (this.heap.length === 1) return this.heap.pop();
+    const top = this.heap[0];
+    this.heap[0] = this.heap.pop();
+    this._siftDown(0);
+    return top;
+  }
+
+  get length() {
+    return this.heap.length;
+  }
+
+  _siftUp(idx) {
+    while (idx > 0) {
+      const pIdx = (idx - 1) >>> 1;
+      if (this._compare(this.heap[idx], this.heap[pIdx]) < 0) {
+        this._swap(idx, pIdx);
+        idx = pIdx;
+      } else break;
     }
   }
-  array.splice(low, 0, item);
+
+  _siftDown(idx) {
+    const len = this.heap.length;
+    while (true) {
+      let left = (idx << 1) + 1;
+      let right = left + 1;
+      let minIdx = idx;
+      if (left < len && this._compare(this.heap[left], this.heap[minIdx]) < 0) minIdx = left;
+      if (right < len && this._compare(this.heap[right], this.heap[minIdx]) < 0) minIdx = right;
+      if (minIdx !== idx) {
+        this._swap(idx, minIdx);
+        idx = minIdx;
+      } else break;
+    }
+  }
+
+  _compare(a, b) {
+    const res = this.compare(a, b);
+    if (res === 0) {
+      // ⚡ Bolt: Strict LIFO tie-breaking for identical fScores matches original insertSorted logic
+      return b._order - a._order;
+    }
+    return res;
+  }
+
+  _swap(i, j) {
+    const temp = this.heap[i];
+    this.heap[i] = this.heap[j];
+    this.heap[j] = temp;
+  }
 }
 
 /**
@@ -148,13 +201,20 @@ export function solveLevel(engine) {
     engine.ghost = s.ghostData ? { ...s.ghostData } : null;
   };
 
+  const getHeuristic = (s) => {
+    const dx = goalX - s.x;
+    const dy = goalY - s.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   const startState = {
     ...saveEngine(),
     path: []
   };
   startState.fScore = getHeuristic(startState);
 
-  const openSet = [startState];
+  const openSet = new PriorityQueue((a, b) => a.fScore - b.fScore);
+  openSet.push(startState);
   const visited = new Set();
 
   const getDiscretizedKey = (s) => {
@@ -175,12 +235,6 @@ export function solveLevel(engine) {
     const ghostPart = `${s.ghostRecording?1:0},${s.ghostActive?1:0},${s.ghostPlaybackIndex||0}`;
     
     return `${playerPart}_${levelPart}_${bombPart}_${enemyPart}_${icePart}_${ghostPart}`;
-  };
-
-  const getHeuristic = (s) => {
-    const dx = goalX - s.x;
-    const dy = goalY - s.y;
-    return Math.sqrt(dx * dx + dy * dy);
   };
 
   // Possible actions the bot can make
@@ -269,7 +323,7 @@ export function solveLevel(engine) {
 
       const nextKey = getDiscretizedKey(nextState);
       if (!visited.has(nextKey)) {
-        insertSorted(openSet, nextState, (a, b) => a.fScore - b.fScore);
+        openSet.push(nextState);
       }
     }
   }
@@ -355,7 +409,8 @@ export class AsyncPathfinder {
     };
     startState.fScore = this.getHeuristic(startState);
 
-    this.openSet = [startState];
+    this.openSet = new PriorityQueue((a, b) => a.fScore - b.fScore);
+    this.openSet.push(startState);
     this.visited = new Set();
     this.exploredPoints = [];
     this.iterations = 0;
@@ -421,7 +476,7 @@ export class AsyncPathfinder {
 
         const nextKey = this.getDiscretizedKey(nextState);
         if (!this.visited.has(nextKey)) {
-          insertSorted(this.openSet, nextState, (a, b) => a.fScore - b.fScore);
+          this.openSet.push(nextState);
         }
       }
     }
