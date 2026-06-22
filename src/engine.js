@@ -17,6 +17,9 @@ import { TILE } from './tiles.js';
 
 export class Engine {
   // Legacy wrappers for UI rendering compatibility
+  getTile(col, row) {
+    return this.physics.getTile(col, row);
+  }
   drawClassicBox(ctx, x, y, width, height, facing, scaleX = 1.0, scaleY = 1.0, tiltAngle = 0, alpha = 1.0, isTrail = false) {
     drawClassicBox(ctx, { x, y, width, height, facing, scaleX, scaleY, tiltAngle, alpha }, Date.now(), isTrail);
   }
@@ -120,6 +123,7 @@ export class Engine {
     this.mode = CONFIG.MODE_EDIT;
     this.isRunning = false;
     this.hasWon = false;
+    this.tickCount = 0;
 
     this.bombs = [];
     this.explosions = [];
@@ -232,8 +236,8 @@ this.inputManager = new InputManager(this);
       if (panControls) panControls.classList.remove('hidden');
       if (playHud) playHud.classList.add('hidden');
     }
-    this.keys = { left: false, right: false, up: false, down: false };
-    this.panKeys = { up: false, down: false, left: false, right: false };
+    this.keys.left = false; this.keys.right = false; this.keys.up = false; this.keys.down = false;
+    this.panKeys.up = false; this.panKeys.down = false; this.panKeys.left = false; this.panKeys.right = false;
     this.prevGamepadState = { left: false, right: false, down: false, jump: false, dash: false, grapple: false, bomb: false };
   }
 
@@ -594,6 +598,7 @@ this.inputManager = new InputManager(this);
 
 
   update() {
+    this.tickCount++;
     this.inputManager.pollGamepad();
 
     // Cinematic transition update tick
@@ -1216,7 +1221,7 @@ if (this.player.jumpBufferTimer > 0) {
     // Handle Vertical Collisions Next
     this.player.isGrounded = false;
     this.player.y += this.player.vy;
-    this.resolveVerticalCollisions();
+    this.physics.resolveVerticalCollisions();
 
     // Check for magnetic boots attachment (if tile 42 is touching top or bottom)
     if (this.player.hasMagneticBoots) {
