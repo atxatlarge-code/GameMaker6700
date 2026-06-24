@@ -1222,10 +1222,17 @@ canvas {
   transition: all 0.2s ease;
 }
 
-.primary-btn:hover {
+.primary-btn:hover:not(:disabled) {
   background-color: var(--accent-green-hover);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(99, 164, 86, 0.6);
+}
+
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 
@@ -2043,14 +2050,21 @@ canvas {
   transition: all 0.1s ease;
 }
 
-.send-btn:hover {
+.send-btn:hover:not(:disabled) {
   background: var(--primary-hover);
   transform: translateY(-1px);
 }
 
-.send-btn:active {
+.send-btn:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow: 0 1px 0 #8e6833, 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* New Thread Form */
@@ -3718,12 +3732,12 @@ canvas {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
   transition: all 0.1s ease;
 }
-.pathfinder-modal .primary-btn:hover, .win-modal .primary-btn:hover {
+.pathfinder-modal .primary-btn:hover:not(:disabled), .win-modal .primary-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #9a6d41 0%, #835534 100%) !important;
   transform: translateY(1px) !important;
   box-shadow: 0 2px 0 #542e14 !important;
 }
-.pathfinder-modal .primary-btn:active, .win-modal .primary-btn:active {
+.pathfinder-modal .primary-btn:active:not(:disabled), .win-modal .primary-btn:active:not(:disabled) {
   transform: translateY(3px) !important;
   box-shadow: none !important;
 }
@@ -3776,13 +3790,13 @@ canvas {
   transition: all 0.15s ease;
 }
 
-.pause-modal .primary-btn:hover {
+.pause-modal .primary-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--accent-green-hover) 0%, var(--accent-green) 100%);
   transform: translateY(-1px);
   box-shadow: 0 5px 0 #2a5023, 0 8px 20px rgba(0, 0, 0, 0.5);
 }
 
-.pause-modal .primary-btn:active {
+.pause-modal .primary-btn:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow: 0 1px 0 #2a5023;
 }
@@ -3872,13 +3886,13 @@ canvas {
   box-shadow: 0 4px 0 #2a5023, 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
-.controls-modal .primary-btn:hover {
+.controls-modal .primary-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--accent-green-hover) 0%, var(--accent-green) 100%);
   transform: translateY(-1px);
   box-shadow: 0 5px 0 #2a5023, 0 8px 20px rgba(0, 0, 0, 0.5);
 }
 
-.controls-modal .primary-btn:active {
+.controls-modal .primary-btn:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow: 0 1px 0 #2a5023;
 }
