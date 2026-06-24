@@ -1627,6 +1627,10 @@ window.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const originalHTML = btnSubmitThread.innerHTML;
+    btnSubmitThread.disabled = true;
+    btnSubmitThread.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+
     const created = await messageService.createThread(lvlId, lvlName, title, pName, text);
     cachedThreads = await messageService.fetchThreads();
     activeThreadId = created.id;
@@ -1636,6 +1640,9 @@ window.addEventListener('DOMContentLoaded', () => {
     renderThreadsSidebar();
     renderChatView();
     updateUnreadBadges();
+
+    btnSubmitThread.innerHTML = originalHTML;
+    btnSubmitThread.disabled = false;
   });
 
   btnSendReply.addEventListener('click', async () => {
@@ -1649,6 +1656,10 @@ window.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('gm6700_last_handle', authorName);
     }
 
+    const originalHTML = btnSendReply.innerHTML;
+    btnSendReply.disabled = true;
+    btnSendReply.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
     inputReplyText.value = '';
     await messageService.addReply(activeThreadId, currentPersona, text, authorName);
     cachedThreads = await messageService.fetchThreads();
@@ -1656,6 +1667,9 @@ window.addEventListener('DOMContentLoaded', () => {
     renderThreadsSidebar();
     renderChatView();
     updateUnreadBadges();
+
+    btnSendReply.innerHTML = originalHTML;
+    btnSendReply.disabled = false;
   });
 
   inputReplyText.addEventListener('keydown', (e) => {
