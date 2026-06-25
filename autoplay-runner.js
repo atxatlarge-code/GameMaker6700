@@ -115,19 +115,41 @@ async function run() {
     const solverResult = await page.evaluate(() => {
       const e = window.engine;
       
-      // Helper for binary search insertion to maintain sorted order in A* open set
-      function insertSorted(array, item, compareFn) {
-        let low = 0;
-        let high = array.length;
-        while (low < high) {
-          const mid = (low + high) >>> 1;
-          if (compareFn(array[mid], item) < 0) {
-            low = mid + 1;
-          } else {
-            high = mid;
-          }
+      class MinHeap {
+        constructor() { this.heap = []; this.c = 0; }
+        push(item) {
+          item._seq = this.c++;
+          this.heap.push(item);
+          this.up(this.heap.length - 1);
         }
-        array.splice(low, 0, item);
+        pop() {
+          const res = this.heap[0], pop = this.heap.pop();
+          if (this.heap.length > 0) { this.heap[0] = pop; this.down(0); }
+          return res;
+        }
+        cmp(a, b) { return a.fScore - b.fScore || b._seq - a._seq; }
+        up(i) {
+          const item = this.heap[i];
+          while (i > 0) {
+            const p = (i - 1) >>> 1;
+            if (this.cmp(item, this.heap[p]) >= 0) break;
+            this.heap[i] = this.heap[p]; i = p;
+          }
+          this.heap[i] = item;
+        }
+        down(i) {
+          const item = this.heap[i], len = this.heap.length;
+          while (true) {
+            const l = (i << 1) + 1, r = l + 1;
+            let swap = -1, min = item;
+            if (l < len && this.cmp(this.heap[l], min) < 0) { swap = l; min = this.heap[l]; }
+            if (r < len && this.cmp(this.heap[r], min) < 0) { swap = r; }
+            if (swap === -1) break;
+            this.heap[i] = this.heap[swap]; i = swap;
+          }
+          this.heap[i] = item;
+        }
+        get length() { return this.heap.length; }
       }
 
       const CONFIG = {
@@ -205,7 +227,8 @@ async function run() {
         path: []
       };
       
-      const openSet = [startState];
+      const openSet = new MinHeap();
+      openSet.push(startState);
       const visited = new Set();
       
       const getDiscretizedKey = (s) => {
@@ -238,7 +261,7 @@ async function run() {
       while (openSet.length > 0 && iterations < maxIterations) {
         iterations++;
         
-        const curr = openSet.shift();
+        const curr = openSet.pop();
         
         if (curr.hasWon) {
           solution = curr.path;
@@ -273,11 +296,8 @@ async function run() {
           
           const nextKey = getDiscretizedKey(nextState);
           if (!visited.has(nextKey)) {
-            insertSorted(openSet, nextState, (a, b) => {
-              const fA = a.path.length * 5 + getHeuristic(a);
-              const fB = b.path.length * 5 + getHeuristic(b);
-              return fA - fB;
-            });
+            nextState.fScore = nextState.path.length * 5 + getHeuristic(nextState);
+            openSet.push(nextState);
           }
         }
       }
