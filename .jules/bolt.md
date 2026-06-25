@@ -9,3 +9,7 @@
 ## 2024-05-18 - Replacing A* Open Set Array Splice with Min-Heap
 **Learning:** In highly explorative algorithms like A* pathfinding (e.g., `src/pathfinder.js`), using `array.splice()` to keep the open set sorted results in an O(N) insertion time. With tens of thousands of states being explored, this quickly becomes a major performance bottleneck due to continuous array resizing/shifting.
 **Action:** Replace the sorted array implementation with a Min-Heap Priority Queue. This ensures O(log N) insertions and extractions, drastically improving pathfinding performance. When replacing, care must be taken to replicate specific tie-breaking logic (e.g. LIFO for equal fScores) if the original search relied on it.
+
+## 2024-05-18 - Replacing A* Open Set Array Splice with Min-Heap
+**Learning:** In highly explorative algorithms like A* pathfinding (e.g., `src/pathfinder.js`), using `array.splice()` to keep the open set sorted results in an O(N) insertion time. With tens of thousands of states being explored, this quickly becomes a major performance bottleneck due to continuous array resizing/shifting.
+**Action:** Replace the sorted array implementation with a Min-Heap Priority Queue. This ensures O(log N) insertions and extractions, drastically improving pathfinding performance. When replacing, care must be taken to replicate specific tie-breaking logic (e.g. LIFO for equal fScores) if the original search relied on it.
