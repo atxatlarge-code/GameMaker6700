@@ -1627,15 +1627,23 @@ window.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const created = await messageService.createThread(lvlId, lvlName, title, pName, text);
-    cachedThreads = await messageService.fetchThreads();
-    activeThreadId = created.id;
-    messageService.markThreadAsRead(activeThreadId, currentPersona);
-    
-    newThreadState.classList.add('hidden');
-    renderThreadsSidebar();
-    renderChatView();
-    updateUnreadBadges();
+    const originalInnerHTML = btnSubmitThread.innerHTML;
+    try {
+      btnSubmitThread.disabled = true;
+      btnSubmitThread.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+      const created = await messageService.createThread(lvlId, lvlName, title, pName, text);
+      cachedThreads = await messageService.fetchThreads();
+      activeThreadId = created.id;
+      messageService.markThreadAsRead(activeThreadId, currentPersona);
+
+      newThreadState.classList.add('hidden');
+      renderThreadsSidebar();
+      renderChatView();
+      updateUnreadBadges();
+    } finally {
+      btnSubmitThread.disabled = false;
+      btnSubmitThread.innerHTML = originalInnerHTML;
+    }
   });
 
   btnSendReply.addEventListener('click', async () => {
@@ -1649,13 +1657,21 @@ window.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('gm6700_last_handle', authorName);
     }
 
-    inputReplyText.value = '';
-    await messageService.addReply(activeThreadId, currentPersona, text, authorName);
-    cachedThreads = await messageService.fetchThreads();
-    messageService.markThreadAsRead(activeThreadId, currentPersona);
-    renderThreadsSidebar();
-    renderChatView();
-    updateUnreadBadges();
+    const originalInnerHTML = btnSendReply.innerHTML;
+    try {
+      btnSendReply.disabled = true;
+      btnSendReply.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      inputReplyText.value = '';
+      await messageService.addReply(activeThreadId, currentPersona, text, authorName);
+      cachedThreads = await messageService.fetchThreads();
+      messageService.markThreadAsRead(activeThreadId, currentPersona);
+      renderThreadsSidebar();
+      renderChatView();
+      updateUnreadBadges();
+    } finally {
+      btnSendReply.disabled = false;
+      btnSendReply.innerHTML = originalInnerHTML;
+    }
   });
 
   inputReplyText.addEventListener('keydown', (e) => {
