@@ -2,19 +2,43 @@ import { CONFIG } from './config.js';
 import { audio } from './audio.js';
 import { TILE } from './tiles.js';
 
-// Helper for binary search insertion to maintain sorted order in A* open set
-function insertSorted(array, item, compareFn) {
-  let low = 0;
-  let high = array.length;
-  while (low < high) {
-    const mid = (low + high) >>> 1;
-    if (compareFn(array[mid], item) < 0) {
-      low = mid + 1;
-    } else {
-      high = mid;
+// ⚡ Bolt: Min-Heap priority queue to prevent O(N) array.splice operations in A* pathfinder
+class MinHeap {
+  constructor(compare) { this.data = []; this.compare = compare; this.seq = 0; }
+  get length() { return this.data.length; }
+  push(item) { item._seq = this.seq++; this.data.push(item); this.up(this.data.length - 1); }
+  shift() {
+    if (!this.data.length) return undefined;
+    const top = this.data[0], bottom = this.data.pop();
+    if (this.data.length) { this.data[0] = bottom; this.down(0); }
+    return top;
+  }
+  up(i) {
+    while (i > 0) {
+      const p = (i - 1) >>> 1;
+      let cmp = this.compare(this.data[i], this.data[p]);
+      if (cmp === 0) cmp = this.data[p]._seq - this.data[i]._seq; // LIFO tie-breaker
+      if (cmp >= 0) break;
+      const tmp = this.data[i]; this.data[i] = this.data[p]; this.data[p] = tmp;
+      i = p;
     }
   }
-  array.splice(low, 0, item);
+  down(i) {
+    const len = this.data.length;
+    while (true) {
+      let min = i, left = (i << 1) + 1, right = left + 1;
+      for (const child of [left, right]) {
+        if (child < len) {
+          let cmp = this.compare(this.data[child], this.data[min]);
+          if (cmp === 0) cmp = this.data[min]._seq - this.data[child]._seq; // LIFO tie-breaker
+          if (cmp < 0) min = child;
+        }
+      }
+      if (min === i) break;
+      const tmp = this.data[i]; this.data[i] = this.data[min]; this.data[min] = tmp;
+      i = min;
+    }
+  }
 }
 
 /**
@@ -154,7 +178,8 @@ export function solveLevel(engine) {
   };
   startState.fScore = getHeuristic(startState);
 
-  const openSet = [startState];
+  const openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+  openSet.push(startState);
   const visited = new Set();
 
   const getDiscretizedKey = (s) => {
@@ -269,7 +294,7 @@ export function solveLevel(engine) {
 
       const nextKey = getDiscretizedKey(nextState);
       if (!visited.has(nextKey)) {
-        insertSorted(openSet, nextState, (a, b) => a.fScore - b.fScore);
+        openSet.push(nextState);
       }
     }
   }
@@ -355,7 +380,8 @@ export class AsyncPathfinder {
     };
     startState.fScore = this.getHeuristic(startState);
 
-    this.openSet = [startState];
+    this.openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+    this.openSet.push(startState);
     this.visited = new Set();
     this.exploredPoints = [];
     this.iterations = 0;
@@ -421,7 +447,7 @@ export class AsyncPathfinder {
 
         const nextKey = this.getDiscretizedKey(nextState);
         if (!this.visited.has(nextKey)) {
-          insertSorted(this.openSet, nextState, (a, b) => a.fScore - b.fScore);
+          this.openSet.push(nextState);
         }
       }
     }
