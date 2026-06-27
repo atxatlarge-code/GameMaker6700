@@ -115,19 +115,43 @@ async function run() {
     const solverResult = await page.evaluate(() => {
       const e = window.engine;
       
-      // Helper for binary search insertion to maintain sorted order in A* open set
-      function insertSorted(array, item, compareFn) {
-        let low = 0;
-        let high = array.length;
-        while (low < high) {
-          const mid = (low + high) >>> 1;
-          if (compareFn(array[mid], item) < 0) {
-            low = mid + 1;
-          } else {
-            high = mid;
+      // ⚡ Bolt: Min-Heap priority queue to prevent O(N) array.splice operations in A* pathfinder
+      class MinHeap {
+        constructor(compare) { this.data = []; this.compare = compare; this.seq = 0; }
+        get length() { return this.data.length; }
+        push(item) { item._seq = this.seq++; this.data.push(item); this.up(this.data.length - 1); }
+        shift() {
+          if (!this.data.length) return undefined;
+          const top = this.data[0], bottom = this.data.pop();
+          if (this.data.length) { this.data[0] = bottom; this.down(0); }
+          return top;
+        }
+        up(i) {
+          while (i > 0) {
+            const p = (i - 1) >>> 1;
+            let cmp = this.compare(this.data[i], this.data[p]);
+            if (cmp === 0) cmp = this.data[p]._seq - this.data[i]._seq; // LIFO tie-breaker
+            if (cmp >= 0) break;
+            const tmp = this.data[i]; this.data[i] = this.data[p]; this.data[p] = tmp;
+            i = p;
           }
         }
-        array.splice(low, 0, item);
+        down(i) {
+          const len = this.data.length;
+          while (true) {
+            let min = i, left = (i << 1) + 1, right = left + 1;
+            for (const child of [left, right]) {
+              if (child < len) {
+                let cmp = this.compare(this.data[child], this.data[min]);
+                if (cmp === 0) cmp = this.data[min]._seq - this.data[child]._seq; // LIFO tie-breaker
+                if (cmp < 0) min = child;
+              }
+            }
+            if (min === i) break;
+            const tmp = this.data[i]; this.data[i] = this.data[min]; this.data[min] = tmp;
+            i = min;
+          }
+        }
       }
 
       const CONFIG = {
@@ -200,14 +224,6 @@ async function run() {
       e.isAutoplay = false;
       e.isSimulation = true;
 
-      const startState = {
-        ...saveEngine(),
-        path: []
-      };
-      
-      const openSet = [startState];
-      const visited = new Set();
-      
       const getDiscretizedKey = (s) => {
         const playerPart = `${Math.round(s.player.x / 5)},${Math.round(s.player.y / 5)},${Math.round(s.player.vx * 2)},${Math.round(s.player.vy * 2)},${s.player.isGrounded ? 1 : 0},${s.player.coyoteTimer > 0 ? 1 : 0},${s.player.jumpBufferTimer > 0 ? 1 : 0}`;
         const enemyPart = s.enemies.map(en => `${Math.round(en.x / 10)},${Math.round(en.y / 10)}`).join('|');
@@ -219,6 +235,16 @@ async function run() {
         const dy = goalY - s.player.y;
         return Math.sqrt(dx * dx + dy * dy);
       };
+
+      const startState = {
+        ...saveEngine(),
+        path: []
+      };
+      startState.fScore = getHeuristic(startState);
+
+      const openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+      openSet.push(startState);
+      const visited = new Set();
       
       const actions = [
         { right: true, left: false, jump: false },
@@ -271,13 +297,10 @@ async function run() {
             path: [...curr.path, act]
           };
           
+          nextState.fScore = nextState.path.length * 5 + getHeuristic(nextState);
           const nextKey = getDiscretizedKey(nextState);
           if (!visited.has(nextKey)) {
-            insertSorted(openSet, nextState, (a, b) => {
-              const fA = a.path.length * 5 + getHeuristic(a);
-              const fB = b.path.length * 5 + getHeuristic(b);
-              return fA - fB;
-            });
+            openSet.push(nextState);
           }
         }
       }
