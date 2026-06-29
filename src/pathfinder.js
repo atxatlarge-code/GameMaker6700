@@ -2,19 +2,74 @@ import { CONFIG } from './config.js';
 import { audio } from './audio.js';
 import { TILE } from './tiles.js';
 
-// Helper for binary search insertion to maintain sorted order in A* open set
-function insertSorted(array, item, compareFn) {
-  let low = 0;
-  let high = array.length;
-  while (low < high) {
-    const mid = (low + high) >>> 1;
-    if (compareFn(array[mid], item) < 0) {
-      low = mid + 1;
-    } else {
-      high = mid;
-    }
+// Helper for A* open set priority queue
+class MinHeap {
+  constructor(compareFn) {
+    this.data = [];
+    this.compareFn = compareFn;
+    this.insertCount = 0;
   }
-  array.splice(low, 0, item);
+  push(item) {
+    item._insertOrder = this.insertCount++;
+    this.data.push(item);
+    this.bubbleUp(this.data.length - 1);
+  }
+  pop() {
+    if (this.data.length === 0) return undefined;
+    if (this.data.length === 1) return this.data.pop();
+    const top = this.data[0];
+    this.data[0] = this.data.pop();
+    this.sinkDown(0);
+    return top;
+  }
+  get length() {
+    return this.data.length;
+  }
+  _compare(a, b) {
+    const res = this.compareFn(a, b);
+    if (res === 0) {
+      // Tie-breaking: LIFO order (last inserted, explored first)
+      return b._insertOrder - a._insertOrder;
+    }
+    return res;
+  }
+  bubbleUp(index) {
+    const item = this.data[index];
+    while (index > 0) {
+      const parentIdx = (index - 1) >>> 1;
+      const parent = this.data[parentIdx];
+      if (this._compare(item, parent) >= 0) break;
+      this.data[index] = parent;
+      index = parentIdx;
+    }
+    this.data[index] = item;
+  }
+  sinkDown(index) {
+    const length = this.data.length;
+    const item = this.data[index];
+    while (true) {
+      let leftIdx = (index << 1) + 1;
+      let rightIdx = leftIdx + 1;
+      let swapIdx = null;
+      let swapNode = null;
+      if (leftIdx < length) {
+        swapNode = this.data[leftIdx];
+        if (this._compare(swapNode, item) < 0) {
+          swapIdx = leftIdx;
+        }
+      }
+      if (rightIdx < length) {
+        const rightNode = this.data[rightIdx];
+        if (this._compare(rightNode, swapIdx === null ? item : swapNode) < 0) {
+          swapIdx = rightIdx;
+        }
+      }
+      if (swapIdx === null) break;
+      this.data[index] = this.data[swapIdx];
+      index = swapIdx;
+    }
+    this.data[index] = item;
+  }
 }
 
 /**
@@ -154,7 +209,8 @@ export function solveLevel(engine) {
   };
   startState.fScore = getHeuristic(startState);
 
-  const openSet = [startState];
+  const openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+  openSet.push(startState);
   const visited = new Set();
 
   const getDiscretizedKey = (s) => {
@@ -204,7 +260,7 @@ export function solveLevel(engine) {
   while (openSet.length > 0 && iterations < maxIterations) {
     iterations++;
 
-    const curr = openSet.shift();
+    const curr = openSet.pop();
 
     if (curr.hasWon) {
       solution = curr.path;
@@ -269,7 +325,7 @@ export function solveLevel(engine) {
 
       const nextKey = getDiscretizedKey(nextState);
       if (!visited.has(nextKey)) {
-        insertSorted(openSet, nextState, (a, b) => a.fScore - b.fScore);
+        openSet.push(nextState);
       }
     }
   }
@@ -355,7 +411,8 @@ export class AsyncPathfinder {
     };
     startState.fScore = this.getHeuristic(startState);
 
-    this.openSet = [startState];
+    this.openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+    this.openSet.push(startState);
     this.visited = new Set();
     this.exploredPoints = [];
     this.iterations = 0;
@@ -371,7 +428,7 @@ export class AsyncPathfinder {
 
 
 
-      const curr = this.openSet.shift();
+      const curr = this.openSet.pop();
       this.exploredPoints.push({ x: curr.player.x, y: curr.player.y });
 
       if (curr.hasWon) {
@@ -421,7 +478,7 @@ export class AsyncPathfinder {
 
         const nextKey = this.getDiscretizedKey(nextState);
         if (!this.visited.has(nextKey)) {
-          insertSorted(this.openSet, nextState, (a, b) => a.fScore - b.fScore);
+          this.openSet.push(nextState);
         }
       }
     }
