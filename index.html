@@ -129,7 +129,7 @@
           <div class="global-coin-badge" style="display: flex; align-items: center; background: rgba(0,0,0,0.3); padding: 4px 12px; border-radius: 20px; font-weight: bold; margin-left: 12px; color: #ffb703; font-family: 'Press Start 2P', monospace; font-size: 10px;">
              <i class="fa-solid fa-coins" style="margin-right: 6px;"></i>
              <span id="global-coin-count">0</span>
-             <button id="btn-open-shop" class="rename-badge-btn" title="Coin Shop" style="margin-left: 8px;"><i class="fa-solid fa-store"></i></button>
+             <button id="btn-open-shop" class="rename-badge-btn" aria-label="Coin Shop" title="Coin Shop" style="margin-left: 8px;"><i class="fa-solid fa-store"></i></button>
           </div>
         </div>
         <div class="header-controls">
@@ -146,7 +146,7 @@
             </select>
           </div>
           <div class="music-selector" title="Transition Style">
-            <button id="btn-toggle-transition" class="music-toggle-btn" title="Transition Style"><i class="fa-solid fa-film"></i></button>
+            <button id="btn-toggle-transition" class="music-toggle-btn" aria-label="Transition Style" title="Transition Style"><i class="fa-solid fa-film"></i></button>
             <select id="transition-select" class="music-dropdown">
               <option value="none">None</option>
               <option value="iris">Iris Wipe</option>
@@ -176,10 +176,10 @@
         <div id="editor-toolbar" style="display: none;"></div>
         <div class="canvas-container">
           <div id="pan-controls" class="pan-controls">
-            <button class="pan-btn pan-up" data-dir="up" title="Pan Up"><i class="fa-solid fa-caret-up"></i></button>
-            <button class="pan-btn pan-down" data-dir="down" title="Pan Down"><i class="fa-solid fa-caret-down"></i></button>
-            <button class="pan-btn pan-left" data-dir="left" title="Pan Left"><i class="fa-solid fa-caret-left"></i></button>
-            <button class="pan-btn pan-right" data-dir="right" title="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
+            <button class="pan-btn pan-up" data-dir="up" aria-label="Pan Up" title="Pan Up"><i class="fa-solid fa-caret-up"></i></button>
+            <button class="pan-btn pan-down" data-dir="down" aria-label="Pan Down" title="Pan Down"><i class="fa-solid fa-caret-down"></i></button>
+            <button class="pan-btn pan-left" data-dir="left" aria-label="Pan Left" title="Pan Left"><i class="fa-solid fa-caret-left"></i></button>
+            <button class="pan-btn pan-right" data-dir="right" aria-label="Pan Right" title="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
           </div>
           <div id="letterbox-top" class="letterbox-bar top"></div>
           <div id="letterbox-bottom" class="letterbox-bar bottom"></div>
@@ -311,20 +311,20 @@
             
             <!-- Group 1: Player objects -->
             <div class="action-group" id="group-player">
-              <button class="action-group-btn" title="Player objects">
+              <button class="action-group-btn" aria-label="Player objects" title="Player objects">
                 <img id="img-group-player" src="assets/player.png" class="tool-icon-img" alt="Player">
               </button>
               <div class="group-popup" id="popup-player">
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_classic" title="Classic Box Player" data-tooltip="Classic Box Character">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_classic" aria-label="Classic Box Player" title="Classic Box Player" data-tooltip="Classic Box Character">
                   <img src="assets/player_classic.png" class="tool-icon-img" alt="Classic Box Player" style="border-radius: 4px;">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ghibli" title="Forest Kid (Ghibli)" data-tooltip="Forest Kid (Default)">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ghibli" aria-label="Forest Kid (Ghibli)" title="Forest Kid (Ghibli)" data-tooltip="Forest Kid (Default)">
                   <img src="assets/player_ghibli.png" class="tool-icon-img" alt="Forest Kid (Ghibli)" style="border-radius: 4px;">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_robot" title="Robot" data-tooltip="Robot Character">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_robot" aria-label="Robot" title="Robot" data-tooltip="Robot Character">
                   <img src="assets/player_robot.png" class="tool-icon-img" alt="Robot" style="border-radius: 4px;">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_topdown" title="Jetpack Boy" data-tooltip="Jetpack Boy">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_topdown" aria-label="Jetpack Boy" title="Jetpack Boy" data-tooltip="Jetpack Boy">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <rect x="8" y="4" width="16" height="20" rx="3" fill="#1e293b" />
                     <circle cx="11" cy="24" r="3" fill="#38bdf8" />
@@ -337,7 +337,7 @@
                     <circle cx="29" cy="16" r="3" fill="#0f172a" />
                   </svg>
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_blob" title="Blob" data-tooltip="Gelatinous Blob">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_blob" aria-label="Blob" title="Blob" data-tooltip="Gelatinous Blob">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <ellipse cx="16" cy="16" rx="12" ry="10" fill="rgba(50, 205, 50, 0.85)" />
                     <ellipse cx="12" cy="12" rx="4" ry="2" fill="rgba(255, 255, 255, 0.3)" transform="rotate(45 12 12)" />
@@ -366,7 +366,7 @@
 
             <!-- Group 2: Blocks -->
             <div class="action-group" id="group-blocks">
-              <button class="action-group-btn active" title="Blocks">
+              <button class="action-group-btn active" aria-label="Blocks" title="Blocks">
                 <img id="img-group-blocks" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M2%2010h28v20H2z%22%20fill%3D%22%238c6239%22%2F%3E%3Cpath%20d%3D%22M2%202h28v8H2z%22%20fill%3D%22%23689f38%22%2F%3E%3C%2Fsvg%3E" class="tool-icon-img" alt="Blocks">
               </button>
               <div class="group-popup" id="popup-blocks">
@@ -611,7 +611,7 @@
 
             <!-- Group 5: Barriers -->
             <div class="action-group" id="group-barriers">
-              <button class="action-group-btn" title="Barriers">
+              <button class="action-group-btn" aria-label="Barriers" title="Barriers">
                 <svg id="img-group-barriers" viewBox="0 0 32 32" class="tool-icon-svg">
                   <defs>
                     <radialGradient id="portalCyanGroup" cx="50%" cy="50%" r="50%">
@@ -782,8 +782,8 @@
             <button id="persona-creator" class="persona-pill"><i class="fa-solid fa-wand-magic-sparkles"></i> Game Maker</button>
           </div>
           <div class="modal-right-actions">
-            <button id="btn-cloud-settings" class="icon-btn-subtle" title="Cloud Database Settings" style="display: none;"><i class="fa-solid fa-cloud"></i></button>
-            <button id="btn-close-messages" class="icon-btn-subtle close-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            <button id="btn-cloud-settings" class="icon-btn-subtle" aria-label="Cloud Database Settings" title="Cloud Database Settings" style="display: none;"><i class="fa-solid fa-cloud"></i></button>
+            <button id="btn-close-messages" class="icon-btn-subtle close-btn" aria-label="Close" title="Close"><i class="fa-solid fa-xmark"></i></button>
           </div>
         </div>
         
@@ -824,7 +824,7 @@
               <div class="chat-input-area">
                 <input type="text" id="input-comment-author" class="comment-author-input" aria-label="Comment author nickname" placeholder="Nickname / Handle" maxlength="24" />
                 <input type="text" id="input-reply-text" class="chat-input" aria-label="Comment text" placeholder="Leave a comment..." />
-                <button id="btn-send-reply" class="send-btn" title="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
+                <button id="btn-send-reply" class="send-btn" aria-label="Send Comment" title="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
               </div>
             </div>
  
