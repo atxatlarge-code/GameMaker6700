@@ -2,20 +2,87 @@ import { CONFIG } from './config.js';
 import { audio } from './audio.js';
 import { TILE } from './tiles.js';
 
-// Helper for binary search insertion to maintain sorted order in A* open set
-function insertSorted(array, item, compareFn) {
-  let low = 0;
-  let high = array.length;
-  while (low < high) {
-    const mid = (low + high) >>> 1;
-    if (compareFn(array[mid], item) < 0) {
-      low = mid + 1;
-    } else {
-      high = mid;
+// ⚡ Bolt: Replace O(N) array splicing with O(log N) MinHeap Priority Queue
+class MinHeap {
+  constructor(compareFn) {
+    this.heap = [];
+    this.compareFn = compareFn;
+    this.insertCount = 0;
+  }
+
+  push(item) {
+    this.heap.push({ item, id: this.insertCount++ });
+    this._bubbleUp(this.heap.length - 1);
+  }
+
+  shift() {
+    if (this.heap.length === 0) return undefined;
+    const result = this.heap[0].item;
+    const bottom = this.heap.pop();
+    if (this.heap.length > 0) {
+      this.heap[0] = bottom;
+      this._sinkDown(0);
+    }
+    return result;
+  }
+
+  get length() {
+    return this.heap.length;
+  }
+
+  _compare(a, b) {
+    const cmp = this.compareFn(a.item, b.item);
+    if (cmp !== 0) return cmp;
+    // Strict LIFO tie-breaking: higher ID means inserted later,
+    // so to process newest states first (LIFO), we want higher ID to be "smaller"
+    return b.id - a.id;
+  }
+
+  _bubbleUp(index) {
+    const element = this.heap[index];
+    while (index > 0) {
+      const parentIndex = (index - 1) >>> 1;
+      const parent = this.heap[parentIndex];
+      if (this._compare(element, parent) >= 0) break;
+      this.heap[parentIndex] = element;
+      this.heap[index] = parent;
+      index = parentIndex;
     }
   }
-  array.splice(low, 0, item);
+
+  _sinkDown(index) {
+    const length = this.heap.length;
+    const element = this.heap[index];
+    while (true) {
+      const leftChildIndex = (index << 1) + 1;
+      const rightChildIndex = leftChildIndex + 1;
+      let leftChild, rightChild;
+      let swapIndex = null;
+
+      if (leftChildIndex < length) {
+        leftChild = this.heap[leftChildIndex];
+        if (this._compare(leftChild, element) < 0) {
+          swapIndex = leftChildIndex;
+        }
+      }
+      if (rightChildIndex < length) {
+        rightChild = this.heap[rightChildIndex];
+        if (
+          (swapIndex === null && this._compare(rightChild, element) < 0) ||
+          (swapIndex !== null && this._compare(rightChild, leftChild) < 0)
+        ) {
+          swapIndex = rightChildIndex;
+        }
+      }
+
+      if (swapIndex === null) break;
+      this.heap[index] = this.heap[swapIndex];
+      this.heap[swapIndex] = element;
+      index = swapIndex;
+    }
+  }
 }
+
 
 /**
  * Solves the current level configuration from the player's current starting position.
@@ -154,7 +221,8 @@ export function solveLevel(engine) {
   };
   startState.fScore = getHeuristic(startState);
 
-  const openSet = [startState];
+  const openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+  openSet.push(startState);
   const visited = new Set();
 
   const getDiscretizedKey = (s) => {
@@ -269,7 +337,7 @@ export function solveLevel(engine) {
 
       const nextKey = getDiscretizedKey(nextState);
       if (!visited.has(nextKey)) {
-        insertSorted(openSet, nextState, (a, b) => a.fScore - b.fScore);
+        openSet.push(nextState);
       }
     }
   }
@@ -355,7 +423,8 @@ export class AsyncPathfinder {
     };
     startState.fScore = this.getHeuristic(startState);
 
-    this.openSet = [startState];
+    this.openSet = new MinHeap((a, b) => a.fScore - b.fScore);
+    this.openSet.push(startState);
     this.visited = new Set();
     this.exploredPoints = [];
     this.iterations = 0;
@@ -421,7 +490,7 @@ export class AsyncPathfinder {
 
         const nextKey = this.getDiscretizedKey(nextState);
         if (!this.visited.has(nextKey)) {
-          insertSorted(this.openSet, nextState, (a, b) => a.fScore - b.fScore);
+          this.openSet.push(nextState);
         }
       }
     }
