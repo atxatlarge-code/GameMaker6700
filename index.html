@@ -129,7 +129,7 @@
           <div class="global-coin-badge" style="display: flex; align-items: center; background: rgba(0,0,0,0.3); padding: 4px 12px; border-radius: 20px; font-weight: bold; margin-left: 12px; color: #ffb703; font-family: 'Press Start 2P', monospace; font-size: 10px;">
              <i class="fa-solid fa-coins" style="margin-right: 6px;"></i>
              <span id="global-coin-count">0</span>
-             <button id="btn-open-shop" class="rename-badge-btn" title="Coin Shop" style="margin-left: 8px;"><i class="fa-solid fa-store"></i></button>
+             <button id="btn-open-shop" class="rename-badge-btn" title="Coin Shop" aria-label="Coin Shop" style="margin-left: 8px;"><i class="fa-solid fa-store"></i></button>
           </div>
         </div>
         <div class="header-controls">
@@ -146,7 +146,7 @@
             </select>
           </div>
           <div class="music-selector" title="Transition Style">
-            <button id="btn-toggle-transition" class="music-toggle-btn" title="Transition Style"><i class="fa-solid fa-film"></i></button>
+            <button id="btn-toggle-transition" class="music-toggle-btn" title="Transition Style" aria-label="Transition Style"><i class="fa-solid fa-film"></i></button>
             <select id="transition-select" class="music-dropdown">
               <option value="none">None</option>
               <option value="iris">Iris Wipe</option>
@@ -156,13 +156,13 @@
             </select>
             <button id="btn-demo-transition" class="music-toggle-btn" style="margin-left: 8px; font-size: 14px;" title="Demo Transition"><i class="fa-solid fa-wand-magic-sparkles"></i> Demo</button>
           </div>
-          <button id="btn-parallax" class="nav-menu-btn" title="Adjust Parallax Background Layers">
+          <button id="btn-parallax" class="nav-menu-btn" title="Adjust Parallax Background Layers" aria-label="Adjust Parallax Background Layers">
             <i class="fa-solid fa-layer-group"></i> Parallax
           </button>
-          <button id="btn-mobile-editor" class="nav-menu-btn" title="Play on Mobile Arcade">
+          <button id="btn-mobile-editor" class="nav-menu-btn" title="Play on Mobile Arcade" aria-label="Play on Mobile Arcade">
             <i class="fa-solid fa-mobile-screen-button"></i> Mobile
           </button>
-          <button id="btn-messages-editor" class="nav-menu-btn" title="Open Mailbox">
+          <button id="btn-messages-editor" class="nav-menu-btn" title="Open Mailbox" aria-label="Open Mailbox">
             <i class="fa-solid fa-envelope"></i> Chat
             <span id="badge-editor" class="mail-badge hidden"></span>
           </button>
@@ -176,10 +176,10 @@
         <div id="editor-toolbar" style="display: none;"></div>
         <div class="canvas-container">
           <div id="pan-controls" class="pan-controls">
-            <button class="pan-btn pan-up" data-dir="up" title="Pan Up"><i class="fa-solid fa-caret-up"></i></button>
-            <button class="pan-btn pan-down" data-dir="down" title="Pan Down"><i class="fa-solid fa-caret-down"></i></button>
-            <button class="pan-btn pan-left" data-dir="left" title="Pan Left"><i class="fa-solid fa-caret-left"></i></button>
-            <button class="pan-btn pan-right" data-dir="right" title="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
+            <button class="pan-btn pan-up" data-dir="up" title="Pan Up" aria-label="Pan Up"><i class="fa-solid fa-caret-up"></i></button>
+            <button class="pan-btn pan-down" data-dir="down" title="Pan Down" aria-label="Pan Down"><i class="fa-solid fa-caret-down"></i></button>
+            <button class="pan-btn pan-left" data-dir="left" title="Pan Left" aria-label="Pan Left"><i class="fa-solid fa-caret-left"></i></button>
+            <button class="pan-btn pan-right" data-dir="right" title="Pan Right" aria-label="Pan Right"><i class="fa-solid fa-caret-right"></i></button>
           </div>
           <div id="letterbox-top" class="letterbox-bar top"></div>
           <div id="letterbox-bottom" class="letterbox-bar bottom"></div>
@@ -311,20 +311,20 @@
             
             <!-- Group 1: Player objects -->
             <div class="action-group" id="group-player">
-              <button class="action-group-btn" title="Player objects">
+              <button class="action-group-btn" title="Player objects" aria-label="Player objects">
                 <img id="img-group-player" src="assets/player.png" class="tool-icon-img" alt="Player">
               </button>
               <div class="group-popup" id="popup-player">
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_classic" title="Classic Box Player" data-tooltip="Classic Box Character">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_classic" title="Classic Box Player" aria-label="Classic Box Player" data-tooltip="Classic Box Character">
                   <img src="assets/player_classic.png" class="tool-icon-img" alt="Classic Box Player" style="border-radius: 4px;">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ghibli" title="Forest Kid (Ghibli)" data-tooltip="Forest Kid (Default)">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ghibli" title="Forest Kid (Ghibli)" aria-label="Forest Kid (Ghibli)" data-tooltip="Forest Kid (Default)">
                   <img src="assets/player_ghibli.png" class="tool-icon-img" alt="Forest Kid (Ghibli)" style="border-radius: 4px;">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_robot" title="Robot" data-tooltip="Robot Character">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_robot" title="Robot" aria-label="Robot" data-tooltip="Robot Character">
                   <img src="assets/player_robot.png" class="tool-icon-img" alt="Robot" style="border-radius: 4px;">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_topdown" title="Jetpack Boy" data-tooltip="Jetpack Boy">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_topdown" title="Jetpack Boy" aria-label="Jetpack Boy" data-tooltip="Jetpack Boy">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <rect x="8" y="4" width="16" height="20" rx="3" fill="#1e293b" />
                     <circle cx="11" cy="24" r="3" fill="#38bdf8" />
@@ -337,7 +337,7 @@
                     <circle cx="29" cy="16" r="3" fill="#0f172a" />
                   </svg>
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_blob" title="Blob" data-tooltip="Gelatinous Blob">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_blob" title="Blob" aria-label="Blob" data-tooltip="Gelatinous Blob">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <ellipse cx="16" cy="16" rx="12" ry="10" fill="rgba(50, 205, 50, 0.85)" />
                     <ellipse cx="12" cy="12" rx="4" ry="2" fill="rgba(255, 255, 255, 0.3)" transform="rotate(45 12 12)" />
@@ -347,9 +347,9 @@
                     <circle cx="21" cy="18" r="1.5" fill="black" />
                   </svg>
                 </button>
-                <button class="popup-item-btn" data-tool="player_paddle_v" data-tooltip="Vertical Paddle"><i class="fa-solid fa-grip-lines-vertical" style="color:#009688;"></i> Vertical paddle</button>
-                <button class="popup-item-btn" data-tool="player_paddle_h" data-tooltip="Horizontal Paddle"><i class="fa-solid fa-grip-lines" style="color:#009688;"></i> Horizontal paddle</button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ball" title="Bouncing Ball" data-tooltip="Ball Character">
+                <button class="popup-item-btn" data-tool="player_paddle_v" data-tooltip="Vertical Paddle" aria-label="Vertical Paddle"><i class="fa-solid fa-grip-lines-vertical" style="color:#009688;"></i> Vertical paddle</button>
+                <button class="popup-item-btn" data-tool="player_paddle_h" data-tooltip="Horizontal Paddle" aria-label="Horizontal Paddle"><i class="fa-solid fa-grip-lines" style="color:#009688;"></i> Horizontal paddle</button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="player_ball" title="Bouncing Ball" aria-label="Bouncing Ball" data-tooltip="Ball Character">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <defs>
                       <radialGradient id="ballGrad" cx="50%" cy="50%" r="50%">
@@ -366,14 +366,14 @@
 
             <!-- Group 2: Blocks -->
             <div class="action-group" id="group-blocks">
-              <button class="action-group-btn active" title="Blocks">
+              <button class="action-group-btn active" title="Blocks" aria-label="Blocks">
                 <img id="img-group-blocks" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M2%2010h28v20H2z%22%20fill%3D%22%238c6239%22%2F%3E%3Cpath%20d%3D%22M2%202h28v8H2z%22%20fill%3D%22%23689f38%22%2F%3E%3C%2Fsvg%3E" class="tool-icon-img" alt="Blocks">
               </button>
               <div class="group-popup" id="popup-blocks">
-                <button class="tool-btn popup-item-btn icon-only-btn active" data-tool="wall" title="Solid block" data-tooltip="Solid Wall">
+                <button class="tool-btn popup-item-btn icon-only-btn active" data-tool="wall" title="Solid block" aria-label="Solid block" data-tooltip="Solid Wall">
                   <img id="img-tool-wall" src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20d%3D%22M2%2010h28v20H2z%22%20fill%3D%22%238c6239%22%2F%3E%3Cpath%20d%3D%22M2%202h28v8H2z%22%20fill%3D%22%23689f38%22%2F%3E%3C%2Fsvg%3E" class="tool-icon-img" alt="Solid block">
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="fire" title="Fire" data-tooltip="Fire Hazard (Kills)">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="fire" title="Fire" aria-label="Fire" data-tooltip="Fire Hazard (Kills)">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <defs>
                       <linearGradient id="fireGrad" x1="0" y1="1" x2="0" y2="0">
@@ -385,13 +385,13 @@
                     <path d="M 4 32 C 4 22, 6 12, 10 6 C 12 14, 13 18, 16 12 C 19 18, 20 22, 22 8 C 26 15, 28 22, 28 32 Z" fill="url(#fireGrad)"/>
                   </svg>
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="spikes" title="Spikes" data-tooltip="Spike Hazard (Kills)">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="spikes" title="Spikes" aria-label="Spikes" data-tooltip="Spike Hazard (Kills)">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <path d="M2 28 l4 -18 l5 18 l5 -20 l5 20 l4 -18 l5 18 Z" fill="#18181b"/>
                     <rect x="0" y="26" width="32" height="6" fill="#27272a"/>
                   </svg>
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="breakable" title="Breakable block" data-tooltip="Breakable Brick">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="breakable" title="Breakable block" aria-label="Breakable block" data-tooltip="Breakable Brick">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <!-- Base background with pillowy gradient -->
                     <defs>
@@ -447,7 +447,7 @@
                     <line x1="22" y1="6" x2="25" y2="7" stroke="#e0ad34" stroke-width="1" stroke-linecap="round"/>
                   </svg>
                 </button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="earth" title="Grass Earth block" data-tooltip="Earth/Grass Block">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="earth" title="Grass Earth block" aria-label="Grass Earth block" data-tooltip="Earth/Grass Block">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <defs>
                       <linearGradient id="earthBlockGrad" x1="0" y1="1" x2="0" y2="0">
@@ -468,65 +468,65 @@
                     <path d="M 2.5 3 C 12 2, 20 2.5, 29.5 3 C 29.8 12, 29.5 20, 29.5 29 C 20 29.5, 12 29.2, 2.5 29 C 2 20, 2.3 12, 2.5 3" fill="none" stroke="#542e14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </button>
-                <button class="popup-item-btn" data-tool="lock" data-tooltip="Locked Door (Needs Key)"><i class="fa-solid fa-lock" style="color:#9e9e9e"></i> Lock Block</button>
-                <button class="popup-item-btn" data-tool="moveable" data-tooltip="Pushable Crate"><i class="fa-solid fa-box" style="color:#a87a51"></i> Moveable block</button>
-                <button class="popup-item-btn" data-tool="block_crumble" data-tooltip="Crumbling Platform"><i class="fa-solid fa-cookie-bite" style="color:#b45309"></i> Crumble Block</button>
-                <button class="popup-item-btn" data-tool="block_ice" data-tooltip="Ice Block (Slippery)"><i class="fa-solid fa-cube" style="color:#a5f3fc"></i> Ice Block</button>
-                <button class="popup-item-btn" data-tool="cracked_block" data-tooltip="Cracked Block (Bomb)"><i class="fa-solid fa-cube" style="color:#78716c"></i> Cracked Block</button>
-                <button class="popup-item-btn" data-tool="slime" data-tooltip="Slime Wall (Slide)"><i class="fa-solid fa-square-virus" style="color:#4ade80"></i> Slime Wall</button>
-                <button class="popup-item-btn" data-tool="jump_through" data-tooltip="One-Way Platform"><i class="fa-solid fa-minus" style="color:#8b5cf6"></i> Jump-Through</button>
-                <button class="popup-item-btn" data-tool="reflector" data-tooltip="Reflector Shield"><i class="fa-solid fa-shield-halved" style="color:#06b6d4"></i> Reflector Shield</button>
-                <button class="popup-item-btn" data-tool="ramp_right" data-tooltip="Right-Facing Ramp"><i class="fa-solid fa-play" style="color:#71717a; transform: rotate(-45deg);"></i> Ramp Right</button>
-                <button class="popup-item-btn" data-tool="ramp_left" data-tooltip="Left-Facing Ramp"><i class="fa-solid fa-play" style="color:#71717a; transform: rotate(225deg);"></i> Ramp Left</button>
+                <button class="popup-item-btn" data-tool="lock" data-tooltip="Locked Door (Needs Key)" aria-label="Locked Door (Needs Key)"><i class="fa-solid fa-lock" style="color:#9e9e9e"></i> Lock Block</button>
+                <button class="popup-item-btn" data-tool="moveable" data-tooltip="Pushable Crate" aria-label="Pushable Crate"><i class="fa-solid fa-box" style="color:#a87a51"></i> Moveable block</button>
+                <button class="popup-item-btn" data-tool="block_crumble" data-tooltip="Crumbling Platform" aria-label="Crumbling Platform"><i class="fa-solid fa-cookie-bite" style="color:#b45309"></i> Crumble Block</button>
+                <button class="popup-item-btn" data-tool="block_ice" data-tooltip="Ice Block (Slippery)" aria-label="Ice Block (Slippery)"><i class="fa-solid fa-cube" style="color:#a5f3fc"></i> Ice Block</button>
+                <button class="popup-item-btn" data-tool="cracked_block" data-tooltip="Cracked Block (Bomb)" aria-label="Cracked Block (Bomb)"><i class="fa-solid fa-cube" style="color:#78716c"></i> Cracked Block</button>
+                <button class="popup-item-btn" data-tool="slime" data-tooltip="Slime Wall (Slide)" aria-label="Slime Wall (Slide)"><i class="fa-solid fa-square-virus" style="color:#4ade80"></i> Slime Wall</button>
+                <button class="popup-item-btn" data-tool="jump_through" data-tooltip="One-Way Platform" aria-label="One-Way Platform"><i class="fa-solid fa-minus" style="color:#8b5cf6"></i> Jump-Through</button>
+                <button class="popup-item-btn" data-tool="reflector" data-tooltip="Reflector Shield" aria-label="Reflector Shield"><i class="fa-solid fa-shield-halved" style="color:#06b6d4"></i> Reflector Shield</button>
+                <button class="popup-item-btn" data-tool="ramp_right" data-tooltip="Right-Facing Ramp" aria-label="Right-Facing Ramp"><i class="fa-solid fa-play" style="color:#71717a; transform: rotate(-45deg);"></i> Ramp Right</button>
+                <button class="popup-item-btn" data-tool="ramp_left" data-tooltip="Left-Facing Ramp" aria-label="Left-Facing Ramp"><i class="fa-solid fa-play" style="color:#71717a; transform: rotate(225deg);"></i> Ramp Left</button>
               </div>
             </div>
 
             <!-- Group 2.5: Movers -->
             <div class="action-group" id="group-movers">
-              <button class="action-group-btn" title="Movers">
+              <button class="action-group-btn" title="Movers" aria-label="Movers">
                 <i class="fa-solid fa-wind"></i>
                 <span>Movers</span>
               </button>
               <div class="group-popup" id="popup-movers">
-                <button class="popup-item-btn" data-tool="conveyor_left" data-tooltip="Conveyor ← (Left)"><i class="fa-solid fa-angles-left" style="color:#94a3b8"></i> Conveyor Left</button>
-                <button class="popup-item-btn" data-tool="conveyor_right" data-tooltip="Conveyor → (Right)"><i class="fa-solid fa-forward-step" style="color:#94a3b8"></i> Conveyor Right</button>
-                <button class="popup-item-btn" data-tool="dash_panel_left" data-tooltip="Dash Panel ← (Left)"><i class="fa-solid fa-backward-fast" style="color:#eab308"></i> Dash Panel Left</button>
-                <button class="popup-item-btn" data-tool="dash_panel_right" data-tooltip="Dash Panel → (Right)"><i class="fa-solid fa-forward-fast" style="color:#eab308"></i> Dash Panel Right</button>
-                <button class="popup-item-btn" data-tool="bumper" data-tooltip="Bouncy Bumper"><i class="fa-solid fa-life-ring" style="color:#ec4899"></i> Bumper</button>
-                <button class="popup-item-btn" data-tool="moving_platform" data-tooltip="Moving Platform"><i class="fa-solid fa-window-minimize" style="color:#f59e0b"></i> Moving Platform</button>
-                <button class="popup-item-btn" data-tool="cannon_barrel" data-tooltip="Cannon Barrel"><i class="fa-solid fa-crosshairs" style="color:#d97706"></i> Cannon Barrel</button>
-                <button class="popup-item-btn" data-tool="rope" data-tooltip="Rope Anchor"><i class="fa-solid fa-link" style="color:#84cc16"></i> Swinging Rope</button>
-                <button class="popup-item-btn" data-tool="gravity_well" data-tooltip="Gravity Well"><i class="fa-solid fa-circle-dot" style="color:#7c3aed"></i> Gravity Well</button>
-                <button class="popup-item-btn" data-tool="minecart" data-tooltip="Minecart"><i class="fa-solid fa-cart-shopping" style="color:#52525b"></i> Minecart</button>
-                <button class="popup-item-btn" data-tool="wind_up" data-tooltip="Wind Zone ↑ (Up)"><i class="fa-solid fa-wind" style="color:#94a3b8; transform: rotate(-90deg);"></i> Wind Up</button>
-                <button class="popup-item-btn" data-tool="wind_down" data-tooltip="Wind Zone ↓ (Down)"><i class="fa-solid fa-wind" style="color:#94a3b8; transform: rotate(90deg);"></i> Wind Down</button>
-                <button class="popup-item-btn" data-tool="wind_left" data-tooltip="Wind Zone ← (Left)"><i class="fa-solid fa-wind" style="color:#94a3b8; transform: scaleX(-1);"></i> Wind Left</button>
-                <button class="popup-item-btn" data-tool="wind_right" data-tooltip="Wind Zone → (Right)"><i class="fa-solid fa-wind" style="color:#94a3b8;"></i> Wind Right</button>
+                <button class="popup-item-btn" data-tool="conveyor_left" data-tooltip="Conveyor ← (Left)" aria-label="Conveyor ← (Left)"><i class="fa-solid fa-angles-left" style="color:#94a3b8"></i> Conveyor Left</button>
+                <button class="popup-item-btn" data-tool="conveyor_right" data-tooltip="Conveyor → (Right)" aria-label="Conveyor → (Right)"><i class="fa-solid fa-forward-step" style="color:#94a3b8"></i> Conveyor Right</button>
+                <button class="popup-item-btn" data-tool="dash_panel_left" data-tooltip="Dash Panel ← (Left)" aria-label="Dash Panel ← (Left)"><i class="fa-solid fa-backward-fast" style="color:#eab308"></i> Dash Panel Left</button>
+                <button class="popup-item-btn" data-tool="dash_panel_right" data-tooltip="Dash Panel → (Right)" aria-label="Dash Panel → (Right)"><i class="fa-solid fa-forward-fast" style="color:#eab308"></i> Dash Panel Right</button>
+                <button class="popup-item-btn" data-tool="bumper" data-tooltip="Bouncy Bumper" aria-label="Bouncy Bumper"><i class="fa-solid fa-life-ring" style="color:#ec4899"></i> Bumper</button>
+                <button class="popup-item-btn" data-tool="moving_platform" data-tooltip="Moving Platform" aria-label="Moving Platform"><i class="fa-solid fa-window-minimize" style="color:#f59e0b"></i> Moving Platform</button>
+                <button class="popup-item-btn" data-tool="cannon_barrel" data-tooltip="Cannon Barrel" aria-label="Cannon Barrel"><i class="fa-solid fa-crosshairs" style="color:#d97706"></i> Cannon Barrel</button>
+                <button class="popup-item-btn" data-tool="rope" data-tooltip="Rope Anchor" aria-label="Rope Anchor"><i class="fa-solid fa-link" style="color:#84cc16"></i> Swinging Rope</button>
+                <button class="popup-item-btn" data-tool="gravity_well" data-tooltip="Gravity Well" aria-label="Gravity Well"><i class="fa-solid fa-circle-dot" style="color:#7c3aed"></i> Gravity Well</button>
+                <button class="popup-item-btn" data-tool="minecart" data-tooltip="Minecart" aria-label="Minecart"><i class="fa-solid fa-cart-shopping" style="color:#52525b"></i> Minecart</button>
+                <button class="popup-item-btn" data-tool="wind_up" data-tooltip="Wind Zone ↑ (Up)" aria-label="Wind Zone ↑ (Up)"><i class="fa-solid fa-wind" style="color:#94a3b8; transform: rotate(-90deg);"></i> Wind Up</button>
+                <button class="popup-item-btn" data-tool="wind_down" data-tooltip="Wind Zone ↓ (Down)" aria-label="Wind Zone ↓ (Down)"><i class="fa-solid fa-wind" style="color:#94a3b8; transform: rotate(90deg);"></i> Wind Down</button>
+                <button class="popup-item-btn" data-tool="wind_left" data-tooltip="Wind Zone ← (Left)" aria-label="Wind Zone ← (Left)"><i class="fa-solid fa-wind" style="color:#94a3b8; transform: scaleX(-1);"></i> Wind Left</button>
+                <button class="popup-item-btn" data-tool="wind_right" data-tooltip="Wind Zone → (Right)" aria-label="Wind Zone → (Right)"><i class="fa-solid fa-wind" style="color:#94a3b8;"></i> Wind Right</button>
               </div>
             </div>
 
             <!-- Group 3: Special -->
             <div class="action-group" id="group-special">
-              <button class="action-group-btn" title="Special">
+              <button class="action-group-btn" title="Special" aria-label="Special">
                 <i class="fa-solid fa-star"></i>
                 <span>Special</span>
               </button>
               <div class="group-popup" id="popup-special">
-                <button class="popup-item-btn" data-tool="goal" data-tooltip="Level Goal (Exit)">
+                <button class="popup-item-btn" data-tool="goal" data-tooltip="Level Goal (Exit)" aria-label="Level Goal (Exit)">
                   <i class="fa-solid fa-flag-checkered" style="color:#facc15"></i> Goal
                 </button>
-                <button class="popup-item-btn" data-tool="door_red" data-tooltip="Red Door"><i class="fa-solid fa-door-closed" style="color:#ef4444"></i> Red Door</button>
-                <button class="popup-item-btn" data-tool="door_blue" data-tooltip="Blue Door"><i class="fa-solid fa-door-closed" style="color:#3b82f6"></i> Blue Door</button>
-                <button class="popup-item-btn" data-tool="door_green" data-tooltip="Green Door"><i class="fa-solid fa-door-closed" style="color:#22c55e"></i> Green Door</button>
-                <button class="popup-item-btn" data-tool="trampoline" data-tooltip="Trampoline (Bounce)">
+                <button class="popup-item-btn" data-tool="door_red" data-tooltip="Red Door" aria-label="Red Door"><i class="fa-solid fa-door-closed" style="color:#ef4444"></i> Red Door</button>
+                <button class="popup-item-btn" data-tool="door_blue" data-tooltip="Blue Door" aria-label="Blue Door"><i class="fa-solid fa-door-closed" style="color:#3b82f6"></i> Blue Door</button>
+                <button class="popup-item-btn" data-tool="door_green" data-tooltip="Green Door" aria-label="Green Door"><i class="fa-solid fa-door-closed" style="color:#22c55e"></i> Green Door</button>
+                <button class="popup-item-btn" data-tool="trampoline" data-tooltip="Trampoline (Bounce)" aria-label="Trampoline (Bounce)">
                   <i class="fa-solid fa-arrow-up-from-ground-water" style="color:#ec4899"></i> Trampoline
                 </button>
-                <button class="popup-item-btn" data-tool="water" data-tooltip="Water (Swim)"><i class="fa-solid fa-water" style="color:#3b82f6"></i> Water Zone</button>
-                <button class="popup-item-btn" data-tool="checkpoint" data-tooltip="Checkpoint (Respawn)"><i class="fa-solid fa-flag" style="color:#ef4444"></i> Save flag</button>
-                <button class="popup-item-btn" data-tool="key" data-tooltip="Key (Opens Locks)"><i class="fa-solid fa-key" style="color:#ffeb3b"></i> Key</button>
-                <button class="popup-item-btn" data-tool="paint_block" data-tooltip="Paint Block (Reveals)"><i class="fa-solid fa-paint-roller" style="color:#06b6d4"></i> Paint Block</button>
-                <button class="popup-item-btn" data-tool="invisible_block" data-tooltip="Invisible Block"><i class="fa-regular fa-square" style="color:#94a3b8"></i> Invisible Block</button>
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="coin" title="Coin" data-tooltip="Coin (Collectible)">
+                <button class="popup-item-btn" data-tool="water" data-tooltip="Water (Swim)" aria-label="Water (Swim)"><i class="fa-solid fa-water" style="color:#3b82f6"></i> Water Zone</button>
+                <button class="popup-item-btn" data-tool="checkpoint" data-tooltip="Checkpoint (Respawn)" aria-label="Checkpoint (Respawn)"><i class="fa-solid fa-flag" style="color:#ef4444"></i> Save flag</button>
+                <button class="popup-item-btn" data-tool="key" data-tooltip="Key (Opens Locks)" aria-label="Key (Opens Locks)"><i class="fa-solid fa-key" style="color:#ffeb3b"></i> Key</button>
+                <button class="popup-item-btn" data-tool="paint_block" data-tooltip="Paint Block (Reveals)" aria-label="Paint Block (Reveals)"><i class="fa-solid fa-paint-roller" style="color:#06b6d4"></i> Paint Block</button>
+                <button class="popup-item-btn" data-tool="invisible_block" data-tooltip="Invisible Block" aria-label="Invisible Block"><i class="fa-regular fa-square" style="color:#94a3b8"></i> Invisible Block</button>
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="coin" title="Coin" aria-label="Coin" data-tooltip="Coin (Collectible)">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <defs>
                       <radialGradient id="coinGrad" cx="50%" cy="50%" r="50%">
@@ -545,30 +545,30 @@
 
             <!-- Group 3.5: Powerups -->
             <div class="action-group" id="group-powerups">
-              <button class="action-group-btn" title="Powerups">
+              <button class="action-group-btn" title="Powerups" aria-label="Powerups">
                 <i class="fa-solid fa-star" style="color:#fbbf24;"></i>
                 <span>Powerups</span>
               </button>
               <div class="group-popup" id="popup-powerups">
-                <button class="popup-item-btn" data-tool="spring_boots" data-tooltip="Spring Boots (Powerup)"><i class="fa-solid fa-shoe-prints" style="color:#4ade80"></i> Spring Boots</button>
-                <button class="popup-item-btn" data-tool="bouncy_mushroom" data-tooltip="Bouncy Mushroom"><i class="fa-solid fa-mushroom" style="color:#ef4444"></i> Bouncy Mushroom</button>
-                <button class="popup-item-btn" data-tool="double_jump" data-tooltip="Double Jump (Powerup)"><i class="fa-solid fa-feather-pointed" style="color:#0ea5e9"></i> Double Jump</button>
-                <button class="popup-item-btn" data-tool="jetpack" data-tooltip="Jetpack (Powerup)"><i class="fa-solid fa-rocket" style="color:#ef4444"></i> Jetpack</button>
-                <button class="popup-item-btn" data-tool="speed_boost" data-tooltip="Speed Boost (Powerup)"><i class="fa-solid fa-bolt" style="color:#f59e0b"></i> Speed Boost</button>
-                <button class="popup-item-btn" data-tool="shrink_potion" data-tooltip="Shrink Potion"><i class="fa-solid fa-flask" style="color:#e879f9"></i> Shrinking Potion</button>
-                <button class="popup-item-btn" data-tool="boomerang" data-tooltip="Boomerang (Powerup)"><i class="fa-solid fa-sync" style="color:#a855f7"></i> Boomerang</button>
-                <button class="popup-item-btn" data-tool="bomb_powerup" data-tooltip="Bomb (Powerup)"><i class="fa-solid fa-bomb" style="color:#000000"></i> Bomb Powerup</button>
+                <button class="popup-item-btn" data-tool="spring_boots" data-tooltip="Spring Boots (Powerup)" aria-label="Spring Boots (Powerup)"><i class="fa-solid fa-shoe-prints" style="color:#4ade80"></i> Spring Boots</button>
+                <button class="popup-item-btn" data-tool="bouncy_mushroom" data-tooltip="Bouncy Mushroom" aria-label="Bouncy Mushroom"><i class="fa-solid fa-mushroom" style="color:#ef4444"></i> Bouncy Mushroom</button>
+                <button class="popup-item-btn" data-tool="double_jump" data-tooltip="Double Jump (Powerup)" aria-label="Double Jump (Powerup)"><i class="fa-solid fa-feather-pointed" style="color:#0ea5e9"></i> Double Jump</button>
+                <button class="popup-item-btn" data-tool="jetpack" data-tooltip="Jetpack (Powerup)" aria-label="Jetpack (Powerup)"><i class="fa-solid fa-rocket" style="color:#ef4444"></i> Jetpack</button>
+                <button class="popup-item-btn" data-tool="speed_boost" data-tooltip="Speed Boost (Powerup)" aria-label="Speed Boost (Powerup)"><i class="fa-solid fa-bolt" style="color:#f59e0b"></i> Speed Boost</button>
+                <button class="popup-item-btn" data-tool="shrink_potion" data-tooltip="Shrink Potion" aria-label="Shrink Potion"><i class="fa-solid fa-flask" style="color:#e879f9"></i> Shrinking Potion</button>
+                <button class="popup-item-btn" data-tool="boomerang" data-tooltip="Boomerang (Powerup)" aria-label="Boomerang (Powerup)"><i class="fa-solid fa-sync" style="color:#a855f7"></i> Boomerang</button>
+                <button class="popup-item-btn" data-tool="bomb_powerup" data-tooltip="Bomb (Powerup)" aria-label="Bomb (Powerup)"><i class="fa-solid fa-bomb" style="color:#000000"></i> Bomb Powerup</button>
               </div>
             </div>
 
             <!-- Group 4: Enemies -->
             <div class="action-group" id="group-enemies">
-              <button class="action-group-btn" title="Enemies">
+              <button class="action-group-btn" title="Enemies" aria-label="Enemies">
                 <i class="fa-solid fa-ghost"></i>
                 <span>Enemies</span>
               </button>
               <div class="group-popup" id="popup-enemies">
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="enemy" title="Soot Sprite enemy" data-tooltip="Enemy (Patrols)">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="enemy" title="Soot Sprite enemy" aria-label="Soot Sprite enemy" data-tooltip="Enemy (Patrols)">
                   <svg viewBox="0 0 40 44" class="tool-icon-svg" style="width:36px;height:40px;">
                     <!-- Fluffy bumps -->
                     <circle cx="20" cy="8"  r="5.5" fill="#221c25"/>
@@ -597,21 +597,21 @@
                   </svg>
                 </button>
                 <button class="popup-item-btn soon" data-name="Horizontal enemy" data-tooltip="Coming Soon"><i class="fa-solid fa-arrows-left-right"></i> Horiz enemy</button>
-                <button class="popup-item-btn" data-tool="thwomp" data-tooltip="Thwomp (Crusher)"><i class="fa-solid fa-square-caret-down" style="color:#607d8b;"></i> Thwomp Block</button>
+                <button class="popup-item-btn" data-tool="thwomp" data-tooltip="Thwomp (Crusher)" aria-label="Thwomp (Crusher)"><i class="fa-solid fa-square-caret-down" style="color:#607d8b;"></i> Thwomp Block</button>
                 <button class="popup-item-btn soon" data-name="Diagonal enemy" data-tooltip="Coming Soon"><i class="fa-solid fa-arrow-trend-up"></i> Diag enemy</button>
                 <button class="popup-item-btn" data-tool="enemy_chaser" title="Chasing Enemy" data-tooltip="Chaser Enemy (Follows)"><i class="fa-solid fa-eye" style="color:#ef4444;"></i> Chasing Enemy</button>
                 <button class="popup-item-btn" data-tool="enemy_teleport" title="Teleporting Enemy" data-tooltip="Teleporting Enemy"><i class="fa-solid fa-ghost" style="color:#8b5cf6;"></i> Teleporting Enemy</button>
                 <button class="popup-item-btn" data-tool="enemy_worm" title="Burrowing Sand Worm" data-tooltip="Worm Enemy"><i class="fa-solid fa-worm" style="color:#f59e0b;"></i> Sand Worm</button>
                 <button class="popup-item-btn" data-tool="enemy_bat" title="Bat Swarm" data-tooltip="Bat Enemy (Flying)"><i class="fa-solid fa-bat" style="color:#71717a;"></i> Bat Swarm</button>
                 <button class="popup-item-btn" data-tool="enemy_mimic" title="Mimic Block" data-tooltip="Mimic Enemy"><i class="fa-solid fa-box" style="color:#eab308;"></i> Mimic Block</button>
-                <button class="popup-item-btn" data-tool="lazer" data-tooltip="Laser Emitter"><i class="fa-solid fa-bullseye" style="color:#e91e63"></i> 4 Way Lazer</button>
-                <button class="popup-item-btn" data-tool="turret" data-tooltip="Turret (Shoots)"><i class="fa-solid fa-crosshairs" style="color:#dc2626"></i> Turret Shooter</button>
+                <button class="popup-item-btn" data-tool="lazer" data-tooltip="Laser Emitter" aria-label="Laser Emitter"><i class="fa-solid fa-bullseye" style="color:#e91e63"></i> 4 Way Lazer</button>
+                <button class="popup-item-btn" data-tool="turret" data-tooltip="Turret (Shoots)" aria-label="Turret (Shoots)"><i class="fa-solid fa-crosshairs" style="color:#dc2626"></i> Turret Shooter</button>
               </div>
             </div>
 
             <!-- Group 5: Barriers -->
             <div class="action-group" id="group-barriers">
-              <button class="action-group-btn" title="Barriers">
+              <button class="action-group-btn" title="Barriers" aria-label="Barriers">
                 <svg id="img-group-barriers" viewBox="0 0 32 32" class="tool-icon-svg">
                   <defs>
                     <radialGradient id="portalCyanGroup" cx="50%" cy="50%" r="50%">
@@ -632,7 +632,7 @@
                 </svg>
               </button>
               <div class="group-popup" id="popup-barriers">
-                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="portal" title="Portal" data-tooltip="Portal Pair">
+                <button class="tool-btn popup-item-btn icon-only-btn" data-tool="portal" title="Portal" aria-label="Portal" data-tooltip="Portal Pair">
                   <svg viewBox="0 0 32 32" class="tool-icon-svg">
                     <defs>
                       <radialGradient id="portalCyanItem" cx="50%" cy="50%" r="50%">
@@ -652,31 +652,31 @@
                     <circle cx="21" cy="21" r="10" fill="url(#portalPinkItem)"/>
                   </svg>
                 </button>
-                <button class="popup-item-btn" data-tool="portal_size" data-tooltip="Size Portal"><i class="fa-solid fa-compress" style="color:#8bc34a"></i> Size Portal</button>
-                <button class="popup-item-btn" data-tool="portal_gravity" data-tooltip="Gravity Portal"><i class="fa-solid fa-arrow-up" style="color:#c084fc"></i> Anti-Gravity Zone</button>
+                <button class="popup-item-btn" data-tool="portal_size" data-tooltip="Size Portal" aria-label="Size Portal"><i class="fa-solid fa-compress" style="color:#8bc34a"></i> Size Portal</button>
+                <button class="popup-item-btn" data-tool="portal_gravity" data-tooltip="Gravity Portal" aria-label="Gravity Portal"><i class="fa-solid fa-arrow-up" style="color:#c084fc"></i> Anti-Gravity Zone</button>
               </div>
             </div>
 
             <!-- Group 6: Switches -->
             <div class="action-group" id="group-switches">
-              <button class="action-group-btn" title="Switches">
+              <button class="action-group-btn" title="Switches" aria-label="Switches">
                 <i class="fa-solid fa-toggle-on"></i>
                 <span>Switches</span>
               </button>
               <div class="group-popup" id="popup-switches">
-                <button class="popup-item-btn" data-tool="switch" data-tooltip="Switch (Red/Blue Toggle)"><i class="fa-solid fa-toggle-off" style="color:#9c27b0"></i> Switch Block</button>
-                <button class="popup-item-btn" data-tool="tripwire" data-tooltip="Tripwire (Auto Toggle)"><i class="fa-solid fa-grip-lines" style="color:#ef4444"></i> Tripwire</button>
-                <button class="popup-item-btn" data-tool="gravity_switch" data-tooltip="Gravity Flip Switch"><i class="fa-solid fa-arrow-right-arrow-left" style="color:#c084fc; transform: rotate(90deg);"></i> Gravity Switch</button>
-                <button class="popup-item-btn" data-tool="block_red" data-tooltip="Red Block (Switch)"><i class="fa-solid fa-square" style="color:#f44336"></i> Red Block</button>
-                <button class="popup-item-btn" data-tool="block_blue" data-tooltip="Blue Block (Switch)"><i class="fa-solid fa-square" style="color:#2196f3"></i> Blue Block</button>
-                <button class="popup-item-btn" data-tool="block_ghost" data-tooltip="Ghost Block (Flickers)"><i class="fa-regular fa-square" style="color:#9ca3af"></i> Ghost Block</button>
-                <button class="popup-item-btn" data-tool="ghost_switch" data-tooltip="Ghost Record Switch"><i class="fa-solid fa-video" style="color:#9c27b0"></i> Ghost Switch</button>
+                <button class="popup-item-btn" data-tool="switch" data-tooltip="Switch (Red/Blue Toggle)" aria-label="Switch (Red/Blue Toggle)"><i class="fa-solid fa-toggle-off" style="color:#9c27b0"></i> Switch Block</button>
+                <button class="popup-item-btn" data-tool="tripwire" data-tooltip="Tripwire (Auto Toggle)" aria-label="Tripwire (Auto Toggle)"><i class="fa-solid fa-grip-lines" style="color:#ef4444"></i> Tripwire</button>
+                <button class="popup-item-btn" data-tool="gravity_switch" data-tooltip="Gravity Flip Switch" aria-label="Gravity Flip Switch"><i class="fa-solid fa-arrow-right-arrow-left" style="color:#c084fc; transform: rotate(90deg);"></i> Gravity Switch</button>
+                <button class="popup-item-btn" data-tool="block_red" data-tooltip="Red Block (Switch)" aria-label="Red Block (Switch)"><i class="fa-solid fa-square" style="color:#f44336"></i> Red Block</button>
+                <button class="popup-item-btn" data-tool="block_blue" data-tooltip="Blue Block (Switch)" aria-label="Blue Block (Switch)"><i class="fa-solid fa-square" style="color:#2196f3"></i> Blue Block</button>
+                <button class="popup-item-btn" data-tool="block_ghost" data-tooltip="Ghost Block (Flickers)" aria-label="Ghost Block (Flickers)"><i class="fa-regular fa-square" style="color:#9ca3af"></i> Ghost Block</button>
+                <button class="popup-item-btn" data-tool="ghost_switch" data-tooltip="Ghost Record Switch" aria-label="Ghost Record Switch"><i class="fa-solid fa-video" style="color:#9c27b0"></i> Ghost Switch</button>
               </div>
             </div>
 
             <!-- Group 7: Erase -->
             <div class="action-group" id="group-erase">
-              <button class="tool-btn action-group-btn erase-action" data-tool="erase" title="Erase" data-tooltip="Erase Tool">
+              <button class="tool-btn action-group-btn erase-action" data-tool="erase" title="Erase" aria-label="Erase" data-tooltip="Erase Tool">
                 <i class="fa-solid fa-eraser"></i>
                 <span>Erase</span>
               </button>
@@ -684,7 +684,7 @@
 
             <!-- Group 8: Change style -->
             <div class="action-group" id="group-style">
-              <button class="action-group-btn style-action" title="Change style">
+              <button class="action-group-btn style-action" title="Change style" aria-label="Change style">
                 <i class="fa-solid fa-palette"></i>
                 <span>Style</span>
               </button>
@@ -700,7 +700,7 @@
 
             <!-- Group 9: Undo -->
             <div class="action-group" id="group-undo">
-              <button id="btn-undo-action" class="action-group-btn undo-action" title="Undo Last Change" data-tooltip="Undo (Ctrl+Z)">
+              <button id="btn-undo-action" class="action-group-btn undo-action" title="Undo Last Change" aria-label="Undo Last Change" data-tooltip="Undo (Ctrl+Z)">
                 <i class="fa-solid fa-rotate-left"></i>
                 <span>Undo</span>
               </button>
@@ -782,8 +782,8 @@
             <button id="persona-creator" class="persona-pill"><i class="fa-solid fa-wand-magic-sparkles"></i> Game Maker</button>
           </div>
           <div class="modal-right-actions">
-            <button id="btn-cloud-settings" class="icon-btn-subtle" title="Cloud Database Settings" style="display: none;"><i class="fa-solid fa-cloud"></i></button>
-            <button id="btn-close-messages" class="icon-btn-subtle close-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            <button id="btn-cloud-settings" class="icon-btn-subtle" title="Cloud Database Settings" aria-label="Cloud Database Settings" style="display: none;"><i class="fa-solid fa-cloud"></i></button>
+            <button id="btn-close-messages" class="icon-btn-subtle close-btn" title="Close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
           </div>
         </div>
         
@@ -824,7 +824,7 @@
               <div class="chat-input-area">
                 <input type="text" id="input-comment-author" class="comment-author-input" aria-label="Comment author nickname" placeholder="Nickname / Handle" maxlength="24" />
                 <input type="text" id="input-reply-text" class="chat-input" aria-label="Comment text" placeholder="Leave a comment..." />
-                <button id="btn-send-reply" class="send-btn" title="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
+                <button id="btn-send-reply" class="send-btn" title="Send Comment" aria-label="Send Comment"><i class="fa-solid fa-paper-plane"></i></button>
               </div>
             </div>
  
