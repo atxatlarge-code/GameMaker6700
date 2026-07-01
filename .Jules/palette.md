@@ -5,3 +5,6 @@
 ## 2024-06-08 - Added Disabled State for Delete Level Button
 **Learning:** Preset levels in the game cannot be deleted, but the UI previously allowed users to click the delete button and would only tell them it was not allowed via a blocking system `alert()` after the click. This is a disruptive interaction pattern and provides poor feedforward accessibility.
 **Action:** Implemented a visual disabled state on the `btn-del-level` button when a preset level is selected. Removed the reactive alert and replaced it with an updated ARIA label and `title` tooltip explaining *why* the button is disabled, improving clarity without blocking user flow.
+## 2026-07-01 - [Async UI Button Recovery]
+**Learning:** Adding loading spinners to UI buttons that trigger async operations must be robust against network or logic errors; if an error occurs, the UI button remains permanently disabled and spinning.
+**Action:** Always wrap async API calls in a `try...finally` block when modifying UI elements (e.g., disabling or showing spinners) to guarantee the original UI state is restored regardless of success or failure.
