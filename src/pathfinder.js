@@ -2,19 +2,86 @@ import { CONFIG } from './config.js';
 import { audio } from './audio.js';
 import { TILE } from './tiles.js';
 
-// Helper for binary search insertion to maintain sorted order in A* open set
-function insertSorted(array, item, compareFn) {
-  let low = 0;
-  let high = array.length;
-  while (low < high) {
-    const mid = (low + high) >>> 1;
-    if (compareFn(array[mid], item) < 0) {
-      low = mid + 1;
-    } else {
-      high = mid;
+// Min-Heap Priority Queue for O(log N) insertions and extractions
+// Preserves LIFO tie-breaking for equal fScores using an insertion counter
+class MinHeap {
+  constructor() {
+    this.heap = [];
+    this.counter = 0; // Ensures LIFO tie-breaking
+  }
+
+  push(item) {
+    this.heap.push({ item, id: this.counter++ });
+    this._bubbleUp(this.heap.length - 1);
+  }
+
+  pop() {
+    if (this.heap.length === 0) return null;
+    const top = this.heap[0].item;
+    const bottom = this.heap.pop();
+    if (this.heap.length > 0) {
+      this.heap[0] = bottom;
+      this._sinkDown(0);
+    }
+    return top;
+  }
+
+  get length() {
+    return this.heap.length;
+  }
+
+  _compare(a, b) {
+    const diff = a.item.fScore - b.item.fScore;
+    if (diff === 0) {
+      return b.id - a.id; // LIFO tie-breaking: higher id (newer) comes first
+    }
+    return diff;
+  }
+
+  _bubbleUp(index) {
+    const node = this.heap[index];
+    while (index > 0) {
+      const parentIndex = (index - 1) >>> 1;
+      const parent = this.heap[parentIndex];
+      if (this._compare(node, parent) >= 0) break;
+      this.heap[parentIndex] = node;
+      this.heap[index] = parent;
+      index = parentIndex;
     }
   }
-  array.splice(low, 0, item);
+
+  _sinkDown(index) {
+    const length = this.heap.length;
+    const node = this.heap[index];
+    while (true) {
+      let leftChildIndex = (index << 1) + 1;
+      let rightChildIndex = leftChildIndex + 1;
+      let swapIndex = null;
+
+      if (leftChildIndex < length) {
+        const leftChild = this.heap[leftChildIndex];
+        if (this._compare(leftChild, node) < 0) {
+          swapIndex = leftChildIndex;
+        }
+      }
+
+      if (rightChildIndex < length) {
+        const rightChild = this.heap[rightChildIndex];
+        if (
+          (swapIndex === null && this._compare(rightChild, node) < 0) ||
+          (swapIndex !== null && this._compare(rightChild, this.heap[swapIndex]) < 0)
+        ) {
+          swapIndex = rightChildIndex;
+        }
+      }
+
+      if (swapIndex === null) break;
+
+      this.heap[index] = this.heap[swapIndex];
+      this.heap[swapIndex] = node;
+      index = swapIndex;
+    }
+  }
 }
 
 /**
@@ -154,7 +221,8 @@ export function solveLevel(engine) {
   };
   startState.fScore = getHeuristic(startState);
 
-  const openSet = [startState];
+  const openSet = new MinHeap();
+  openSet.push(startState);
   const visited = new Set();
 
   const getDiscretizedKey = (s) => {
@@ -204,7 +272,7 @@ export function solveLevel(engine) {
   while (openSet.length > 0 && iterations < maxIterations) {
     iterations++;
 
-    const curr = openSet.shift();
+    const curr = openSet.pop();
 
     if (curr.hasWon) {
       solution = curr.path;
@@ -269,7 +337,7 @@ export function solveLevel(engine) {
 
       const nextKey = getDiscretizedKey(nextState);
       if (!visited.has(nextKey)) {
-        insertSorted(openSet, nextState, (a, b) => a.fScore - b.fScore);
+        openSet.push(nextState);
       }
     }
   }
@@ -355,7 +423,8 @@ export class AsyncPathfinder {
     };
     startState.fScore = this.getHeuristic(startState);
 
-    this.openSet = [startState];
+    this.openSet = new MinHeap();
+    this.openSet.push(startState);
     this.visited = new Set();
     this.exploredPoints = [];
     this.iterations = 0;
@@ -371,7 +440,7 @@ export class AsyncPathfinder {
 
 
 
-      const curr = this.openSet.shift();
+      const curr = this.openSet.pop();
       this.exploredPoints.push({ x: curr.player.x, y: curr.player.y });
 
       if (curr.hasWon) {
@@ -421,7 +490,7 @@ export class AsyncPathfinder {
 
         const nextKey = this.getDiscretizedKey(nextState);
         if (!this.visited.has(nextKey)) {
-          insertSorted(this.openSet, nextState, (a, b) => a.fScore - b.fScore);
+          this.openSet.push(nextState);
         }
       }
     }
